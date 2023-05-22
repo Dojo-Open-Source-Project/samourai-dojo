@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.20.0](#samourai-dojo-v1200)
 - [v1.19.2](#samourai-dojo-v1192)
 - [v1.19.1](#samourai-dojo-v1191)
 - [v1.19.0](#samourai-dojo-v1190)
@@ -31,13 +32,50 @@
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
 
+## Samourai Dojo v1.20.0
+
+### Notable changes
+
+#### Dojo tracker optimizations
+Dojo tracker has optimized to run more efficiently during IBD and in full-mempool environment.
+
+#### Bitcoin Core updated to v24.1
+
+### Breaking
+This version of Dojo requires users to run Node.js v16 or higher. My-dojo (docker setup) users are unaffected by this change.
+
+### Change log
+
+#### Features
+- [MR 292](https://code.samourai.io/dojo/samourai-dojo/-/merge_requests/292) - major tracker optimizations
+- [b4b891a3](https://code.samourai.io/dojo/samourai-dojo/-/commit/b4b891a3) - log error from parallel address derivation service
+- [624eddf8](https://code.samourai.io/dojo/samourai-dojo/-/commit/624eddf8) - adjusted nginx gzip settings
+- [ebb112ea](https://code.samourai.io/dojo/samourai-dojo/-/commit/ebb112ea) - refactored xlatXPUB function
+- [8a2f49d0](https://code.samourai.io/dojo/samourai-dojo/-/commit/8a2f49d0) - added ability to display full tx HEX in DMT
+- [1a868a3e](https://code.samourai.io/dojo/samourai-dojo/-/commit/1a868a3e) - updated to Bitcoin Core v25.0
+- [1e269465](https://code.samourai.io/dojo/samourai-dojo/-/commit/1e269465) - updated Node.js containers to v18
+
+#### Bugfixes
+- [272098d8](https://code.samourai.io/dojo/samourai-dojo/-/commit/272098d8) - properly log mysql lock errors
+- [f79c2ada](https://code.samourai.io/dojo/samourai-dojo/-/commit/f79c2ada) - fixed mysql queries in CLI scripts
+
+#### Chores
+- [76fd4bee](https://code.samourai.io/dojo/samourai-dojo/-/commit/76fd4bee), [26bfd550](https://code.samourai.io/dojo/samourai-dojo/-/commit/26bfd550) - raised IBD limit
+- [7a8d7f53](https://code.samourai.io/dojo/samourai-dojo/-/commit/7a8d7f53) - removed unnecessary promise
+- [880b0430](https://code.samourai.io/dojo/samourai-dojo/-/commit/880b0430) - updated tx cache description
+- [b1f2db09](https://code.samourai.io/dojo/samourai-dojo/-/commit/b1f2db09) - updated Node.js dependencies
+- [79497903](https://code.samourai.io/dojo/samourai-dojo/-/commit/79497903) - updated auth47
+- [66c362ed](https://code.samourai.io/dojo/samourai-dojo/-/commit/66c362ed) - fixed ESlint errors
+- [05ac896f](https://code.samourai.io/dojo/samourai-dojo/-/commit/05ac896f) - removed unnecessary bs58 dependency
+- [88315bb1](https://code.samourai.io/dojo/samourai-dojo/-/commit/88315bb1), [48c9d289](https://code.samourai.io/dojo/samourai-dojo/-/commit/48c9d289) - JSdoc updates
+
 ## Samourai Dojo v1.19.2 ##
 
 ### Change log ###
 
 #### Changes ####
-- [d4b70286](d4b70286) - tweak IPC for remote importer
-- [fb35ebf9](fb35ebf9) - added IPC to auth REST API
+- [d4b70286](https://code.samourai.io/dojo/samourai-dojo/-/commit/d4b70286) - tweak IPC for remote importer
+- [fb35ebf9](https://code.samourai.io/dojo/samourai-dojo/-/commit/fb35ebf9) - added IPC to auth REST API
 
 ## Samourai Dojo v1.19.1 ##
 
