@@ -39,7 +39,7 @@
 #### Dojo tracker optimizations
 Dojo tracker has optimized to run more efficiently during IBD and in full-mempool environment.
 
-#### Bitcoin Core updated to v24.1
+#### Bitcoin Core updated to v25.0
 
 ### Breaking
 This version of Dojo requires users to run Node.js v16 or higher. My-dojo (docker setup) users are unaffected by this change.
