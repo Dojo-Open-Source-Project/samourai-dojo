@@ -38,8 +38,8 @@ class Transaction {
          * @type {string}
          */
         this.txid = this.tx.getId()
-        // ID of transaction stored in db
         /**
+         * ID of transaction stored in db
          * @type {number | null}
          */
         this.storedTxnID = null
@@ -48,6 +48,11 @@ class Transaction {
          * @type {boolean}
          */
         this.doBroadcast = false
+        /**
+         * Transaction is being processed
+         * @type {null | Promise<void>}
+         */
+        this.storingTransaction = null
     }
 
     /**
@@ -126,7 +131,7 @@ class Transaction {
             })
 
             // Detect potential double spends
-            if (r.spendingTxnID !== null && r.spendingTxnID !== this.storedTxnID) {
+            if (r.spendingTxnID != null && r.spendingTxnID !== this.storedTxnID) {
                 Logger.info(`Tracker : DOUBLE SPEND of ${r.txnTxid}-${r.outIndex} by ${this.txid}!`)
                 // Delete the existing transaction that has been double-spent:
                 // since the deepest block keeps its transactions, this will
@@ -400,10 +405,12 @@ class Transaction {
 
     /**
      * Store the transaction in database
-     * @returns {Promise}
+     * @returns {Promise<void>}
      */
-    async _ensureTransaction() {
-        if (this.storedTxnID == null) {
+    _ensureTransaction() {
+        if (this.storingTransaction !== null) return this.storingTransaction
+
+        return this.storingTransaction = (async () => {
             this.storedTxnID = await db.ensureTransactionId(this.txid)
 
             await db.addTransaction({
@@ -413,7 +420,7 @@ class Transaction {
             })
 
             Logger.info(`Tracker :  Storing transaction ${this.txid}`)
-        }
+        })()
     }
 
 }
