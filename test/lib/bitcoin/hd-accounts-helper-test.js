@@ -6,6 +6,7 @@
 
 import assert from 'assert'
 import hdaHelper from '../../../lib/bitcoin/hd-accounts-helper.js'
+import errors from '../../../lib/errors.js'
 
 
 /**
@@ -17,6 +18,36 @@ const YPUB = 'upub5ELkCsSF68UnAZE7zF9CDztvHeBJiAAhwa4VxEFzZ1CfQRbpy93mkBbUZsqYVp
 const ZPUB = 'vpub5ZB1WY7AEp2G1rREpbvpS5zRTcKkenACrgaijd9sw1aYTXR4DoDLNFFcb5o8VjTZdvNkHXFq9oxDZAtfsGMcVy9qLWsNzdtZHBRbtXe87LB'
 
 const POSTMIX_ZPUB = 'vpub5Y6cjg7GbwSLRu33XB76n3EoJZscmYSVEToLSMqD6ugAcm4rof8E9yvDiaFfhGEuyL95P9VD4A9W3JrBTZhzWSXiRyYvWFnUBAZc67X32wh'
+
+const XPUB_VECTORS = new Map([
+    ['xpub6BosfCnifzxcFwrSzQiqu2DBVTshkCXacvNsWGYJVVhhawA7d4R5WSWGFNbi8Aw6ZRc1brxMyWMzG3DSSSSoekkudhUd9yLb6qx39T9nMdj', [
+        'ypub6We8xsTdpgW67F3ZpmWU77JgfS29gpX5Y2u6HfSBsW5ae2yLsiae8WAQGaZJ85b1y4ipMLYvSAiY9Kq1A8rpSzSWW3B3jtA5Na1gXzZ8iqF',
+        'zpub6qUQGY8YyN3ZxYEgf8J6KCQBqQAbdSWaT9RK54L5FWTTh8na8NkCkZpYHnWt7zEwNhqd6p9Utq562cSZsqGqFE87NNsUKnyZeJ5KvbhfC8E'
+    ]],
+    ['xpub6C6nQwHaWbSrzs5tZ1q7m5R9cPK9eYpNMFesiXsYrgc1P8bvLLAet9JfHjYXKjToD8cBRswJXXbbFpXgwsswVPAZzKMa1jUp2kVkGVUaJa7', [
+        'ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNB6VvmSEgytSER9azLDWCxoJwW7Ke7icmizBMXrzBx9979FfaHxHcrArf3zbeJJJUZPf663zsP',
+        'zpub6qmK2GdQoxXphTU8DjQNBFc9xKc3XnoNBUhKHKfKchMmVLENqeVn8GcwL9ThKYme2Qqnvq8RSrJh2PkpPGhy5rXmizkRBZ7naCd33hHSpaN'
+    ]],
+    ['xpub6CatWdiZiodmUeTDp8LT5or8nmbKNcuyvz7WyksVFkKB4RHwCD3XyuvPEbvqAQY3rAPshWcMLoP2fMFMKHPJ4ZeZXYVUhLv1VMrjPC7PW6V', [
+        'ypub6XR9pJPUsVBFKweLeV85HtwdxjjmKEuUr6djm9mNdkh47X7ASsD6byaXFotRAKByFoWgSzCuoTjaYdrv2yoJroLAPtBuHFjVm5vNmhyNehE',
+        'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs'
+    ]]
+])
+
+const TPUB_VECTORS = new Map([
+    ['tpubDCBWBScQPGv4Xk3JSbhw6wYYpayMjb2eAYyArpbSqQTbLDpphHGAetB6VQgVeftLML8vDSUEWcC2xDi3qJJ3YCDChJDvqVzpgoYSuT52MhJ', [
+        'upub5DK5kCmyDxLAi4H6VLMyGkvfyZSMvLZ5sapDA5reMUa4RdiRs5vPeFXrBkix8SyLLWFbMSAgbXJLcBNkHMCmG3i72gPMQEt8Hfm6ydxa9N4',
+        'vpub5Y9M3sStNdseZMUDKh9bUr2B9XaorxYanhLRwUkXjUwwUjXf7k5xGKBzCxgY8MdFk9NQ6umF4BetVTzK13cn4HPhu25mz9hcZPpkNEQ4Gjp'
+    ]],
+    ['tpubDCUQwB7GDsQKGfGk1CpCxzkWwWQodwKRttFB55vhCbMu8RGdQZ1k2ayVXmdJrER313963TTB4dRdx12JLjjBNpcs3v6shG93ci6A2XiGuJN', [
+        'upub5DbzVwGq4YpRSyWY3wUF8p8e6Usopgqsbv6DNMBtifUNDqAEaMfy1xLFE7fmL1W2zDFmBT9d9YXwbxgznndu6g7mPJGJG12MDaJp6j9WNDJ',
+        'vpub5YSFobwkDEMuJGhetJFsLuE9GT2FmJqNX2cS9k5n6frFGvyTq1qXe1zPFKdMKv9xPrNZvvkBcCtVVFJZWV3utuoNFdxiquqqVJNTVNFiiVA'
+    ]],
+    ['tpubDCxX2sYFS5bDkSe5GKKYHjBW7tgyN1R3UchpLJvdbf54ohxeGRtd8MbDUe1cguVHe4vnK68DsuD5MXjxi9EXx16rb9EnNsaF5KT99CinaJz', [
+        'upub5E66bdhpGm1KvkssK3yaTYZdGs9yYkwVBeYrdaBq7jBXu7rFSEYr7iwyAz45AgaHdF3TT5pfxpKP1VQfAC9FfrbkvXQCwcTYgBfoDTNH1hz',
+        'vpub5YvMuJNjRSYon44z9QmCfdf8SqJRVNvz6m55Qy5iVjZQxDfUgtiQjnc7CC1fAbED2tAGCZRERUfvtn2DstZGU6HMns6dXXH2wujSc2wfi2x'
+    ]]
+])
 
 const BIP44_VECTORS = [
     [0, 0, 'mmZ5FRccGAkwfKme4JkrsmurnimDLdfmNL'],
@@ -186,19 +217,38 @@ describe('HdAccountsHelper', () => {
 
 
     describe('xlatXPUB()', () => {
-        it('should successfully translate XPUB in YPUB', () => {
-            const xpubXlated = hdaHelper.xlatXPUB(XPUB)
-            assert.strictEqual(xpubXlated, XPUB)
+        it('should translate X/Y/ZPUB to XPUB', () => {
+            for (const [xpub, pubs] of XPUB_VECTORS.entries()) {
+                for (const pub of pubs) {
+                    const translated = hdaHelper.xlatXPUB(pub)
+
+                    assert.strictEqual(translated, xpub)
+                }
+
+                const translated = hdaHelper.xlatXPUB(xpub)
+
+                assert.strictEqual(translated, xpub)
+            }
         })
 
-        it('should successfully translate YPUB in XPUB', () => {
-            const ypubXlated = hdaHelper.xlatXPUB(YPUB)
-            assert.strictEqual(ypubXlated, XPUB)
+        it('should translate T/U/VPUB to TPUB', () => {
+            for (const [tpub, pubs] of TPUB_VECTORS.entries()) {
+                for (const pub of pubs) {
+                    const translated = hdaHelper.xlatXPUB(pub)
+
+                    assert.strictEqual(translated, tpub)
+                }
+
+                const translated = hdaHelper.xlatXPUB(tpub)
+
+                assert.strictEqual(translated, tpub)
+            }
         })
 
-        it('should successfully translate ZPUB in XPUB', () => {
-            const zpubXlated = hdaHelper.xlatXPUB(ZPUB)
-            assert.strictEqual(zpubXlated, XPUB)
+        it('should throw an error on invalid XPUB', () => {
+            assert.throws(() => {
+                hdaHelper.xlatXPUB('apub6BosfCnifzxcFwrSzQiqu2DBVTshkCXacvNsWGYJVVhhawA7d4R5WSWGFNbi8Aw6ZRc1brxMyWMzG3DSSSSoekkudhUd9yLb6qx39T9nMdj')
+            }, errors.xpub.INVALID)
         })
     })
 

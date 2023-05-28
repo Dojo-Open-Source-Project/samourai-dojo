@@ -50,20 +50,20 @@ class NotificationsServer {
         this.sock.subscribe('block')
         this.sock.subscribe('transaction')
 
-        this.sock.on('message', (topic, message) => {
+        this.sock.on('message', async (topic, message) => {
             switch (topic.toString()) {
             case 'block':
                 try {
-                    const header = JSON.parse(message.toString())
-                    this.notifService.notifyBlock(header)
+                    const block = JSON.parse(message.toString())
+                    this.notifService.notifyBlock(block)
                 } catch (error) {
                     Logger.error(error, 'API : NotificationServer._initTrackerSocket() : Error in block message')
                 }
                 break
             case 'transaction':
                 try {
-                    const tx = JSON.parse(message.toString())
-                    this.notifService.notifyTransaction(tx)
+                    const txid = message.toString()
+                    await this.notifService.notifyTransaction(txid)
                 } catch (error) {
                     Logger.error(error, 'API : NotificationServer._initTrackerSocket() : Error in transaction message')
                 }

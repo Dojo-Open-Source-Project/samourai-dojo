@@ -15,6 +15,7 @@ import { createRpcClient } from '../lib/bitcoind-rpc/rpc-client.js'
 import keysFile from '../keys/index.js'
 import Transaction from './transaction.js'
 import TransactionsBundle from './transactions-bundle.js'
+import { TransactionsCache } from './transactions-cache.js'
 
 const keys = keysFile[network.key]
 
@@ -44,6 +45,8 @@ class MempoolProcessor {
         // Processor is deactivated if the tracker is late
         // (priority is given to the blockchain processor)
         this.isActive = false
+        // Flag indicating that processing of unconfirmed transactions is currently running
+        this.processingUnconfirmedTxs = false
     }
 
     /**
@@ -151,30 +154,19 @@ class MempoolProcessor {
         const activeLbl = this.isActive ? 'active' : 'inactive'
         Logger.info(`Tracker : Processing ${activeLbl} Mempool (${this.mempoolBuffer.size()} transactions)`)
 
-        let currentMempool = new TransactionsBundle(this.mempoolBuffer.toArray())
+        const currentMempool = this.mempoolBuffer.toArray()
         this.mempoolBuffer.clear()
 
-        const txsForBroadcast = new Map()
-
-        let filteredTxs = await currentMempool.prefilterByOutputs()
-        await util.parallelCall(filteredTxs, async filteredTx => {
-            const tx = new Transaction(filteredTx)
-            await tx.processOutputs()
-            if (tx.doBroadcast)
-                txsForBroadcast[tx.txid] = tx.tx
-        })
-
-        filteredTxs = await currentMempool.prefilterByInputs()
-        await util.parallelCall(filteredTxs, async filteredTx => {
-            const tx = new Transaction(filteredTx)
-            await tx.processInputs()
-            if (tx.doBroadcast)
-                txsForBroadcast[tx.txid] = tx.tx
-        })
-
-        // Send the notifications
-        for (let tx of txsForBroadcast.values())
-            this.notifyTx(tx)
+        for (const mempoolTx of currentMempool) {
+            if (!TransactionsCache.has(mempoolTx.txid)) {
+                // Process the transaction
+                const txCheck = await mempoolTx.checkTransaction()
+                // Notify the transaction if needed
+                if (txCheck && mempoolTx.doBroadcast) {
+                    this.notifyTx(mempoolTx.txid)
+                }
+            }
+        }
     }
 
     /**
@@ -207,13 +199,13 @@ class MempoolProcessor {
 
             Logger.info(`Tracker : Processing tx for pushtx ${txid}`)
 
-            if (!TransactionsBundle.cache.has(txid)) {
+            if (!TransactionsCache.has(txid)) {
                 // Process the transaction
                 const tx = new Transaction(pushedTx)
                 const txCheck = await tx.checkTransaction()
                 // Notify the transaction if needed
                 if (txCheck && txCheck.broadcast)
-                    this.notifyTx(txCheck.tx)
+                    this.notifyTx(txid)
             }
         } catch (error) {
             Logger.error(error, 'Tracker : MempoolProcessor.onPushTx()')
@@ -223,24 +215,25 @@ class MempoolProcessor {
 
     /**
      * Notify a new transaction
-     * @param {object} tx - bitcoin transaction
+     * @param {string} txid - bitcoin transaction ID
      */
-    notifyTx(tx) {
+    notifyTx(txid) {
         // Real-time client updates for this transaction.
         // Any address input or output present in transaction
         // is a potential client to notify.
         if (this.notifSock)
-            this.notifSock.send(['transaction', JSON.stringify(tx)])
+            this.notifSock.send(['transaction', txid])
     }
 
     /**
      * Notify a new block
-     * @param {string} header - block header
+     * @param {number} height - block height
+     * @param {string} hash - block hash
      */
-    notifyBlock(header) {
+    notifyBlock(height, hash) {
         // Notify clients of the block
         if (this.notifSock)
-            this.notifSock.send(['block', JSON.stringify(header)])
+            this.notifSock.send(['block', JSON.stringify({ height: height, hash: hash })])
     }
 
 
@@ -249,6 +242,9 @@ class MempoolProcessor {
      * @returns {Promise<void>}
      */
     async checkUnconfirmed() {
+        // check that processing isn't already running
+        if (this.processingUnconfirmedTxs) return
+
         const t0 = Date.now()
 
         Logger.info('Tracker : Processing unconfirmed transactions')
@@ -256,9 +252,11 @@ class MempoolProcessor {
         const unconfirmedTxs = await db.getUnconfirmedTransactions()
 
         if (unconfirmedTxs.length > 0) {
-            const unconfirmedTxLists = util.splitList(unconfirmedTxs, 20)
+            this.processingUnconfirmedTxs = true
 
-            await util.seriesCall(unconfirmedTxLists, async (txList) => {
+            const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10)
+
+            await util.asyncPool(3, unconfirmedTxLists, async (txList) => {
                 const rpcRequests = txList.map((tx) => ({ method: 'getrawtransaction', params: { txid: tx.txnTxid, verbose: true }, id: tx.txnTxid }))
                 const txs = await this.client.batch(rpcRequests)
 
@@ -266,7 +264,7 @@ class MempoolProcessor {
                     if (rtx.error) {
                         Logger.error(rtx.error.message, 'Tracker : MempoolProcessor.checkUnconfirmed()')
                         // Transaction not in mempool. Update LRU cache and database
-                        TransactionsBundle.cache.delete(rtx.id)
+                        TransactionsCache.delete(rtx.id)
                         // TODO: Notify clients of orphaned transaction
                         return db.deleteTransaction(rtx.id)
                     } else {
@@ -280,6 +278,8 @@ class MempoolProcessor {
                     }
                 })
             })
+
+            this.processingUnconfirmedTxs = false
         }
 
         // Logs
@@ -306,7 +306,7 @@ class MempoolProcessor {
             }
 
             // Tolerate a delay of 6 blocks
-            this.isActive = (highestHeader >= 746400) && (highestHeader <= highestBlock.blockHeight + 6)
+            this.isActive = (highestHeader >= 773800) && (highestHeader <= highestBlock.blockHeight + 6)
         } catch (error) {
             Logger.error(error, 'Tracker : MempoolProcessor._refreshActiveStatus()')
         }

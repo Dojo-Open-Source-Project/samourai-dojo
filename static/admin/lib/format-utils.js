@@ -6,8 +6,8 @@ const lib_fmt = {
      */
     cleanJson: (json) => {
         let jsonText = JSON.stringify(json)
-        jsonText = jsonText.replace(/'/g, '"').replace(/False/g, 'false').replace(/True/g, 'true')
-        jsonText = jsonText.replace(/(Decimal\(")([\d,.E-]*)("\))/g, '"$2"')
+        jsonText = jsonText.replaceAll('\'', '"').replaceAll('False', 'false').replaceAll('True', 'true')
+        jsonText = jsonText.replaceAll(/(Decimal\(")([\d,.E-]*)("\))/g, '"$2"')
         return jsonText
     },
 
@@ -19,9 +19,9 @@ const lib_fmt = {
             json = JSON.stringify(json, undefined, 2)
         }
 
-        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        json = json.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 
-        return json.replace(
+        return json.replaceAll(
             /("(\\u[\dA-Za-z]{4}|\\[^u]|[^"\\])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[Ee][+-]?\d+)?)/g,
             (match) => {
                 let cls = 'number'

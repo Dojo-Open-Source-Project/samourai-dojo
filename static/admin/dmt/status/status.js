@@ -61,7 +61,7 @@ const statusScript = {
                     const indexerType = indexer.type
                     if (indexerType) {
                         sessionStorage.setItem('indexerType', indexerType)
-                        document.querySelector('#indexer-type').textContent = indexerType.replace(/_/g, ' ')
+                        document.querySelector('#indexer-type').textContent = indexerType.replaceAll('_', ' ')
                     }
                     const indexerUrl = indexer.url
                     if (indexerUrl)

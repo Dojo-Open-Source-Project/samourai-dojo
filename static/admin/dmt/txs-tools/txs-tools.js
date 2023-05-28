@@ -12,7 +12,7 @@ const screenTxsToolsScript = {
         document.querySelector('#btn-txs-details-reset').addEventListener('click', () => {
             screenTxsToolsScript.showSearchForm()
         })
-        document.querySelector('#txs-tool').addEventListener('keyup',evt => {
+        document.querySelector('#txs-tool').addEventListener('keyup', evt => {
             if (evt.key === 'Enter') {
                 screenTxsToolsScript.searchTx()
             }
@@ -46,6 +46,16 @@ const screenTxsToolsScript = {
             console.log(txInfo)
             screenTxsToolsScript.setTxDetails(txInfo)
             screenTxsToolsScript.showTxDetails()
+
+            // fetch tx hex
+            lib_api.getRawTransaction(txid)
+                .then((txHex) => {
+                    screenTxsToolsScript.setTxHex(txHex.data)
+                })
+                .catch((error) => {
+                    lib_msg.displayErrors('No transaction hex found')
+                    console.log(error)
+                })
         }
     }).catch((error) => {
         lib_msg.displayErrors('No transaction found')
@@ -106,10 +116,20 @@ const screenTxsToolsScript = {
         }
     },
 
+    setTxHex: (txHex) => {
+        if (txHex) {
+            const hexWrapperElement = document.querySelector('#txs-tool-hex')
+
+            hexWrapperElement.removeAttribute('hidden')
+            document.querySelector('#txs-tool-hex-payload').value = txHex
+        }
+    },
+
     showSearchForm: () => {
         document.querySelector('#txs-tool-details').setAttribute('hidden', '')
         document.querySelector('#txid').value = ''
         document.querySelector('#txs-tool-search-form').removeAttribute('hidden')
+        document.querySelector('#txs-tool-hex').setAttribute('hidden', '')
         lib_msg.cleanMessagesUi()
     },
 

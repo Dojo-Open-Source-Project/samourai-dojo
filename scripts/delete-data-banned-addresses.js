@@ -4,7 +4,6 @@
  */
 
 
-import mysql from 'mysql2'
 
 import Logger from '../lib/logger.js'
 import util from '../lib/util.js'
@@ -16,7 +15,7 @@ import db from '../lib/db/mysql-db-wrapper.js'
  */
 
 async function getBannedAddresses() {
-    const query = mysql.format('SELECT `addrAddress` FROM `banned_addresses`')
+    const query = 'SELECT `addrAddress` FROM `banned_addresses`'
     return db._query(query)
 }
 
@@ -24,23 +23,20 @@ async function getBannedAddresses() {
 async function deleteAddress(address) {
     const addr = address.addrAddress
     Logger.info(`Start deletion of address ${addr}`)
-    const query = mysql.format(
-        'DELETE `addresses`.* FROM `addresses` WHERE `addresses`.`addrAddress` = ?',
-        addr
-    )
-    const ret = await db._query(query)
+    const query = 'DELETE `addresses`.* FROM `addresses` WHERE `addresses`.`addrAddress` = ?'
+    const ret = await db._query(query, [addr])
     Logger.info(`Completed deletion of address ${addr}`)
     return ret
 }
 
 
 async function getUnlinkedTransactions() {
-    const query = mysql.format(
+    const query =
         'SELECT `transactions`.`txnTxid` \
          FROM `transactions` \
          WHERE `transactions`.`txnID` NOT IN (SELECT `outputs`.`txnID` FROM `outputs`) \
          AND `transactions`.`txnID` NOT IN (SELECT `inputs`.`txnID` FROM `inputs`)'
-    )
+
     return db._query(query)
 }
 

@@ -11,13 +11,13 @@ import hdaHelper from '../lib/bitcoin/hd-accounts-helper.js'
 import db from '../lib/db/mysql-db-wrapper.js'
 import network from '../lib/bitcoin/network.js'
 import keysFile from '../keys/index.js'
-import TransactionsBundle from './transactions-bundle.js'
+import { TransactionsCache } from './transactions-cache.js'
 
 const keys = keysFile[network.key]
 const gapLimit = [keys.gap.external, keys.gap.internal]
 
 /**
- * @typedef {import('bitcoinjs-lib').Transaction} Transaction
+ * @typedef {import('bitcoinjs-lib').Transaction} bitcoin.Transaction
  */
 
 /**
@@ -27,41 +27,43 @@ class Transaction {
 
     /**
      * Constructor
-     * @param {Transaction} tx - transaction object
+     * @param {bitcoin.Transaction} tx - transaction object
      */
     constructor(tx) {
+        /**
+         * @type {bitcoin.Transaction}
+         */
         this.tx = tx
+        /**
+         * @type {string}
+         */
         this.txid = this.tx.getId()
-        // Id of transaction stored in db
+        // ID of transaction stored in db
+        /**
+         * @type {number | null}
+         */
         this.storedTxnID = null
-        // Should this transaction be broadcast out to connected clients?
+        /**
+         * Should this transaction be broadcast out to connected clients?
+         * @type {boolean}
+         */
         this.doBroadcast = false
     }
 
     /**
      * Register transaction in db if it's a transaction of interest
-     * @returns {object} returns a composite result object
-     *  {
-     *    tx: <transaction_as_stored_in_db>,
-     *    broadcast: <boolean>
-     *  }
+     * @returns {Promise<{ tx:object, broadcast: boolean }>} returns a composite result object
      */
     async checkTransaction() {
         try {
-            // Process transaction inputs
-            await this.processInputs()
-
-            // Process transaction outputs
-            await this.processOutputs()
+            // Process transaction inputs and outputs
+            await Promise.all([this.processInputs(), this.processOutputs()])
 
             // If this point reached with no errors,
             // store the fact that this transaction was checked.
-            TransactionsBundle.cache.set(this.txid, Date.now())
-
-            const tx = await db.getTransaction(this.txid)
+            TransactionsCache.set(this.txid, this.doBroadcast)
 
             return {
-                tx: tx,
                 broadcast: this.doBroadcast
             }
 
@@ -73,7 +75,7 @@ class Transaction {
 
     /**
      * Process transaction inputs
-     * @returns {Promise}
+     * @returns {Promise<void>}
      */
     async processInputs() {
         // Array of inputs spent
@@ -143,7 +145,7 @@ class Transaction {
             const txs = await db.getTransactionsById(doubleSpentTxnIDs)
 
             for (let tx of txs)
-                TransactionsBundle.cache.delete(tx.txnTxid)
+                TransactionsCache.delete(tx.txnTxid)
 
             await db.deleteTransactionsByID(doubleSpentTxnIDs)
         }
@@ -151,7 +153,7 @@ class Transaction {
 
     /**
      * Process transaction outputs
-     * @returns {Promise}
+     * @returns {Promise<void>}
      */
     async processOutputs() {
         // Store outputs, keyed by address. Values are arrays of outputs
@@ -186,7 +188,7 @@ class Transaction {
         const result = await db.getHDAccountsByAddresses(addresses)
 
         // Get outputs spending to loose addresses first
-        const aLooseAddr = await this._processOutputsLooseAddresses(result.loose, indexedOutputs)
+        const aLooseAddr = this._processOutputsLooseAddresses(result.loose, indexedOutputs)
         fundedAddresses = [...fundedAddresses, ...aLooseAddr]
 
         // Get outputs spending to a tracked account
@@ -222,10 +224,10 @@ class Transaction {
      * Process outputs sending to tracked loose addresses
      * @param {object[]} addresses - array of address objects
      * @param {object} indexedOutputs - outputs indexed by address
-     * @returns {Promise<object[]>} return an array of funded addresses
+     * @returns {object[]} return an array of funded addresses
      *  {addrID: ..., outIndex: ..., outAmount: ..., outScript: ...}
      */
-    async _processOutputsLooseAddresses(addresses, indexedOutputs) {
+    _processOutputsLooseAddresses(addresses, indexedOutputs) {
         // Store a list of known addresses that received funds
         const fundedAddresses = []
 

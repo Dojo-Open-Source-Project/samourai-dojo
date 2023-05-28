@@ -4,12 +4,15 @@
  */
 
 
-import QuickLRU from 'quick-lru'
-
 import util from '../lib/util.js'
 import db from '../lib/db/mysql-db-wrapper.js'
 import addrHelper from '../lib/bitcoin/addresses-helper.js'
+import Transaction from './transaction.js'
+import { TransactionsCache } from './transactions-cache.js'
 
+/**
+ * @typedef {import('bitcoinjs-lib').Transaction} bitcoin.Transaction
+ */
 
 /**
  * A base class defining a set of transactions (mempool, block)
@@ -19,20 +22,23 @@ class TransactionsBundle {
     /**
      * Constructor
      * @constructor
-     * @param {object[]=} txs - array of bitcoin transaction objects
+     * @param {bitcoin.Transaction[]=} txs - array of bitcoin transaction objects
      */
     constructor(txs) {
-        // List of transactions
-        this.transactions = (txs == null) ? [] : txs
+        /**
+         * List of transactions
+         * @type Transaction[]
+         */
+        this.transactions = (txs == null) ? [] : txs.map((tx) => new Transaction(tx))
     }
 
     /**
      * Adds a transaction
-     * @param {object} tx - transaction object
+     * @param {bitcoin.Transaction} tx - transaction object
      */
     addTransaction(tx) {
         if (tx) {
-            this.transactions.push(tx)
+            this.transactions.push(new Transaction(tx))
         }
     }
 
@@ -45,7 +51,7 @@ class TransactionsBundle {
 
     /**
      * Return the bundle as an array of transactions
-     * @returns {object[]}
+     * @returns {Transaction[]}
      */
     toArray() {
         return [...this.transactions]
@@ -62,7 +68,7 @@ class TransactionsBundle {
     /**
      * Find the transactions of interest
      * based on theirs inputs
-     * @returns {Promise<object[]>} returns an array of transactions objects
+     * @returns {Promise<Transaction[]>} returns an array of transactions objects
      */
     async prefilterByInputs() {
         // Process transactions by slices of 5000 transactions
@@ -75,7 +81,7 @@ class TransactionsBundle {
     /**
      * Find the transactions of interest
      * based on theirs outputs
-     * @returns {Promise<object[]>} returns an array of transactions objects
+     * @returns {Promise<Transaction[]>} returns an array of transactions objects
      */
     async prefilterByOutputs() {
         // Process transactions by slices of 5000 transactions
@@ -88,24 +94,38 @@ class TransactionsBundle {
     /**
      * Find the transactions of interest
      * based on theirs outputs (internal implementation)
-     * @params {object[]} txs - array of transactions objects
-     * @returns {Promise<object[]>} returns an array of transactions objects
+     * @params {Transaction[]} txs - array of transactions objects
+     * @returns {Awaited<Promise<Transaction[]>>} returns an array of transactions objects
      */
     async _prefilterByOutputs(txs) {
-        let addresses = []
-        let filteredIndexTxs = []
-        let indexedOutputs = {}
+        /**
+         * @type {Transaction[]}
+         */
+        const alreadySeenTXsOfInterest = []
+        const addresses = []
+        const filteredIndexTxs = []
+        const indexedOutputs = {}
 
         // Index the transaction outputs
         for (const index in txs) {
             const tx = txs[index]
-            const txid = tx.getId()
+            const txid = tx.txid
 
-            if (TransactionsBundle.cache.has(txid))
+            /**
+             * Check if transaction has been checked in the past.
+             * If it has been, check for value:
+             *  - true = is transaction of interest, save and skip processing
+             *  - false = skip entirely
+             */
+            if (TransactionsCache.has(txid)) {
+                if (TransactionsCache.get(txid)) {
+                    alreadySeenTXsOfInterest.push(tx)
+                }
                 continue
+            }
 
-            for (const index_ in tx.outs) {
-                const script = tx.outs[index_].script
+            for (const index_ in tx.tx.outs) {
+                const script = tx.tx.outs[index_].script
                 const address = addrHelper.outputScript2Address(script)
 
                 if (address) {
@@ -129,31 +149,45 @@ class TransactionsBundle {
             }
         }
 
-        return filteredIndexTxs.map(x => txs[x])
+        return [...alreadySeenTXsOfInterest, ...filteredIndexTxs.map(x => txs[x])]
     }
 
     /**
      * Find the transactions of interest
      * based on theirs inputs (internal implementation)
-     * @params {object[]} txs - array of transactions objects
-     * @returns {Promise<object[]>} returns an array of transactions objects
+     * @params {Transaction[]} txs - array of transactions objects
+     * @returns {Awaited<Promise<Transaction[]>>} returns an array of transactions objects
      */
     async _prefilterByInputs(txs) {
-        let inputs = []
-        let filteredIndexTxs = []
-        let indexedInputs = {}
+        /**
+         * @type {Transaction[]}
+         */
+        const alreadySeenTXsOfInterest = []
+        const inputs = []
+        const filteredIndexTxs = []
+        const indexedInputs = {}
 
         for (const index in txs) {
             const tx = txs[index]
-            const txid = tx.getId()
+            const txid = tx.txid
 
-            if (TransactionsBundle.cache.has(txid))
+            /**
+             * Check if transaction has been checked in the past.
+             * If it has been, check for value:
+             *  - true = is transaction of interest, save and skip processing
+             *  - false = skip entirely
+             */
+            if (TransactionsCache.has(txid)) {
+                if (TransactionsCache.get(txid)) {
+                    alreadySeenTXsOfInterest.push(tx)
+                }
                 continue
+            }
 
-            for (const index_ in tx.ins) {
-                const spendHash = tx.ins[index_].hash
+            for (const index_ in tx.tx.ins) {
+                const spendHash = tx.tx.ins[index_].hash
                 const spendTxid = Buffer.from(spendHash).reverse().toString('hex')
-                const spendIndex = tx.ins[index_].index
+                const spendIndex = tx.tx.ins[index_].index
                 inputs.push({ txid: spendTxid, index: spendIndex })
                 const key = `${spendTxid}-${spendIndex}`
                 if (!indexedInputs[key])
@@ -176,25 +210,9 @@ class TransactionsBundle {
             }
         }
 
-        return filteredIndexTxs.map(x => txs[x])
+        return [...alreadySeenTXsOfInterest, ...filteredIndexTxs.map(x => txs[x])]
     }
 
 }
-
-/**
- * Cache of txids, for avoiding triple-check behavior.
- * ZMQ sends the transaction twice:
- * 1. When it enters the mempool
- * 2. When it leaves the mempool (mined or orphaned)
- * Additionally, the transaction comes in a block
- * Orphaned transactions are deleted during the routine check
- */
-TransactionsBundle.cache = new QuickLRU({
-    // Maximum number of txids to store in cache
-    maxSize: 100000,
-    // Maximum age for items in the cache. Items do not expire
-    maxAge: Number.POSITIVE_INFINITY
-})
-
 
 export default TransactionsBundle

@@ -6,18 +6,22 @@
 
 import zmq from 'zeromq/v5-compat.js'
 import { Sema } from 'async-sema'
+import bitcoin from 'bitcoinjs-lib'
 
 import util from '../lib/util.js'
+import { FifoQueue } from '../lib/queue.js'
 import Logger from '../lib/logger.js'
 import db from '../lib/db/mysql-db-wrapper.js'
 import network from '../lib/bitcoin/network.js'
 import { createRpcClient, waitForBitcoindRpcApi } from '../lib/bitcoind-rpc/rpc-client.js'
 import keysFile from '../keys/index.js'
 import Block from './block.js'
-import * as blocksProcessor from './blocks-processor.js'
 
 const keys = keysFile[network.key]
 
+/**
+ * @typedef {{ height: number, hash: string, time: number, previousblockhash: string }} BlockHeader
+ */
 
 /**
  * A class allowing to process the blockchain
@@ -35,12 +39,10 @@ class BlockchainProcessor {
         this.blkSock = null
         // Initialize a semaphor protecting the onBlockHash() method
         this._onBlockHashSemaphor = new Sema(1, { capacity: 50 })
-        // Array of worker threads used for parallel processing of blocks
-        this.blockWorkers = []
         // Flag tracking Initial Block Download Mode
         this.isIBD = true
-        // Initialize the blocks processor
-        blocksProcessor.init(notifSock)
+        // Instance of ZMQ notification socket
+        this.notifSock = notifSock
     }
 
     /**
@@ -55,7 +57,9 @@ class BlockchainProcessor {
     /**
      * Start processing the blockchain
      */
-    async stop() {}
+    async stop() {
+        this.blkSock && this.blkSock.close()
+    }
 
     /**
      * Tracker process startup
@@ -68,7 +72,7 @@ class BlockchainProcessor {
             const daemonNbHeaders = info.headers
 
             // Consider that we are in IBD mode if Dojo is far in the past (> 13,000 blocks)
-            this.isIBD = (highest.blockHeight < 746400) || (highest.blockHeight < daemonNbHeaders - 13000)
+            this.isIBD = (highest.blockHeight < 773800) || (highest.blockHeight < daemonNbHeaders - 13000)
 
             return this.isIBD ? this.catchupIBDMode() : this.catchupNormalMode()
         } catch (error) {
@@ -101,9 +105,9 @@ class BlockchainProcessor {
             // If no header or block loaded by bitcoind => try later
             if (daemonNbHeaders === 0 || daemonNbBlocks === 0) {
                 Logger.info('Tracker : New attempt scheduled in 30s (waiting for block headers)')
-                return util.delay(30000).then(() => {
-                    return this.catchupIBDMode()
-                })
+                await util.delay(30000)
+
+                return this.catchupIBDMode()
 
                 // If we have more blocks to load in db
             } else if (daemonNbHeaders - 1 > dbMaxHeight) {
@@ -111,9 +115,9 @@ class BlockchainProcessor {
                 // If blocks need to be downloaded by bitcoind => try later
                 if (daemonNbBlocks - 1 <= dbMaxHeight) {
                     Logger.info('Tracker : New attempt scheduled in 10s (waiting for blocks)')
-                    return util.delay(10000).then(() => {
-                        return this.catchupIBDMode()
-                    })
+                    await util.delay(10000)
+
+                    return this.catchupIBDMode()
 
                     // If some blocks are ready for an import in db
                 } else {
@@ -121,17 +125,40 @@ class BlockchainProcessor {
 
                     Logger.info(`Tracker : Sync ${blockRange.length} blocks`)
 
-                    await util.seriesCall(blockRange, async height => {
+                    // create a FIFO queue instance that will process block headers as they arrive
+                    const headerQueue = new FifoQueue(async (header) => {
                         try {
-                            const blockHash = await this.client.getblockhash({ height })
-                            const header = await this.client.getblockheader({ blockhash: blockHash, verbose: true })
                             // eslint-disable-next-line require-atomic-updates
                             previousBlockId = await this.processBlockHeader(header, previousBlockId)
                         } catch (error) {
                             Logger.error(error, 'Tracker : BlockchainProcessor.catchupIBDMode()')
                             process.exit()
                         }
-                    }, 'Tracker syncing', true)
+                    }, 10000)
+
+                    // cut block range into chunks of 40 items
+                    const blockRangeChunks = util.splitList(blockRange, 40)
+
+                    for (const blockRangeChunk of blockRangeChunks) {
+                        // wait until block header queue length is under high watermark
+                        await headerQueue.waitOnWaterMark()
+
+                        // process bitcoin RPC requests in a pool of 4 tasks at once
+                        const headers = await util.asyncPool(4, blockRangeChunk, async (height) => {
+                            try {
+                                const blockHash = await this.client.getblockhash({ height })
+                                return await this.client.getblockheader({ blockhash: blockHash, verbose: true })
+                            } catch (error) {
+                                Logger.error(error, 'Tracker : BlockchainProcessor.catchupIBDMode()')
+                                process.exit()
+                            }
+                        })
+
+                        headerQueue.push(...headers)
+                    }
+
+                    // wait until block header queue is processed
+                    await headerQueue.waitOnFinished()
 
                     // Schedule a new iteration (in case more blocks need to be loaded)
                     Logger.info('Tracker : Start a new iteration')
@@ -263,9 +290,10 @@ class BlockchainProcessor {
             // and delete blocks after the last known block height
             await this.rewind(knownHeight)
 
-            // Process the blocks
-            return await this.processBlocks(headers)
+            const heights = headers.map((header) => header.height)
 
+            // Process the blocks
+            return await this.processBlockRange(heights)
         } catch (error) {
             Logger.error(error, 'Tracker : BlockchainProcessor.onBlockHash()')
         } finally {
@@ -277,12 +305,12 @@ class BlockchainProcessor {
     /**
      * Zip back up the blockchain until a known prevHash is found, returning all
      * block headers from last header in the array to the block after last known.
-     * @param {object[]} headers - array of block headers
-     * @returns {Promise}
+     * @param {BlockHeader[]} headers - array of block headers
+     * @returns {Promise<any[]>}
      */
     async chainBacktrace(headers) {
         // Block deepest in the blockchain is the last on the list
-        const deepest = headers[headers.length - 1]
+        const deepest = headers.at(-1)
 
         if (headers.length > 1)
             Logger.info(`Tracker : chainBacktrace @ height ${deepest.height}, ${headers.length} blocks`)
@@ -325,7 +353,7 @@ class BlockchainProcessor {
      * Rescan a range of blocks
      * @param {number} fromHeight - height of first block
      * @param {number} toHeight - height of last block
-     * @returns {Promise}
+     * @returns {Promise<any[]>}
      */
     async rescanBlocks(fromHeight, toHeight) {
         // Get highest block processed by the tracker
@@ -349,42 +377,63 @@ class BlockchainProcessor {
     }
 
     /**
-     * Process a list of blocks
-     * @param {object[]} headers - array of block headers
-     */
-    async processBlocks(headers) {
-        const chunks = util.splitList(headers, blocksProcessor.nbWorkers)
-
-        await util.seriesCall(chunks, async chunk => {
-            return blocksProcessor.processChunk(chunk)
-        })
-    }
-
-    /**
      * Process a range of blocks
      * @param {number[]} heights - a range of block heights
+     * @returns {Promise<void>}
      */
     async processBlockRange(heights) {
-        const chunks = util.splitList(heights, blocksProcessor.nbWorkers)
+        // Init a processing queue with maximum number of 500 items
+        const blocksQueue = new FifoQueue(async (block) => {
+            const txsForBroadcast = await block.processBlock()
 
-        return util.seriesCall(chunks, async chunk => {
-            const headers = await util.parallelCall(chunk, async height => {
-                const hash = await this.client.getblockhash({ height })
-                return await this.client.getblockheader({ blockhash: hash })
+            for (const tx of txsForBroadcast) {
+                this.notifSock.send(['transaction', tx.getId()])
+            }
+
+            this.notifSock.send(['block', JSON.stringify({ height: block.header.height, hash: block.header.hash })])
+        }, 500)
+
+        // cut block range into chunks of 10 items
+        const blockRangeChunks = util.splitList(heights, 10)
+
+        for (const blockRangeChunk of blockRangeChunks) {
+            // wait until block queue length is under high watermark
+            await blocksQueue.waitOnWaterMark()
+
+            // process bitcoin RPC requests in a pool of 4 tasks at once
+            const blocks = await util.asyncPool(4, blockRangeChunk, async (height) => {
+                try {
+                    const hash = await this.client.getblockhash({ height })
+                    const hex = await this.client.getblock({ blockhash: hash, verbosity: 0 })
+                    const block = bitcoin.Block.fromHex(hex)
+                    return new Block({
+                        height: height,
+                        time: block.timestamp,
+                        hash: block.getId(),
+                        previousblockhash: Buffer.from(block.prevHash.reverse()).toString('hex')
+                    }, block.transactions)
+                } catch (error) {
+                    Logger.error(error, 'Tracker : BlockchainProcessor.processBlockRange()')
+                    process.exit()
+                }
             })
-            return this.processBlocks(headers)
-        })
+
+            blocksQueue.push(...blocks)
+        }
+
+        // wait until block queue is processed
+        await blocksQueue.waitOnFinished()
     }
 
     /**
      * Process a block header
-     * @param {object} header - block header
+     * @param {BlockHeader} header - block header
      * @param {number} prevBlockID - id of previous block
-     * @returns {Promise}
+     * @returns {Promise<number>}
      */
-    async processBlockHeader(header, prevBlockID) {
+    processBlockHeader(header, prevBlockID) {
         try {
-            const block = new Block(null, header)
+            const block = new Block(header, null)
             return block.checkBlockHeader(prevBlockID)
         } catch (error) {
             Logger.error(error, 'Tracker : BlockchainProcessor.processBlockHeader()')

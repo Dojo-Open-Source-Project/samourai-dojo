@@ -166,6 +166,14 @@ const lib_api = {
     },
 
     /**
+     * Raw transaction
+     */
+    getRawTransaction: (txid) => {
+        const uri =   `${lib_api.baseUri}/tx/${txid}/hex`
+        return lib_api.sendGetUriEncoded(uri)
+    },
+
+    /**
      * Transactions
      */
     getTransactions: (args) => {
@@ -192,7 +200,7 @@ const lib_api = {
     /**
      * HTTP requests methods
      */
-    sendGetUriEncoded: async (uri, data) => {
+    sendGetUriEncoded: async (uri, data = {}) => {
         data.at = lib_auth.getAccessToken()
 
         const searchParams = new URLSearchParams(data).toString()

@@ -4,14 +4,19 @@
  */
 
 
-import bitcoin from 'bitcoinjs-lib'
-
 import util from '../lib/util.js'
 import Logger from '../lib/logger.js'
 import db from '../lib/db/mysql-db-wrapper.js'
 import Transaction from './transaction.js'
 import TransactionsBundle from './transactions-bundle.js'
 
+/**
+ * @typedef {import('bitcoinjs-lib').Transaction} bitcoin.Transaction
+ */
+
+/**
+ * @typedef {{ height: number, hash: string, time: number, previousblockhash: string }} BlockHeader
+ */
 
 /**
  * A class allowing to process a transaction
@@ -20,45 +25,46 @@ class Block extends TransactionsBundle {
 
     /**
      * Constructor
-     * @param {string} hex - block in hex format
-     * @param {string} header - block header
+     * @param {BlockHeader} header - block header
+     * @param {bitcoin.Transaction[] | null} transactions - array of bitcoinjs transaction objects
      */
-    constructor(hex, header) {
+    constructor(header, transactions) {
         super()
-        this.hex = hex
+        /**
+         * @type {BlockHeader}
+         */
         this.header = header
 
         try {
-            if (hex != null) {
-                const block = bitcoin.Block.fromHex(hex)
-                this.transactions = block.transactions
+            if (transactions != null) {
+                this.transactions = transactions.map((tx) => new Transaction(tx))
             }
         } catch (error) {
             Logger.error(error, 'Tracker : Block()')
-            Logger.error(null, header)
+            Logger.error(null, JSON.stringify(header))
         }
     }
 
     /**
      * Register the block and transactions of interest in db
-     * @dev This method isn't used anymore.
-     *      It has been replaced by a parallel processing of blocks.
-     *      (see blocks-processor and block-worker)
-     * @returns {Promise<object[]>} returns an array of transactions to be broadcast
+     * @returns {Promise<bitcoin.Transaction[]>} returns an array of transactions to be broadcast
      */
     async processBlock() {
         Logger.info('Tracker : Beginning to process new block.')
 
         const t0 = Date.now()
 
+        /**
+         * Deduplicated transactions for broadcast
+         * @type {Map<string, bitcoin.Transaction>}
+         */
         const txsForBroadcast = new Map()
 
-        const txsForBroadcast1 = await this.processOutputs()
+        const [txsForBroadcast1, txsForBroadcast2] = await Promise.all([this.processOutputs(), this.processInputs()])
         for (const tx of txsForBroadcast1) {
             txsForBroadcast.set(tx.getId(), tx)
         }
 
-        const txsForBroadcast2 = await this.processInputs()
         for (const tx of txsForBroadcast2) {
             txsForBroadcast.set(tx.getId(), tx)
         }
@@ -67,7 +73,7 @@ class Block extends TransactionsBundle {
 
         const blockId = await this.registerBlock()
 
-        await this.confirmTransactions(aTxsForBroadcast, blockId)
+        await this.confirmTransactions([...txsForBroadcast.keys()], blockId)
 
         // Logs and result returned
         const ntx = this.transactions.length
@@ -81,34 +87,38 @@ class Block extends TransactionsBundle {
 
     /**
      * Process the transaction outputs
-     * @returns {Promise<object[]>} returns an array of transactions to be broadcast
+     * @returns {Promise<bitcoin.Transaction[]>} returns an array of transactions to be broadcast
      */
     async processOutputs() {
-        const txsForBroadcast = new Set()
+        /**
+         * @type {bitcoin.Transaction[]}
+         */
+        const txsForBroadcast = []
         const filteredTxs = await this.prefilterByOutputs()
-        await util.parallelCall(filteredTxs, async filteredTx => {
-            const tx = new Transaction(filteredTx)
-            await tx.processOutputs()
-            if (tx.doBroadcast)
-                txsForBroadcast.add(tx.tx)
+        await util.asyncPool(10, filteredTxs, async (filteredTx) => {
+            await filteredTx.processOutputs()
+            if (filteredTx.doBroadcast)
+                txsForBroadcast.push(filteredTx.tx)
         })
-        return [...txsForBroadcast]
+        return txsForBroadcast
     }
 
     /**
      * Process the transaction inputs
-     * @returns {Promise<object[]>} returns an array of transactions to be broadcast
+     * @returns {Promise<bitcoin.Transaction[]>} returns an array of transactions to be broadcast
      */
     async processInputs() {
-        const txsForBroadcast = new Set()
+        /**
+         * @type {bitcoin.Transaction[]}
+         */
+        const txsForBroadcast = []
         const filteredTxs = await this.prefilterByInputs()
-        await util.parallelCall(filteredTxs, async filteredTx => {
-            const tx = new Transaction(filteredTx)
-            await tx.processInputs()
-            if (tx.doBroadcast)
-                txsForBroadcast.add(tx.tx)
+        await util.asyncPool(10, filteredTxs, async (filteredTx) => {
+            await filteredTx.processInputs()
+            if (filteredTx.doBroadcast)
+                txsForBroadcast.push(filteredTx.tx)
         })
-        return [...txsForBroadcast]
+        return txsForBroadcast
     }
 
     /**
@@ -133,14 +143,13 @@ class Block extends TransactionsBundle {
 
     /**
      * Confirm the transactions in db
-     * @param {Set} txs - set of transactions stored in db
+     * @param {string[]} txids - set of transactions IDs stored in db
      * @param {number} blockId - id of the block
-     * @returns {Promise}
+     * @returns {Promise<any[]>}
      */
-    async confirmTransactions(txs, blockId) {
-        const txids = txs.map(t => t.getId())
+    async confirmTransactions(txids, blockId) {
         const txidLists = util.splitList(txids, 100)
-        return util.parallelCall(txidLists, list => db.confirmTransactions(list, blockId))
+        return util.asyncPool(10, txidLists, list => db.confirmTransactions(list, blockId))
     }
 
     /**

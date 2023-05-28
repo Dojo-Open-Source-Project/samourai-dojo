@@ -7,6 +7,8 @@
 import cloneDeep from 'lodash.clonedeep'
 import QuickLRU from 'quick-lru'
 import WebSocket from 'websocket'
+
+import db from '../lib/db/mysql-db-wrapper.js'
 import Logger from '../lib/logger.js'
 import apiHelper from './api-helper.js'
 import status from './status.js'
@@ -270,13 +272,16 @@ class NotificationsService {
 
     /**
      * Dispatch notifications for a new block
-     * @param {string} header - block header
+     * @param {{ height: number, hash: string}} block - block hash and height
      */
-    notifyBlock(header) {
+    notifyBlock({ height, hash }) {
         try {
             const data = {
                 op: 'block',
-                x: header
+                x: {
+                    height: height,
+                    hash: hash
+                }
             }
             this.dispatch('block', JSON.stringify(data))
         } catch (error) {
@@ -331,13 +336,15 @@ class NotificationsService {
      *     outputs
      *       xpub2
      *
-     * @param {object} tx - transaction
+     * @param {string} txid - transaction
      *
      * @note Synchronous processing done by this method
      * may become a bottleneck in the future if under heavy load.
      * Split in multiple async calls might make sense.
      */
-    notifyTransaction(tx) {
+    async notifyTransaction(txid) {
+        const tx = await db.getTransaction(txid)
+
         try {
             // Topics extracted from the transaction
             const topics = {}
@@ -436,7 +443,7 @@ class NotificationsService {
 
                 try {
                     this.conn[cid].sendUTF(JSON.stringify(data))
-                    debug && Logger.error(`API : Sent ctx ${context.hash} to client ${cid}`)
+                    debug && Logger.error(null, `API : Sent ctx ${context.hash} to client ${cid}`)
                 } catch (error) {
                     Logger.error(error, `API : NotificationsService.notifyTransaction() : Trouble sending ctx to client ${cid}`)
                 }
@@ -460,7 +467,7 @@ class NotificationsService {
 
         try {
             this.conn[cid].sendUTF(JSON.stringify(data))
-            debug && Logger.error(`API : Sent authentication error to client ${cid}`)
+            debug && Logger.error(null, `API : Sent authentication error to client ${cid}`)
         } catch (error) {
             Logger.error(error, `API : NotificationsService.notifyAuthError() : Trouble sending authentication error to client ${cid}`)
         }
