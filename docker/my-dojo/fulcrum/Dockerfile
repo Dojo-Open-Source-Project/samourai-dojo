@@ -1,6 +1,6 @@
 FROM    debian:bullseye-slim AS builder
 
-ENV     INDEXER_VERSION       1.8.1
+ENV     INDEXER_VERSION       1.9.1
 ENV     INDEXER_URL           https://github.com/cculianu/Fulcrum/releases/download
 ENV     INDEXER_BUILD_AMD64   x86_64-linux
 ENV     INDEXER_BUILD_ARM64   arm64-linux
@@ -59,6 +59,9 @@ RUN     mkdir -p "$INDEXER_HOME/.fulcrum/db" && \
         chown -h fulcrum:fulcrum "$INDEXER_HOME/.fulcrum/db"
 
 COPY    --from=builder "$INDEXER_FILES" "$INDEXER_FILES"
+
+# Change file ownership
+RUN     chown -R fulcrum:fulcrum "$INDEXER_FILES"
 
 # Copy restart script
 COPY    ./restart.sh /restart.sh
