@@ -41,6 +41,16 @@ module.exports = {
             stop_exit_codes: 0,
             listen_timeout: 5000,
             kill_timeout: 3000,
+        },
+        {
+            name: `Samourai Dojo - Estimator`,
+            namespace: process.env.COMMON_BTC_NETWORK,
+            script: './index.js',
+            cwd: path.join(process.env.APP_DIR, 'estimator'),
+            wait_ready: true,
+            stop_exit_codes: 0,
+            listen_timeout: 5000,
+            kill_timeout: 3000,
         }
     ]
 }

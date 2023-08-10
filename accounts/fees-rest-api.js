@@ -27,12 +27,17 @@ class FeesRestApi {
         this.httpServer.app.get(
             '/fees',
             authMgr.checkAuthentication.bind(authMgr),
-            this.getFees.bind(this),
+            this.getFees,
         )
         this.httpServer.app.post(
             '/fees',
             authMgr.checkAuthentication.bind(authMgr),
-            this.getFees.bind(this),
+            this.getFees,
+        )
+        this.httpServer.app.get(
+            '/fees/estimator',
+            authMgr.checkAuthentication.bind(authMgr),
+            this.getEstimatorFees,
         )
         // Refresh the network fees
         rpcFees.refresh()
@@ -51,6 +56,20 @@ class FeesRestApi {
             HttpServer.sendError(res, error)
         } finally {
             debugApi && Logger.info('API : Completed GET /fees')
+        }
+    }
+
+    /**
+     * Get fees from $1 Fee Estimator
+     * @param {object} req - http request object
+     * @param {object} res - http response object
+     */
+    getEstimatorFees(req, res) {
+        try {
+            const fees = rpcFees.getEstimatorFees()
+            HttpServer.sendOkDataOnly(res, fees)
+        } catch (error) {
+            HttpServer.sendError(res, error, 503)
         }
     }
 
