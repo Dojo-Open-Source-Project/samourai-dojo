@@ -1,6 +1,6 @@
 # Get Fees
 
-Returns `bitcoind`'s estimated fee rates for inclusion in blocks at various delays. Fee rates are in Satoshi/byte.
+Returns `bitcoind`'s estimated fee rates for inclusion in blocks at various delays. Fee rates are in satoshi/vByte.
 
 
 ```http request

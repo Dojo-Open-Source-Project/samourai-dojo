@@ -1,6 +1,6 @@
 # Get Fees
 
-Returns fees estimated by [$1 Fee Estimator](https://code.samourai.io/dojo/one-dollar-fee-estimator-js). Fee rates are in Satoshi/byte.
+Returns fees estimated by [$1 Fee Estimator](https://code.samourai.io/dojo/one-dollar-fee-estimator-js). Fee rates are in satoshi/vByte.
 Fee estimates returned correspond to chances of being included in the next block: `[50%, 90%, 99%, 99.9%]`
 
 ```http request
