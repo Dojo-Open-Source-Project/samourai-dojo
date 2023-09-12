@@ -1,6 +1,4 @@
-FROM    debian:bullseye-slim AS builder
-
-ENV     WHIRLPOOL_DIR                 /usr/local/whirlpool-cli
+FROM    debian:bullseye-slim AS tor-builder
 
 # Install prerequisites
 RUN     set -ex && \
@@ -46,13 +44,19 @@ RUN     set -ex && \
         rm -rf "tor-$WHIRLPOOL_TOR_VERSION" && \
         rm "tor-$WHIRLPOOL_TOR_VERSION.tar.gz" "tor-$WHIRLPOOL_TOR_VERSION.tar.gz.sha256sum" "tor-$WHIRLPOOL_TOR_VERSION.tar.gz.sha256sum.asc"
 
+FROM    debian:bullseye-slim AS whirlpool-builder
 # Install whirlpool-cli
+ENV     WHIRLPOOL_DIR                 /usr/local/whirlpool-cli
 ENV     WHIRLPOOL_URL                 https://code.samourai.io/whirlpool/whirlpool-client-cli/uploads
 ENV     WHIRLPOOL_VERSION             0.10.16
 ENV     WHIRLPOOL_VERSION_HASH        63621e145967f536a562851853bd0990
 ENV     WHIRLPOOL_JAR                 "whirlpool-client-cli-$WHIRLPOOL_VERSION-run.jar"
 ENV     WHIRLPOOL_SHA256              01e9c49cfaa207f31b3fb85ed4175d8e6fee663dbb46b4486162ea12dd40047c
 
+# Install prerequisites
+RUN     set -ex && \
+        apt-get update && \
+        apt-get install -y wget
 
 RUN     set -ex && \
         mkdir -p "$WHIRLPOOL_DIR" && \
@@ -84,10 +88,10 @@ RUN     set -ex && \
 RUN     addgroup --system -gid ${WHIRLPOOL_LINUX_GID} whirlpool && \
         adduser --system --ingroup whirlpool -uid ${WHIRLPOOL_LINUX_UID} whirlpool
 
-COPY    --from=builder $TOR_BIN $TOR_BIN
-COPY    --from=builder $TOR_CONF $TOR_CONF
-COPY    --from=builder $TOR_MAN $TOR_MAN
-COPY    --from=builder $WHIRLPOOL_DIR $WHIRLPOOL_DIR
+COPY    --from=tor-builder $TOR_BIN $TOR_BIN
+COPY    --from=tor-builder $TOR_CONF $TOR_CONF
+COPY    --from=tor-builder $TOR_MAN $TOR_MAN
+COPY    --from=whirlpool-builder $WHIRLPOOL_DIR $WHIRLPOOL_DIR
 
 RUN     chown -Rv whirlpool:whirlpool "$WHIRLPOOL_DIR" && \
         chmod -R 750 "$WHIRLPOOL_DIR"
