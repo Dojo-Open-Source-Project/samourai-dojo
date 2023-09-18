@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.21.0](#samourai-dojo-v1210)
 - [v1.20.0](#samourai-dojo-v1200)
 - [v1.19.2](#samourai-dojo-v1192)
 - [v1.19.1](#samourai-dojo-v1191)
@@ -31,6 +32,36 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
+
+## Samourai Dojo v1.21.0
+
+### Notable changes
+
+#### $1 Fee Estimator
+$1 Fee Estimator has been included into Dojo. Fee estimates calculated by this tool are available on API ([doc](./doc/GET_fees_estimator.md)).
+
+### Features
+- [271dcffe](https://code.samourai.io/dojo/samourai-dojo/-/commit/271dcffe) - updated to BTC-RPC Explorer 3.4.0
+- [47e3d9a3](https://code.samourai.io/dojo/samourai-dojo/-/commit/47e3d9a3) - updated to Tor v0.4.8.5
+- [5f26dd9a](https://code.samourai.io/dojo/samourai-dojo/-/commit/5f26dd9a) - updated tp Fulcrum v1.9.1
+- [5a3c6d95](https://code.samourai.io/dojo/samourai-dojo/-/commit/5a3c6d95) - added $1 Fee Estimator
+- [94e99dae](https://code.samourai.io/dojo/samourai-dojo/-/commit/94e99dae) - adjusted standard fee estimation
+- [8a5da4af](https://code.samourai.io/dojo/samourai-dojo/-/commit/8a5da4af) - updated MariaDB Docker image
+- [23400e24](https://code.samourai.io/dojo/samourai-dojo/-/commit/23400e24) - updated Nginx Docker image
+- [5213ced5](https://code.samourai.io/dojo/samourai-dojo/-/commit/5213ced5) - added ability to connect to standalone MySQL over UNIX socket
+
+### Bugfixes
+- [332ad81f](https://code.samourai.io/dojo/samourai-dojo/-/commit/332ad81f) - store transactions in DB only once
+- [d18d99aa](https://code.samourai.io/dojo/samourai-dojo/-/commit/d18d99aa) - force logs to go into /dev/null
+- [d023b6b7](https://code.samourai.io/dojo/samourai-dojo/-/commit/d023b6b7) - run transaction unconfirmation in pool so the DB is not overwhelmed
+- [b5e3586d](https://code.samourai.io/dojo/samourai-dojo/-/commit/b5e3586d) - fix rescan-blocks script
+
+### Chores
+- [85abb62c](https://code.samourai.io/dojo/samourai-dojo/-/commit/85abb62c) - fix release notes
+- [68b09243](https://code.samourai.io/dojo/samourai-dojo/-/commit/68b09243) - updated dependencies
+- [ace19ebe](https://code.samourai.io/dojo/samourai-dojo/-/commit/ace19ebe) - fix fees docs
+- [21ea8ba4](https://code.samourai.io/dojo/samourai-dojo/-/commit/21ea8ba4) - added additional build stage to Whirlpool dockerfile
+
 
 ## Samourai Dojo v1.20.0
 
