@@ -56,6 +56,19 @@ module.exports = {
             stop_exit_codes: 0,
             listen_timeout: 5000,
             kill_timeout: 3000,
+        },
+        {
+             name: `Samourai Dojo - Estimator (${NAMESPACE})`,
+             namespace: NAMESPACE,
+             script: './index.js',
+             cwd: path.join(__dirname, 'estimator'),
+             interpreter: INTERPRETER,
+             out_file: './output-2022-01-01.log',
+             error_file: './error-2022-01-01.log',
+             wait_ready: true,
+             stop_exit_codes: 0,
+             listen_timeout: 5000,
+             kill_timeout: 3000,
         }
     ]
 }

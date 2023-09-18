@@ -11,6 +11,8 @@ module.exports = {
             stop_exit_codes: 0,
             listen_timeout: 5000,
             kill_timeout: 3000,
+            out_file: '/dev/null',
+            error_file: '/dev/null'
         },
         {
             name: 'Samourai Dojo - PushTX',
@@ -21,6 +23,8 @@ module.exports = {
             stop_exit_codes: 0,
             listen_timeout: 5000,
             kill_timeout: 3000,
+            out_file: '/dev/null',
+            error_file: '/dev/null'
         },
         {
             name: 'Samourai Dojo - PushTX Orhestrator',
@@ -31,6 +35,8 @@ module.exports = {
             stop_exit_codes: 0,
             listen_timeout: 5000,
             kill_timeout: 3000,
+            out_file: '/dev/null',
+            error_file: '/dev/null'
         },
         {
             name: 'Samourai Dojo - Tracker',
@@ -41,6 +47,20 @@ module.exports = {
             stop_exit_codes: 0,
             listen_timeout: 5000,
             kill_timeout: 3000,
+            out_file: '/dev/null',
+            error_file: '/dev/null'
+        },
+        {
+            name: `Samourai Dojo - Estimator`,
+            namespace: process.env.COMMON_BTC_NETWORK,
+            script: './index.js',
+            cwd: path.join(process.env.APP_DIR, 'estimator'),
+            wait_ready: true,
+            stop_exit_codes: 0,
+            listen_timeout: 5000,
+            kill_timeout: 3000,
+            out_file: '/dev/null',
+            error_file: '/dev/null'
         }
     ]
 }

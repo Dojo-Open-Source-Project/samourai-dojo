@@ -343,7 +343,8 @@ class BlockchainProcessor {
             // Cancel confirmation of transactions included in reorg'd blocks
             Logger.info(`Tracker : Backtrace: unconfirm ${txs.length} transactions in reorg`)
             const txids = txs.map(t => t.txnTxid)
-            await db.unconfirmTransactions(txids)
+            const txidsPool = util.splitList(txids, 1000)
+            await util.asyncPool(10, txidsPool, (txidList) => db.unconfirmTransactions(txidList))
         }
 
         await db.deleteBlocksAfterHeight(height)

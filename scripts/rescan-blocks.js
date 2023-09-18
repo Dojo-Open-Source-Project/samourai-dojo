@@ -6,6 +6,11 @@
 
 import Logger from '../lib/logger.js'
 import BlockchainProcessor from '../tracker/blockchain-processor.js'
+import db from '../lib/db/mysql-db-wrapper.js'
+import keysFile from '../keys/index.js'
+import network from '../lib/bitcoin/network.js'
+
+const keys = keysFile[network.key]
 
 
 /**
@@ -13,11 +18,22 @@ import BlockchainProcessor from '../tracker/blockchain-processor.js'
  */
 
 async function run(height) {
-    const processor = new BlockchainProcessor()
+    const dbConfig = {
+        connectionLimit: keys.db.connectionLimitTracker,
+        acquireTimeout: keys.db.acquireTimeout,
+        host: keys.db.host,
+        user: keys.db.user,
+        password: keys.db.pass,
+        database: keys.db.database
+    }
+
+    db.connect(dbConfig)
+
+    const processor = new BlockchainProcessor({ send: () => {} })
     // Rewind the chain
     await processor.rewind(height - 1)
     // Catchup
-    await processor.catchup()
+    await processor.catchupNormalMode()
 }
 
 
