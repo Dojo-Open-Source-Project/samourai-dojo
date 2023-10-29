@@ -1,4 +1,4 @@
-FROM    node:18-alpine AS builder
+FROM    node:20-alpine AS builder
 
 ENV     NODE_ENV             production
 
@@ -24,7 +24,7 @@ RUN     set -ex && \
         cd "$APP_DIR" && \
         npm install --omit=dev
 
-FROM    node:18-alpine
+FROM    node:20-alpine
 
 ENV     NODE_ENV        production
 ENV     APP_DIR         /home/node/app
