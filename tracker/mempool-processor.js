@@ -251,36 +251,41 @@ class MempoolProcessor {
 
         const unconfirmedTxs = await db.getUnconfirmedTransactions()
 
-        if (unconfirmedTxs.length > 0) {
-            this.processingUnconfirmedTxs = true
+        try {
+            if (unconfirmedTxs.length > 0) {
+                this.processingUnconfirmedTxs = true
 
-            const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10)
+                const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10)
 
-            await util.asyncPool(3, unconfirmedTxLists, async (txList) => {
-                const rpcRequests = txList.map((tx) => ({ method: 'getrawtransaction', params: { txid: tx.txnTxid, verbose: true }, id: tx.txnTxid }))
-                const txs = await this.client.batch(rpcRequests)
+                await util.asyncPool(3, unconfirmedTxLists, async (txList) => {
+                    const rpcRequests = txList.map((tx) => ({ method: 'getrawtransaction', params: { txid: tx.txnTxid, verbose: true }, id: tx.txnTxid }))
+                    const txs = await this.client.batch(rpcRequests)
 
-                return await util.parallelCall(txs, async (rtx) => {
-                    if (rtx.error) {
-                        Logger.error(rtx.error.message, 'Tracker : MempoolProcessor.checkUnconfirmed()')
-                        // Transaction not in mempool. Update LRU cache and database
-                        TransactionsCache.delete(rtx.id)
-                        // TODO: Notify clients of orphaned transaction
-                        return db.deleteTransaction(rtx.id)
-                    } else {
-                        if (!rtx.result.blockhash) return null
-                        // Transaction is confirmed
-                        const block = await db.getBlockByHash(rtx.result.blockhash)
-                        if (block && block.blockID) {
-                            Logger.info(`Tracker : Marking TXID ${rtx.id} confirmed`)
-                            return db.confirmTransactions([rtx.id], block.blockID)
+                    return await util.parallelCall(txs, async (rtx) => {
+                        if (rtx.error) {
+                            Logger.info(`Tracker : MempoolProcessor.checkUnconfirmed() - transaction not in mempool: ${rtx.id}`)
+                            // Transaction not in mempool. Update LRU cache and database
+                            TransactionsCache.delete(rtx.id)
+                            // TODO: Notify clients of orphaned transaction
+                            return db.deleteTransaction(rtx.id)
+                        } else {
+                            if (!rtx.result.blockhash) return null
+                            // Transaction is confirmed
+                            const block = await db.getBlockByHash(rtx.result.blockhash)
+                            if (block && block.blockID) {
+                                Logger.info(`Tracker : Marking TXID ${rtx.id} confirmed`)
+                                return db.confirmTransactions([rtx.id], block.blockID)
+                            }
                         }
-                    }
+                    })
                 })
-            })
-
+            }
+        } catch (error) {
+            Logger.error(error, 'Tracker : MempoolProcessor.checkUnconfirmed()')
+        } finally {
             this.processingUnconfirmedTxs = false
         }
+
 
         // Logs
         const ntx = unconfirmedTxs.length
