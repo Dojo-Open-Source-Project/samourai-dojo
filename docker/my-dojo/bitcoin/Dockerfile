@@ -59,7 +59,7 @@ COPY    --from=builder /usr/local/ /usr/local/
 
 RUN     set -ex && \
         apt-get update && \
-        apt-get install -qq --no-install-recommends python3
+        apt-get install -qq --no-install-recommends python3 jq cron
 
 # Create groups bitcoin & tor
 # Create user bitcoin and add it to groups
@@ -76,6 +76,18 @@ RUN     mkdir "$BITCOIN_HOME/.bitcoin" && \
 COPY    ./restart.sh /restart.sh
 RUN     chown bitcoin:bitcoin /restart.sh && \
         chmod 777 /restart.sh
+
+# Copy ban-knots.sh
+COPY    ./ban-knots.sh /ban-knots.sh
+RUN     chown bitcoin:bitcoin /ban-knots.sh && \
+        chmod 777 /ban-knots.sh
+
+# Copy crontab
+COPY    ./crontab /etc/cron.d/crontab
+RUN     chown bitcoin:bitcoin /etc/cron.d/crontab && \
+        chmod 0644 /etc/cron.d/crontab && \
+        crontab -u bitcoin /etc/cron.d/crontab && \
+        chmod u+s /usr/sbin/cron
 
 # Copy rpcauth.py script
 COPY    ./rpcauth.py /rpcauth.py

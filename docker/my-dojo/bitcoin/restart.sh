@@ -52,4 +52,8 @@ if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
   bitcoind_options+=(-testnet)
 fi
 
+declare -p | grep -E 'NET_DOJO_BITCOIND_IPV4|BITCOIND_RPC_PORT|BITCOIND_RPC_USER|BITCOIND_RPC_PASSWORD' > "$HOME/container.env"
+
+service cron start
+
 exec bitcoind "${bitcoind_options[@]}"
