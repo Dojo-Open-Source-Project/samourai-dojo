@@ -8,8 +8,7 @@ FOR_BAN=$(bitcoin-cli \
   --rpcuser="$BITCOIND_RPC_USER" \
   --rpcpassword="$BITCOIND_RPC_PASSWORD" \
   getpeerinfo | \
-  jq '.[] | select(.subver | contains("Knots")) | .addr' | \
-  jq --raw-output '. | split("((?::))(?:[0-9]+)$"; null) | .[0]' \
+  jq --raw-output '.[] | select(.subver | contains("Knots")) | .addr | split("((?::))(?:[0-9]+)$"; null) | .[0]' \
 )
 
 echo "Addresses for ban: $FOR_BAN"
