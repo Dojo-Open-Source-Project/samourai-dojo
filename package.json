@@ -1,6 +1,6 @@
 {
   "name": "samourai-dojo",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "description": "Backend server for Samourai Wallet",
   "main": "accounts/index.js",
   "engines": {
