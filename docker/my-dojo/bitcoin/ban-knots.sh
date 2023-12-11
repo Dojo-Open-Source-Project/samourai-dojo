@@ -17,7 +17,7 @@ echo "Addresses for ban: $FOR_BAN"
 for address in $FOR_BAN;
 do
   bitcoin-cli \
-    -rpcconnect=bitcoind \
+    -rpcconnect="$NET_DOJO_BITCOIND_IPV4" \
     --rpcport="$BITCOIND_RPC_PORT" \
     --rpcuser="$BITCOIND_RPC_USER" \
     --rpcpassword="$BITCOIND_RPC_PASSWORD" \
