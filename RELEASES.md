@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.22.0](#samourai-dojo-v1220)
 - [v1.21.0](#samourai-dojo-v1210)
 - [v1.20.0](#samourai-dojo-v1200)
 - [v1.19.2](#samourai-dojo-v1192)
@@ -32,6 +33,22 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
+
+## Samourai Dojo v1.22.0
+
+### Features
+- [e4a1cadb](e4a1cadb) - updated Node.js docker images to v20
+- [d2fc1fdf](d2fc1fdf) - updated Tor to v0.4.8.9
+- [fe0a7e10](fe0a7e10) - updated Fulcrum to v1.9.7
+- [fd40267d](fd40267d) - updated Bitcoin Core to v26.0
+- [125f8a0c](125f8a0c) - decline connections to unsupported bitcoin clients
+- [4c261818](4c261818) - periodically ban Knots nodes
+- [02b53e77](02b53e77) - make explorer slow-device-mode configurable
+- [f398960c](f398960c) - added new `/seen` endpoint
+
+### Bugfixes
+- [74fcc68b](74fcc68b) - wrap unconfirmed transaction processing in try/catch
+- [b588153d](b588153d) - update DB table banned_addresses
 
 ## Samourai Dojo v1.21.0
 

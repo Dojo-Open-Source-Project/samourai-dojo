@@ -1,7 +1,7 @@
 # Database tables
 
 # Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
- 
+
 
 # Naming conventions
 # 1. Table names are lowercase plural
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS `addresses` (
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `banned_addresses` (
   `bannedAddressId` int(11) NOT NULL AUTO_INCREMENT,
-  `addrAddress` varchar(35) NOT NULL,
+  `addrAddress` varchar(74) NOT NULL,
   PRIMARY KEY (`bannedAddressId`),
   UNIQUE KEY `banned_addresses_addresses` (`addrAddress`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=latin1;

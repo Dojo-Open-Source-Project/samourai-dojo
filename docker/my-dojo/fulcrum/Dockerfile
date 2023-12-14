@@ -1,6 +1,8 @@
 FROM    debian:bullseye-slim AS builder
 
-ENV     INDEXER_VERSION       1.9.1
+ENV     INDEXER_VERSION       1.9.7
+ENV     INDEXER_SHASUMS       Fulcrum-${INDEXER_VERSION}-shasums.txt
+ENV     INDEXER_ASC           ${INDEXER_SHASUMS}.asc
 ENV     INDEXER_URL           https://github.com/cculianu/Fulcrum/releases/download
 ENV     INDEXER_BUILD_AMD64   x86_64-linux
 ENV     INDEXER_BUILD_ARM64   arm64-linux
@@ -24,14 +26,12 @@ RUN     set -ex && \
             ;; \
           *) echo >&2 "error: unsupported architecture '$arch' (likely packaging update needed)"; exit 1 ;; \
         esac; \
-        INDEXER_SHASUMS="$INDEXER_FILE.sha256sum"; \
-        INDEXER_ASC="$INDEXER_FILE.asc"; \
         wget -qO $INDEXER_FILE "$INDEXER_URL/v$INDEXER_VERSION/$INDEXER_FILE" && \
-        wget -qO ${INDEXER_FILE}.sha256sum "$INDEXER_URL/v$INDEXER_VERSION/$INDEXER_SHASUMS" && \
-        wget -qO ${INDEXER_FILE}.asc "$INDEXER_URL/v$INDEXER_VERSION/$INDEXER_ASC" && \
+        wget -qO $INDEXER_SHASUMS "$INDEXER_URL/v$INDEXER_VERSION/$INDEXER_SHASUMS" && \
+        wget -qO $INDEXER_ASC "$INDEXER_URL/v$INDEXER_VERSION/$INDEXER_ASC" && \
         curl https://raw.githubusercontent.com/Electron-Cash/keys-n-hashes/master/pubkeys/calinkey.txt | gpg --import && \
         gpg --verify $INDEXER_ASC && \
-        sha256sum -c $INDEXER_SHASUMS && \
+        sha256sum --ignore-missing -c $INDEXER_SHASUMS && \
         tar -xzvf ${INDEXER_FILE} -C "$INDEXER_FILES" --strip-components 1
 
 FROM    debian:bullseye-slim

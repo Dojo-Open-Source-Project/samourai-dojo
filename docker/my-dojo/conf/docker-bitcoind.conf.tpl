@@ -115,6 +115,10 @@ BITCOIND_ZMQ_RAWTXS=9501
 # Type: integer
 BITCOIND_ZMQ_BLK_HASH=9502
 
+# Enable cron jobs running inside bitcoind container
+# Type: on | off
+BITCOIND_CRON_JOBS=on
+
 
 #
 # SHUTDOWN

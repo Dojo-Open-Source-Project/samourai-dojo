@@ -12,8 +12,13 @@ explorer_options=(
   --bitcoind-pass "$BITCOIND_RPC_PASSWORD"
   --no-rates
   --privacy-mode
-  --slow-device-mode
 )
+
+if [ "$EXPLORER_SLOW_DEVICE_MODE" == "off" ]; then
+  explorer_options+=(--slow-device-mode false)
+else
+  explorer_options+=(--slow-device-mode)
+fi
 
 # Blacklist all functions provided by the RPC API
 explorer_options+=(--rpc-blacklist "addnode,analyzepsbt,clearbanned,combinepsbt,combinerawtransaction,converttopsbt,createmultisig,createpsbt,createrawtransaction,decodepsbt,decoderawtransaction,decodescript,deriveaddresses,disconnectnode,echo,echojson,estimaterawfee,estimatesmartfee,finalizepsbt,generatetoaddress,generatetodescriptor,getaddednodeinfo,getbestblockhash,getblock,getblockchaininfo,getblockcount,getblockfilter,getblockhash,getblockheader,getblockstats,getblocktemplate,getchaintips,getchaintxstats,getconnectioncount,getdescriptorinfo,getdifficulty,getmemoryinfo,getmempoolancestors,getmempooldescendants,getmempoolentry,getmempoolinfo,getmininginfo,getnettotals,getnetworkhashps,getnetworkinfo,getnodeaddresses,getpeerinfo,getrawmempool,getrawtransaction,getrpcinfo,gettxout,gettxoutproof,gettxoutsetinfo,help,invalidateblock,joinpsbts,listbanned,logging,ping,preciousblock,prioritisetransaction,pruneblockchain,reconsiderblock,savemempool,scantxoutset,sendrawtransaction,setban,setmocktime,setnetworkactive,signmessagewithprivkey,signrawtransactionwithkey,stop,submitblock,submitheader,syncwithvalidationinterfacequeue,testmempoolaccept,uptime,utxoupdatepsbt,validateaddress,verifychain,verifymessage,verifytxoutproof,waitforblock,waitforblockheight,waitfornewblock")
