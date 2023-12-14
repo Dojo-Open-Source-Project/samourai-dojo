@@ -1,4 +1,4 @@
-FROM    node:20-alpine AS builder
+FROM    node:20-alpine3.18 AS builder
 
 ENV     NODE_ENV             production
 
@@ -9,7 +9,7 @@ ENV     EXPLORER_URL         https://code.samourai.io/dojo/btc-rpc-explorer/-/ar
 
 # Install netcat
 RUN     set -ex && \
-        apk --no-cache add gcc g++ make python3 git netcat-openbsd
+        apk --no-cache add gcc g++ make python3 git
 
 # Update NPM to latest version
 RUN     set -ex && \
@@ -24,13 +24,13 @@ RUN     set -ex && \
         cd "$APP_DIR" && \
         npm install --omit=dev
 
-FROM    node:20-alpine
+FROM    node:20-alpine3.18
 
 ENV     NODE_ENV        production
 ENV     APP_DIR         /home/node/app
 
 RUN     set -ex && \
-        apk --no-cache add bash
+        apk --no-cache add bash netcat-openbsd
 
 COPY    --from=builder $APP_DIR $APP_DIR
 
