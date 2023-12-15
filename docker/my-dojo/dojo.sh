@@ -6,7 +6,7 @@ export DOCKER_BUILDKIT=1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 get_docker_compose() {
-  if docker compose version > /dev/null ; then
+  if docker compose version 2&> /dev/null ; then
       echo "docker compose"
   else
       echo "docker-compose"
