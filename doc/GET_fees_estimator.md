@@ -1,7 +1,7 @@
 # Get Fees
 
 Returns fees estimated by [$1 Fee Estimator](https://code.samourai.io/dojo/one-dollar-fee-estimator-js). Fee rates are in satoshi/vByte.
-Fee estimates returned correspond to chances of being included in the next block: `[50%, 90%, 99%, 99.9%]`
+Fee estimates returned correspond to chances of being included in the next block: `10%, 20%, 50%, 90%, 99%, 99.9%`
 
 ```http request
 GET /fees/estimator
@@ -20,17 +20,19 @@ GET /fees/estimator
 #### Success
 Status code 200 with JSON response:
 ```json
-[
-  7,
-  12,
-  13,
-  13
-]
+{
+  "0.1": 7,
+  "0.2": 8,
+  "0.5": 15,
+  "0.9": 20,
+  "0.99": 22,
+  "0.999": 25
+}
 ```
 
 #### Failure
 
-This API endpoint will respond with HTTP 503 error if fee estimator is not connected or not working.
+This API endpoint will respond with HTTP 503 error if fee estimator is not connected, not working or bitcoind mempool is not fully loaded.
 
 Status code 503 with JSON response:
 ```json

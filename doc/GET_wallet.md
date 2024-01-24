@@ -54,6 +54,7 @@ GET /wallet?pubkey=0312345678901
 
 #### Success
 Status code 200 with JSON response:
+
 ```json
 {
   "wallet": {
@@ -71,12 +72,20 @@ Status code 200 with JSON response:
       "6": 150,
       "12": 111,
       "24": 62
+    },
+    "estimatorFees": {
+      "0.1": 7,
+      "0.2": 8,
+      "0.5": 15,
+      "0.9": 20,
+      "0.99": 22,
+      "0.999": 25
     }
   },
   "addresses": [
     {
       "address": "xpubABCDEF -or- 1xAddress",
-      "pubkey": "04Pubkey -or- inexistant attribute"
+      "pubkey": "04Pubkey -or- inexistant attribute",
       "final_balance": 100000000,
       "account_index": 0,
       "change_index": 0,
@@ -114,7 +123,7 @@ Status code 200 with JSON response:
           "n": 2,
           "value": 10000,
           "addr": "1xAddress",
-          "pubkey": "03Pubkey"
+          "pubkey": "03Pubkey",
           "xpub": {
             "m": "xpubABCDEF",
             "path": "M/1/5"
@@ -132,7 +141,7 @@ Status code 200 with JSON response:
       "value": 10000,
       "script": "abcdef",
       "addr": "1xAddress",
-      "pubkey": "03Pubkey -or- inexistant attribute"
+      "pubkey": "03Pubkey -or- inexistant attribute",
       "confirmations": 10000,
       "xpub": {
         "m": "xpubABCDEF",
