@@ -109,7 +109,7 @@ stop() {
     exit
   fi
   # Renewal of bitcoind onion address
-  if [ "$BITCOIND_INSTALL" == "on" ] && [ "$BITCOIND_LISTEN_MODE" == "on" ] && [ "$BITCOIND_EPHEMERAL_HS" = "on" ]; then
+  if [ "$BITCOIND_INSTALL" == "on" ] && [ "$BITCOIND_LISTEN_MODE" == "on" ] && [ "$BITCOIND_EPHEMERAL_HS" == "on" ]; then
     docker exec -it tor rm -rf /var/lib/tor/hsv3bitcoind &> /dev/null
   fi
   # Stop docker containers
