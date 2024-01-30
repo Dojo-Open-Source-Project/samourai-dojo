@@ -110,7 +110,7 @@ stop() {
   fi
   # Renewal of bitcoind onion address
   if [ "$BITCOIND_INSTALL" == "on" ] && [ "$BITCOIND_LISTEN_MODE" == "on" ] && [ "$BITCOIND_EPHEMERAL_HS" == "on" ]; then
-    docker exec -it tor rm -rf /var/lib/tor/hsv3bitcoind &> /dev/null
+    docker exec -i tor rm -rf /var/lib/tor/hsv3bitcoind &> /dev/null
   fi
   # Stop docker containers
   yamlFiles=$(select_yaml_files)
