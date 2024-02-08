@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.23.0](#samourai-dojo-v1230)
 - [v1.22.0](#samourai-dojo-v1220)
 - [v1.21.0](#samourai-dojo-v1210)
 - [v1.20.0](#samourai-dojo-v1200)
@@ -33,6 +34,29 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
+
+## Samourai Dojo v1.23.0
+### Features
+- [f9157373](f9157373) - Added syncMempool() method for better mempool synchronization
+- [81b0a49d](81b0a49d) - Increase asyncPool size in checkUnconfirmed() from 3 to 5
+- [6a4f421f](6a4f421f) - Get block count instead of whole blockchain info
+- [7b143251](7b143251) - Added mempool persistence option
+
+### Bugfixes
+- [ffac3856](ffac3856) - Don't check unconfirmed transactions after start
+- [bb5fee5a](bb5fee5a) - Catch error when checking docker compose version
+- [fe9b7dc3](fe9b7dc3) - Updated bash scripts to use non-TTY docker exec
+- [b446eaa0](b446eaa0) - Fix equality comparison in docker shell script
+
+### Chores
+- [7d5a2201](7d5a2201) - Refine type definitions in mysql-db-wrapper
+- [f70e061b](f70e061b) - Update return type in getTransactionId function
+- [b07787ba](b07787ba) - Updated Tor to v0.4.8.10
+- [197b3096](197b3096) - Updated Whirlpool CLI to v0.10.17.1
+- [8f3dd24b](8f3dd24b) - Updated Fulcrum to v1.9.8
+- [f66dc97e](f66dc97e) - Updated Fee Estimator to v0.5.0
+- [f2b12e08](f2b12e08) - Updated Estimator API
+- [3d722938](3d722938) - Updated dependencies
 
 ## Samourai Dojo v1.22.0
 
