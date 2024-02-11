@@ -255,7 +255,7 @@ class MempoolProcessor {
 
                 const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10)
 
-                await util.asyncPool(3, unconfirmedTxLists, async (txList) => {
+                await util.asyncPool(5, unconfirmedTxLists, async (txList) => {
                     const rpcRequests = txList.map((tx) => ({ method: 'getrawtransaction', params: { txid: tx.txnTxid, verbose: true }, id: tx.txnTxid }))
                     const txs = await this.client.batch(rpcRequests)
 
