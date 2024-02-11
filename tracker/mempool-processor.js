@@ -59,8 +59,6 @@ class MempoolProcessor {
             keys.tracker.unconfirmedTxsProcessPeriod
         )
 
-        await this.checkUnconfirmed()
-
         this.initSockets()
 
         this.processMempoolId = setInterval(
