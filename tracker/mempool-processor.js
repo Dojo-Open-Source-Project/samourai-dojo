@@ -300,8 +300,7 @@ class MempoolProcessor {
         // Get highest header in the blockchain
         // Get highest block processed by the tracker
         try {
-            const [highestBlock, info] = await Promise.all([db.getHighestBlock(), this.client.getblockchaininfo()])
-            const highestHeader = info.headers
+            const [highestBlock, blockHeight] = await Promise.all([db.getHighestBlock(), this.client.getblockcount()])
 
             if (highestBlock == null || highestBlock.blockHeight === 0) {
                 this.isActive = false
@@ -309,7 +308,7 @@ class MempoolProcessor {
             }
 
             // Tolerate a delay of 6 blocks
-            this.isActive = (highestHeader >= 773800) && (highestHeader <= highestBlock.blockHeight + 6)
+            this.isActive = (blockHeight >= 773800) && (blockHeight <= highestBlock.blockHeight + 6)
         } catch (error) {
             Logger.error(error, 'Tracker : MempoolProcessor._refreshActiveStatus()')
         }
