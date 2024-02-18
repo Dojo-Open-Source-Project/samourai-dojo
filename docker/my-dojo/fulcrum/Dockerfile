@@ -1,6 +1,6 @@
 FROM    debian:bullseye-slim AS builder
 
-ENV     INDEXER_VERSION       1.9.7
+ENV     INDEXER_VERSION       1.9.8
 ENV     INDEXER_SHASUMS       Fulcrum-${INDEXER_VERSION}-shasums.txt
 ENV     INDEXER_ASC           ${INDEXER_SHASUMS}.asc
 ENV     INDEXER_URL           https://github.com/cculianu/Fulcrum/releases/download

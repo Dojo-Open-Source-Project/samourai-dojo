@@ -44,6 +44,9 @@ BITCOIND_MIN_RELAY_TX_FEE=0.00001
 # Values: on | off
 BITCOIND_LISTEN_MODE=on
 
+# Enable or disable mempool persistence
+# Values: on | off
+BITCOIND_PERSIST_MEMPOOL=on
 
 #
 # EXPERT SETTINGS

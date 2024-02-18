@@ -6,11 +6,13 @@ export DOCKER_BUILDKIT=1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 get_docker_compose() {
-  if docker compose version > /dev/null ; then
+  result=$(docker compose version > /dev/null ; echo $?)
+
+    if [ $result -eq 0 ]; then
       echo "docker compose"
-  else
+    else
       echo "docker-compose"
-  fi
+    fi
 }
 
 docker_compose=$(get_docker_compose)
@@ -109,8 +111,8 @@ stop() {
     exit
   fi
   # Renewal of bitcoind onion address
-  if [ "$BITCOIND_INSTALL" == "on" ] && [ "$BITCOIND_LISTEN_MODE" == "on" ] && [ "$BITCOIND_EPHEMERAL_HS" = "on" ]; then
-    docker exec -it tor rm -rf /var/lib/tor/hsv3bitcoind &> /dev/null
+  if [ "$BITCOIND_INSTALL" == "on" ] && [ "$BITCOIND_LISTEN_MODE" == "on" ] && [ "$BITCOIND_EPHEMERAL_HS" == "on" ]; then
+    docker exec -i tor rm -rf /var/lib/tor/hsv3bitcoind &> /dev/null
   fi
   # Stop docker containers
   yamlFiles=$(select_yaml_files)

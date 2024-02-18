@@ -59,16 +59,14 @@ class MempoolProcessor {
             keys.tracker.unconfirmedTxsProcessPeriod
         )
 
-        await this.checkUnconfirmed()
-
-        this.initSockets()
-
         this.processMempoolId = setInterval(
             () => this.processMempool(),
             keys.tracker.mempoolProcessPeriod
         )
 
-        await this.processMempool()
+        this.initSockets()
+        this.syncMempool()
+        this.processMempool()
 
         /*this.displayStatsId = setInterval(_.bind(this.displayMempoolStats, this), 60000)
         await this.displayMempoolStats()*/
@@ -141,6 +139,57 @@ class MempoolProcessor {
         })
 
         Logger.info('Tracker : Listening for mempool transactions')
+    }
+
+    /**
+     * Synchronizes the mempool by fetching the transaction IDs currently in the mempool.
+     * @returns {Promise<void>}
+     */
+    async syncMempool() {
+        // pause execution until mempool processing is active
+        while (!this.isActive) {
+            await util.delay(keys.tracker.mempoolProcessPeriod)
+        }
+
+        /**
+         * Holds the transaction IDs currently in the mempool.
+         * @type {string[]}
+         */
+        const mempoolTxIds = await this.client.getrawmempool()
+
+        const t0 = Date.now()
+        Logger.info(`Tracker : Synchronizing Mempool (${mempoolTxIds.length} transactions)`)
+
+        const txIdLists = util.splitList(mempoolTxIds, 10)
+
+        await util.asyncPool(5, txIdLists, async (txids) => {
+            // filter out transactions already in cache and already in the DB
+            const filteredTxIds = txids.filter((txid) => !TransactionsCache.has(txid))
+            const dbTransactions = await db.getTransactionsIds(filteredTxIds)
+            const freshTxIds = filteredTxIds.filter((txid) => !dbTransactions[txid])
+
+            if (freshTxIds.length === 0) return
+
+            const rpcRequests = freshTxIds.map((txid) => ({ method: 'getrawtransaction', params: { txid, verbose: false }, id: txid }))
+
+            try {
+                const txs = await this.client.batch(rpcRequests)
+
+                for (const rtx of txs) {
+                    if (rtx.error) {
+                        Logger.info(`Tracker : MempoolProcessor.syncMempool() - transaction not in mempool: ${rtx.id}`)
+                    } else {
+                        const tx = bitcoin.Transaction.fromHex(rtx.result)
+                        this.mempoolBuffer.addTransaction(tx)
+                    }
+                }
+            } catch (error) {
+                Logger.error(error, 'Tracker : MempoolProcessor.syncMempool()')
+            }
+        })
+
+        const time = util.timePeriod((Date.now() - t0) / 1000, false)
+        Logger.info(`Tracker : Mempool synchronization finished in ${time}`)
     }
 
     /**
@@ -257,7 +306,7 @@ class MempoolProcessor {
 
                 const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10)
 
-                await util.asyncPool(3, unconfirmedTxLists, async (txList) => {
+                await util.asyncPool(5, unconfirmedTxLists, async (txList) => {
                     const rpcRequests = txList.map((tx) => ({ method: 'getrawtransaction', params: { txid: tx.txnTxid, verbose: true }, id: tx.txnTxid }))
                     const txs = await this.client.batch(rpcRequests)
 
@@ -302,8 +351,7 @@ class MempoolProcessor {
         // Get highest header in the blockchain
         // Get highest block processed by the tracker
         try {
-            const [highestBlock, info] = await Promise.all([db.getHighestBlock(), this.client.getblockchaininfo()])
-            const highestHeader = info.headers
+            const [highestBlock, blockHeight] = await Promise.all([db.getHighestBlock(), this.client.getblockcount()])
 
             if (highestBlock == null || highestBlock.blockHeight === 0) {
                 this.isActive = false
@@ -311,7 +359,7 @@ class MempoolProcessor {
             }
 
             // Tolerate a delay of 6 blocks
-            this.isActive = (highestHeader >= 773800) && (highestHeader <= highestBlock.blockHeight + 6)
+            this.isActive = (blockHeight >= 773800) && (blockHeight <= highestBlock.blockHeight + 6)
         } catch (error) {
             Logger.error(error, 'Tracker : MempoolProcessor._refreshActiveStatus()')
         }

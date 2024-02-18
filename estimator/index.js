@@ -17,7 +17,7 @@ try {
 
     const estimator = new FeeEstimator({
         mode: 'txs',
-        refresh: 10,
+        refresh: 20,
         rpcOptions: {
             host: keys.bitcoind.rpc.host,
             port: keys.bitcoind.rpc.port,
@@ -32,13 +32,14 @@ try {
     })
 
     // receive live fee rate updates from the FeeEstimator
-    estimator.on('fees', (fees) => {
-        Logger.info(`Estimator : Received new fee estimates: ${fees}`)
+    estimator.on('data', (result) => {
+        if (result.ready === false) Logger.info('Estimator : Mempool not fully loaded. Feerates might be unreliable.')
+        Logger.info(`Estimator : Received new fee estimates: ${JSON.stringify(result.fees)}`)
         process.send({
             type: 'process:msg',
             data: {
                 topic: 'fee-estimator',
-                value: fees
+                value: result
             }
         })
     })
