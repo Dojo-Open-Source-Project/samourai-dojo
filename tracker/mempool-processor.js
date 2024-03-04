@@ -221,9 +221,9 @@ class MempoolProcessor {
     /**
      * On reception of a new transaction from bitcoind mempool
      * @param {Buffer} buf - transaction
-     * @returns {Promise<void>}
+     * @returns {void}
      */
-    async onTx(buf) {
+    onTx(buf) {
         if (this.isActive) {
             try {
                 let tx = bitcoin.Transaction.fromBuffer(buf)
