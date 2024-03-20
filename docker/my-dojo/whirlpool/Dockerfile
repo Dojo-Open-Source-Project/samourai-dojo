@@ -48,10 +48,10 @@ FROM    debian:bullseye-slim AS whirlpool-builder
 # Install whirlpool-cli
 ENV     WHIRLPOOL_DIR                 /usr/local/whirlpool-cli
 ENV     WHIRLPOOL_URL                 https://code.samourai.io/whirlpool/whirlpool-client-cli/uploads
-ENV     WHIRLPOOL_VERSION             0.10.17.1
-ENV     WHIRLPOOL_VERSION_HASH        ae3599226acb5f15a529db2859ad17ea
+ENV     WHIRLPOOL_VERSION             1.0.0
+ENV     WHIRLPOOL_VERSION_HASH        93438c9ca35c1e3024e92b42ff348917
 ENV     WHIRLPOOL_JAR                 "whirlpool-client-cli-$WHIRLPOOL_VERSION-run.jar"
-ENV     WHIRLPOOL_SHA256              4d7d135ec71b0040e5da7751c68c2122236eaab875da5fc843fbe1f0596ad79a
+ENV     WHIRLPOOL_SHA256              b4c83d0e0cc766a2219ca5b00eb044103bf09a9d18a9a933d2cb5b9261cdee8f
 
 # Install prerequisites
 RUN     set -ex && \
