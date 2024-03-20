@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Prevent excessive memory usage
+export MALLOC_ARENA_MAX=1
+
 # Generate RPC auth payload
 BITCOIND_RPC_AUTH=$(./rpcauth.py $BITCOIND_RPC_USER $BITCOIND_RPC_PASSWORD)
 

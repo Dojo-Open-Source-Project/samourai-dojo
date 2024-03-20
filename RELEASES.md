@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.24.0](#samourai-dojo-v1240)
 - [v1.23.0](#samourai-dojo-v1230)
 - [v1.22.0](#samourai-dojo-v1220)
 - [v1.21.0](#samourai-dojo-v1210)
@@ -34,6 +35,20 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
+-
+## Samourai Dojo v1.24.0
+
+### Notable changes
+This version contains new Whirlpool CLI v1.0.0 which fully uses Soroban (decentralized communication network) to mix with other participants.
+
+### Features
+- [d0edec76](d0edec76) - Updated Whirlpool CLI to v1.0.0
+- [c9c466c8](c9c466c8) - Updated Fulcrum to v 1.10.0
+- [8b62e2aa](8b62e2aa) - Shorten transaction cache lifetime to two days
+- [f86d7229](f86d7229) - Prevent excessive memory usage by bitcoind
+
+### Chores
+- [3d7ba7c9](3d7ba7c9) - Removed unnecessary "async"
 
 ## Samourai Dojo v1.23.0
 ### Features
