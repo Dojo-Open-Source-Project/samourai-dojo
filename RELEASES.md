@@ -35,7 +35,8 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
--
+
+
 ## Samourai Dojo v1.24.1
 
 ### Notable changes
