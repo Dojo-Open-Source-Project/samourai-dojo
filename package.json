@@ -4,7 +4,7 @@
   "description": "Backend server for Samourai Wallet",
   "main": "accounts/index.js",
   "engines": {
-    "node": ">=16.x.x"
+    "node": ">=18.x.x"
   },
   "type": "module",
   "scripts": {
@@ -21,10 +21,10 @@
   "dependencies": {
     "@samouraiwallet/auth47": "0.6.0",
     "@samouraiwallet/electrum-client": "1.4.0",
+    "@samouraiwallet/one-dollar-fee-estimator": "0.6.0",
     "@tinyhttp/app": "2.2.3",
-    "@samouraiwallet/one-dollar-fee-estimator": "0.5.0",
     "async-sema": "3.1.1",
-    "axios": "1.6.5",
+    "axios": "1.6.8",
     "bip32": "4.0.0",
     "bip39": "3.1.0",
     "bitcoinjs-lib": "6.1.5",
@@ -34,9 +34,9 @@
     "jsonwebtoken": "9.0.2",
     "lodash.clonedeep": "4.5.0",
     "milliparsec": "2.3.0",
-    "mysql2": "3.7.1",
+    "mysql2": "3.9.2",
     "nocache": "4.0.0",
-    "quick-lru": "6.1.1",
+    "quick-lru": "7.0.0",
     "rpc-bitcoin": "2.0.0",
     "sirv": "2.0.4",
     "socks-proxy-agent": "8.0.2",
@@ -47,9 +47,9 @@
     "zeromq": "6.0.0-beta.5"
   },
   "devDependencies": {
-    "eslint": "^8.56.0",
+    "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-unicorn": "^50.0.1",
-    "mocha": "^10.2.0"
+    "eslint-plugin-unicorn": "^51.0.1",
+    "mocha": "^10.3.0"
   }
 }
