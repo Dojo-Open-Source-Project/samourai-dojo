@@ -46,9 +46,7 @@ RUN     mkdir "$INDEXER_HOME/addrindexrs" && \
         chown -h indexer:indexer "$INDEXER_HOME/addrindexrs"
 
 # Copy restart script
-COPY    ./restart.sh /restart.sh
-RUN     chown indexer:indexer /restart.sh && \
-        chmod 777 /restart.sh
+COPY    --chown=indexer:indexer --chmod=754 ./restart.sh /restart.sh
 
 USER    indexer
 

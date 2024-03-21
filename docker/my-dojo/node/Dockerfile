@@ -38,27 +38,18 @@ RUN     addgroup -S -g ${TOR_LINUX_GID} tor && \
 RUN     npm install -g pm2
 
 # Copy app source files into APP_DIR
-COPY    --from=builder $APP_DIR $APP_DIR
+COPY    --chown=node:node --from=builder $APP_DIR $APP_DIR
 
 # Copy config file
-COPY    ./docker/my-dojo/node/keys.index.js "$APP_DIR/keys/index.js"
+COPY    --chown=node:node ./docker/my-dojo/node/keys.index.js "$APP_DIR/keys/index.js"
 
 # Copy PM2 config file
-COPY    ./docker/my-dojo/node/pm2.config.cjs "$APP_DIR/pm2.config.cjs"
+COPY    --chown=node:node ./docker/my-dojo/node/pm2.config.cjs "$APP_DIR/pm2.config.cjs"
 
 # Copy restart script
-COPY    ./docker/my-dojo/node/restart.sh "$APP_DIR/restart.sh"
-
-RUN     chmod u+x "$APP_DIR/restart.sh" && \
-        chmod g+x "$APP_DIR/restart.sh"
+COPY    --chown=node:node --chmod=754 ./docker/my-dojo/node/restart.sh "$APP_DIR/restart.sh"
 
 # Copy wait-for-it script
-COPY    ./docker/my-dojo/node/wait-for-it.sh "$APP_DIR/wait-for-it.sh"
-
-RUN     chmod u+x "$APP_DIR/wait-for-it.sh" && \
-        chmod g+x "$APP_DIR/wait-for-it.sh"
-
-# Change ownership of all files
-RUN     chown -R node:node "$APP_DIR"
+COPY    --chown=node:node --chmod=754 ./docker/my-dojo/node/wait-for-it.sh "$APP_DIR/wait-for-it.sh"
 
 USER    node

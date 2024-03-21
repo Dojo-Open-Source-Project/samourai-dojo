@@ -72,7 +72,9 @@ COPY    --from=builder $OBFS_PROXY $OBFS_PROXY
 
 RUN     set -ex && \
         apt-get update && \
-        apt-get install -y libevent-dev netcat-openbsd
+        apt-get install -y libevent-dev netcat-openbsd && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Create group & user tor
 RUN     addgroup --system -gid ${TOR_LINUX_GID} tor && \
@@ -88,11 +90,7 @@ RUN     mkdir -p "$TOR_HOME/.tor" && \
         chmod -R 750 "$TOR_HOME"
 
 # Copy restart script
-COPY    ./restart.sh /restart.sh
-
-RUN     chown tor:tor /restart.sh && \
-        chmod u+x /restart.sh && \
-        chmod g+x /restart.sh
+COPY    --chown=tor:tor --chmod=754 ./restart.sh /restart.sh
 
 # Expose socks port
 EXPOSE  ${TOR_SOCKS_PORT}

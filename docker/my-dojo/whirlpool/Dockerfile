@@ -83,7 +83,9 @@ RUN     mkdir -p /usr/share/man/man1
 
 RUN     set -ex && \
         apt-get update && \
-        apt-get install -qqy default-jdk libevent-dev
+        apt-get install -qqy default-jdk libevent-dev && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN     addgroup --system -gid ${WHIRLPOOL_LINUX_GID} whirlpool && \
         adduser --system --ingroup whirlpool -uid ${WHIRLPOOL_LINUX_UID} whirlpool
@@ -91,21 +93,14 @@ RUN     addgroup --system -gid ${WHIRLPOOL_LINUX_GID} whirlpool && \
 COPY    --from=tor-builder $TOR_BIN $TOR_BIN
 COPY    --from=tor-builder $TOR_CONF $TOR_CONF
 COPY    --from=tor-builder $TOR_MAN $TOR_MAN
-COPY    --from=whirlpool-builder $WHIRLPOOL_DIR $WHIRLPOOL_DIR
-
-RUN     chown -Rv whirlpool:whirlpool "$WHIRLPOOL_DIR" && \
-        chmod -R 750 "$WHIRLPOOL_DIR"
+COPY    --chown=whirlpool:whirlpool --chmod=750 --from=whirlpool-builder $WHIRLPOOL_DIR $WHIRLPOOL_DIR
 
 RUN     mkdir -p "$WHIRLPOOL_HOME/.whirlpool-cli" && \
         chown -Rv whirlpool:whirlpool "$WHIRLPOOL_HOME" && \
         chmod -R 750 "$WHIRLPOOL_HOME"
 
 # Copy restart script
-COPY    ./restart.sh /restart.sh
-
-RUN     chown whirlpool:whirlpool /restart.sh && \
-        chmod u+x /restart.sh && \
-        chmod g+x /restart.sh
+COPY    --chown=whirlpool:whirlpool --chmod=754 ./restart.sh /restart.sh
 
 # Expose HTTP API port
 EXPOSE  8898

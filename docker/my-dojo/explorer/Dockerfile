@@ -32,17 +32,10 @@ ENV     APP_DIR         /home/node/app
 RUN     set -ex && \
         apk --no-cache add bash netcat-openbsd
 
-COPY    --from=builder $APP_DIR $APP_DIR
+COPY    --chown=node:node --from=builder $APP_DIR $APP_DIR
 
 # Copy restart script
-COPY    ./restart.sh "$APP_DIR/restart.sh"
-
-RUN     chown node:node "$APP_DIR/restart.sh" && \
-        chmod u+x "$APP_DIR/restart.sh" && \
-        chmod g+x "$APP_DIR/restart.sh"
-
-# Change ownership of all files
-RUN     chown -R node:node "$APP_DIR"
+COPY    --chown=node:node --chmod=754 ./restart.sh "$APP_DIR/restart.sh"
 
 EXPOSE  3002
 
