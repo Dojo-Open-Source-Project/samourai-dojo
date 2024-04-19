@@ -4,17 +4,17 @@
  */
 
 
-import bip39 from 'bip39'
+import crypto from 'crypto'
 
 
 /**
- * Script generating a strong random passphrase (128-bits of entropy)
+ * Script generating a strong random string (256-bits of entropy)
  * Useful for the generation of a strong api key or oa strong jwt secret (see /keys/index-example.js).
  */
 
 function run() {
-    const mnemonic = bip39.generateMnemonic()
-    console.log(`Generated passphrase = ${mnemonic}`)
+    const secret = crypto.randomBytes(32).toString('hex')
+    console.log(`Generated secret = ${secret}`)
 }
 
 
