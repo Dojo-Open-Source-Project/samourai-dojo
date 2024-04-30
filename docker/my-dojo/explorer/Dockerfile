@@ -5,7 +5,7 @@ ENV     NODE_ENV             production
 ENV     APP_DIR              /home/node/app
 
 ENV     EXPLORER_VERSION     3.4.0+SW
-ENV     EXPLORER_URL         https://code.samourai.io/dojo/btc-rpc-explorer/-/archive/v$EXPLORER_VERSION/btc-rpc-explorer-v$EXPLORER_VERSION.tar.gz
+ENV     EXPLORER_URL         https://github.com/pajasevi/btc-rpc-explorer/archive/refs/tags/v$EXPLORER_VERSION.tar.gz
 
 # Install netcat
 RUN     set -ex && \
