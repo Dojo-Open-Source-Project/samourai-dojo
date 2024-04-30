@@ -46,7 +46,7 @@ By default, MyDojo and Docker data will be stored under `/var/lib/docker` direct
 
 ## 3/ First Installation
 
-The procedure described in this section will configure and install MyDojo with its own Indexer for fast rescans. See the [Advanced Setups](./DOCKER_advanced_setups.md) for more information about this module or for the additional installation of a Whirlpool client on your Dojo.
+The procedure described in this section will configure and install MyDojo with its own Indexer for fast rescans.
 
 ### 3.1/ Prepare Host System
 
