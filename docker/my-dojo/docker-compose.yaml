@@ -1,5 +1,3 @@
-version: "3.2"
-
 services:
   db:
     image: "samouraiwallet/dojo-db:${DOJO_DB_VERSION_TAG}"
@@ -81,8 +79,6 @@ services:
     depends_on:
       - node
     networks:
-      whirlnet:
-        ipv4_address: ${NET_WHIRL_NGINX_IPV4}
       dmznet:
         ipv4_address: ${NET_DMZ_NGINX_IPV4}
       dojonet:
@@ -100,7 +96,6 @@ services:
       - ./.env
       - ./conf/docker-bitcoind.conf
       - ./conf/docker-explorer.conf
-      - ./conf/docker-whirlpool.conf
       - ./conf/docker-indexer.conf
       - ./conf/docker-tor.conf
     restart: always
@@ -131,12 +126,6 @@ networks:
       driver: default
       config:
         - subnet: 172.29.0.0/16
-  whirlnet:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.30.0.0/16
 
 volumes:
   data-mysql:

@@ -58,20 +58,13 @@ RUN     mkdir -p "$INDEXER_HOME/.fulcrum/db" && \
         chown -h fulcrum:fulcrum "$INDEXER_HOME/.fulcrum" && \
         chown -h fulcrum:fulcrum "$INDEXER_HOME/.fulcrum/db"
 
-COPY    --from=builder "$INDEXER_FILES" "$INDEXER_FILES"
-
-# Change file ownership
-RUN     chown -R fulcrum:fulcrum "$INDEXER_FILES"
+COPY    --chown=fulcrum:fulcrum --from=builder "$INDEXER_FILES" "$INDEXER_FILES"
 
 # Copy restart script
-COPY    ./restart.sh /restart.sh
-RUN     chown fulcrum:fulcrum /restart.sh && \
-        chmod 777 /restart.sh
+COPY    --chown=fulcrum:fulcrum --chmod=754 ./restart.sh /restart.sh
 
 # Copy fulcrum.conf
-COPY    ./fulcrum.conf /etc/fulcrum.conf
-RUN     chown fulcrum:fulcrum /etc/fulcrum.conf && \
-        chmod 777 /etc/fulcrum.conf
+COPY    --chown=fulcrum:fulcrum ./fulcrum.conf /etc/fulcrum.conf
 
 USER    fulcrum
 

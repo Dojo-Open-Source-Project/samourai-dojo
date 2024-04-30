@@ -4,10 +4,7 @@ FROM    mariadb:11.1.2
 COPY    ./docker/my-dojo/mysql/mysql-dojo.cnf /etc/mysql/conf.d/mysql-dojo.cnf
 
 # Copy update-db script
-COPY    ./docker/my-dojo/mysql/update-db.sh /update-db.sh
-
-RUN     chmod u+x /update-db.sh && \
-        chmod g+x /update-db.sh
+COPY    --chmod=754 ./docker/my-dojo/mysql/update-db.sh /update-db.sh
 
 # Copy content of mysql scripts into /docker-entrypoint-initdb.d
 COPY    ./db-scripts/ /docker-entrypoint-initdb.d

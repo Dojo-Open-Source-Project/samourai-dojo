@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.25.0](#samourai-dojo-v1250)
 - [v1.24.1](#samourai-dojo-v1241)
 - [v1.23.0](#samourai-dojo-v1230)
 - [v1.22.0](#samourai-dojo-v1220)
@@ -35,7 +36,25 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
--
+
+## Samourai Dojo v1.25.0
+
+### Notable changes
+This version removes Whirlpool CLI due to Whirlpool coordinator beeing no longer active. `#FreeSamourai`
+
+### Changes
+- Removed Whirlpool CLI
+- Updated Tor to v0.4.8.11
+- Removed obsolete version field from docker compose files
+- Fixed addrindexrs installation
+- Fixed btc-rpc-ecplorer installation
+- Updated Bitcoin Core to v27.0
+- Removed unnecessary bip39 dependency
+- Updated ZeroMQ
+- Updated other dependencies
+- Raised required Node.js version to v18
+- Made changes to make docker images smaller
+
 ## Samourai Dojo v1.24.1
 
 ### Notable changes

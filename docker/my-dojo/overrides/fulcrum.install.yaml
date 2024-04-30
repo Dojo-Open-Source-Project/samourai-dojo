@@ -1,5 +1,3 @@
-version: "3.2"
-
 services:
   fulcrum:
     image: "samouraiwallet/dojo-fulcrum:${DOJO_FULCRUM_VERSION_TAG}"

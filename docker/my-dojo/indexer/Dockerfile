@@ -1,15 +1,13 @@
 FROM    rust:1.42.0-slim-buster AS builder
 
 ENV     INDEXER_VERSION             0.6.0
-ENV     FILE_NAME                   addrindexrs-v$INDEXER_VERSION.tar.gz
+ENV     FILE_NAME                   v$INDEXER_VERSION.tar.gz
 ENV     FINGERPRINT_FILE_NAME       addrindexrs-v$INDEXER_VERSION-fingerprints.txt
-ENV     FINGERPRINT_SIG_FILE_NAME   addrindexrs-v$INDEXER_VERSION-fingerprints.txt.sig
-ENV     FINGERPRINT_HASH            89ab60c4b1af3df55a6817e69049ecaf
-ENV     FINGERPRINT_SIG_HASH        1e77197ff4ea46a6f10530b50ae911f7
+ENV     FINGERPRINT_SIG_FILE_NAME   $FINGERPRINT_FILE_NAME.sig
 
-ENV     INDEXER_URL                 https://code.samourai.io/dojo/addrindexrs/-/archive/v$INDEXER_VERSION/$FILE_NAME
-ENV     FINGERPRINT_URL             https://code.samourai.io/dojo/addrindexrs/uploads/$FINGERPRINT_HASH/$FINGERPRINT_FILE_NAME
-ENV     FINGERPRINT_SIG_URL         https://code.samourai.io/dojo/addrindexrs/uploads/$FINGERPRINT_SIG_HASH/$FINGERPRINT_SIG_FILE_NAME
+ENV     INDEXER_URL                 https://github.com/pajasevi/addrindexrs/archive/refs/tags/v$INDEXER_VERSION.tar.gz
+ENV     FINGERPRINT_URL             https://github.com/pajasevi/addrindexrs/releases/download/v$INDEXER_VERSION/$FINGERPRINT_FILE_NAME
+ENV     FINGERPRINT_SIG_URL         https://github.com/pajasevi/addrindexrs/releases/download/v$INDEXER_VERSION/$FINGERPRINT_SIG_FILE_NAME
 
 ENV     PGP_KEY                     377DE507FDC47F020099E342CFA54E4C0CD58DF0
 
@@ -46,9 +44,7 @@ RUN     mkdir "$INDEXER_HOME/addrindexrs" && \
         chown -h indexer:indexer "$INDEXER_HOME/addrindexrs"
 
 # Copy restart script
-COPY    ./restart.sh /restart.sh
-RUN     chown indexer:indexer /restart.sh && \
-        chmod 777 /restart.sh
+COPY    --chown=indexer:indexer --chmod=754 ./restart.sh /restart.sh
 
 USER    indexer
 

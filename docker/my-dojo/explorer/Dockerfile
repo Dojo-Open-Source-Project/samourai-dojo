@@ -5,7 +5,7 @@ ENV     NODE_ENV             production
 ENV     APP_DIR              /home/node/app
 
 ENV     EXPLORER_VERSION     3.4.0+SW
-ENV     EXPLORER_URL         https://code.samourai.io/dojo/btc-rpc-explorer/-/archive/v$EXPLORER_VERSION/btc-rpc-explorer-v$EXPLORER_VERSION.tar.gz
+ENV     EXPLORER_URL         https://github.com/pajasevi/btc-rpc-explorer/archive/refs/tags/v$EXPLORER_VERSION.tar.gz
 
 # Install netcat
 RUN     set -ex && \
@@ -32,17 +32,10 @@ ENV     APP_DIR         /home/node/app
 RUN     set -ex && \
         apk --no-cache add bash netcat-openbsd
 
-COPY    --from=builder $APP_DIR $APP_DIR
+COPY    --chown=node:node --from=builder $APP_DIR $APP_DIR
 
 # Copy restart script
-COPY    ./restart.sh "$APP_DIR/restart.sh"
-
-RUN     chown node:node "$APP_DIR/restart.sh" && \
-        chmod u+x "$APP_DIR/restart.sh" && \
-        chmod g+x "$APP_DIR/restart.sh"
-
-# Change ownership of all files
-RUN     chown -R node:node "$APP_DIR"
+COPY    --chown=node:node --chmod=754 ./restart.sh "$APP_DIR/restart.sh"
 
 EXPOSE  3002
 

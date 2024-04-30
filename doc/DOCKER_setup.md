@@ -26,44 +26,44 @@ MyDojo is a set of Docker containers providing a full Samourai backend composed 
 
 ## Architecture ##
 
-
-  ------------------    --------------------    ---------------     -----------------------
- |  Mobile Wallets  |  | Bitcoin full nodes |  | Whirlpool GUI |   | Whirlpool Coordinator |
-  ------------------    --------------------    ---------------     -----------------------
-          |_______________________|____________________|_______________________|
+```
+  ------------------    --------------------
+ |  Mobile Wallets  |  | Bitcoin full nodes |
+  ------------------    --------------------
+          |_______________________|__________
                                             |
                                       -------------
                                      |             |
-              ---------------------- | Tor network |
-             |                       |             |
-             |                        ------------
-             |                              |
-             |                              | (Tor hidden services)
-       _____ | ____________________________ | _________________________________________
-      |      |          |                   |                                          |
-      |      |          |               ---------                              dmznet  |
-      |      |          |   -----------|   Tor   |------------------------             |
-      |      |          |  |            ---------                         |            |
-      |      |      ---------                                             |            |
-      |      |     |  nginx  | - - - - - - - - - - - - - - - - - - - - - -|- - - - - - |
-      |      |      ---------                                             |            |
-      |      |       |  |  |                                              |            |
-      |      |    ---   |   ----------------------------                  |            |
-      |      |   |      |         |                     |                 |            |
-      |   -----------   |     ----------            ----------        ----------       |
-      |  | whirlpool |  |    |  Nodejs  |----------| Explorer |------| Bitcoind |      |
-      |   -----------   |     ----------            ----------        ----------       |
+                                     | Tor network |
+                                     |             |
+                                      ------------
+                                            |
+                                            | (Tor hidden services)
+       ____________________________________ | _________________________________________
+      |                 |                   |                                          |
+      |                 |               ---------                              dmznet  |
+      |                 |   -----------|   Tor   |------------------------             |
+      |                 |  |            ---------                         |            |
+      |             ---------                                             |            |
+      |            |  nginx  | - - - - - - - - - - - - - - - - - - - - - -|- - - - - - |
+      |             ---------                                             |            |
+      |                 |  |                                              |            |
+      |                 |   ----------------------------                  |            |
+      |                 |         |                     |                 |            |
+      |                 |     ----------            ----------        ----------       |
+      |                 |    |  Nodejs  |----------| Explorer |------| Bitcoind |      |
+      |                 |     ----------            ----------        ----------       |
       |                 |         |   |                 |                 |            |
       |                 |         |    -------          |                 |            |
       |                 |         |           |         |                 |            |
       |                 |     ----------      |     ----------            |            |
       |                 |    |  MySQL   |      ----|  Indexer |-----------             |
       |                 |     ----------            ----------                         |
-      |        whirlnet |                                                      dojonet |
+      |                 |                                                      dojonet |
       |_________________|______________________________________________________________|
         Host machine
 
-
+```
 
 
 <a name="requirements"/>
@@ -160,7 +160,6 @@ This procedure allows to install a new Dojo from scratch.
 * Dojo provides a few additional settings for advanced setups:
   * installation of an address indexer used for fast imports and rescans,
   * support of an external electrum server (ElectrumX or electrs) used for fast imports and rescans,
-  * installation of a Whirlpool client,
   * static onion address for your full node,
   * bitcoind RPC API exposed to external apps,
   * use of an external full node,
@@ -259,7 +258,6 @@ Available commands:
                                   dojo.sh logs indexer        : display the logs of the internal indexer
                                   dojo.sh logs nodejs         : display the logs of NodeJS modules (API, Tracker, PushTx API, Orchestrator)
                                   dojo.sh logs explorer       : display the logs of the Explorer
-                                  dojo.sh logs whirlpool      : display the logs of the Whirlpool client
 
                                 Available options:
                                   -n [VALUE]                  : display the last VALUE lines
@@ -278,11 +276,6 @@ Available commands:
 
   version                       Display the version of dojo.
 
-  whirlpool [action]            Interact with the internal whirlpool-cli module."
-
-                                Available actions:"
-                                  apikey : display the API key generated by whirlpool-cli."
-                                  reset  : reset the whirlpool-cli instance (delete configuration file)."
 ```
 
 
@@ -349,10 +342,6 @@ If OXT is selected as the default source for imports, OXT clearnet API is access
 The maintenance tool is accessed as a Tor hidden service (static onion address).
 
 The block explorer is accessed as a Tor hidden service (static onion address).
-
-The Whirlpool API  is accessed as a Tor hidden service (static onion address).
-
-The Whirlpool client connects to the Whirlpool Coordinator hidden service.
 
 The Bitcoin node only allows incoming connections from Tor (ephemeral onion address).
 
