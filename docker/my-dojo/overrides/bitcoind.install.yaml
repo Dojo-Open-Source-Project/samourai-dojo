@@ -1,5 +1,3 @@
-version: "3.2"
-
 services:
   bitcoind:
     image: "samouraiwallet/dojo-bitcoind:${DOJO_BITCOIND_VERSION_TAG}"
