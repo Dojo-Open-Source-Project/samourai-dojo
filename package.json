@@ -13,11 +13,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@code.samourai.io:dojo/samourai-dojo.git"
+    "url": "https://github.com/Dojo-Open-Source-Project/samourai-dojo.git"
   },
   "author": "Katana Cryptographic Ltd.",
   "license": "AGPL-3.0-only",
-  "homepage": "https://code.samourai.io/dojo/samourai-dojo",
+  "homepage": "https://github.com/Dojo-Open-Source-Project/samourai-dojo",
   "dependencies": {
     "@samouraiwallet/auth47": "0.6.0",
     "@samouraiwallet/electrum-client": "1.4.0",

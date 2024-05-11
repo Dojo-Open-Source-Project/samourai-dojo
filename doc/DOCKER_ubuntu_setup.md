@@ -143,7 +143,7 @@ Download and unpack the source archive for the latest version of MyDojo and copy
 
 ```sh
 > cd ~
-> wget https://code.samourai.io/dojo/samourai-dojo/-/archive/master/samourai-dojo-master.zip
+> wget -O samourai-dojo-master.zip https://github.com/Dojo-Open-Source-Project/samourai-dojo/archive/refs/heads/master.zip
 > unzip samourai-dojo-master.zip -d .
 > cp -a samourai-dojo-master/. dojo-app/
 ```
@@ -342,7 +342,7 @@ Download the archive of latest version
 
 ```sh
 > cd ~
-> wget https://code.samourai.io/dojo/samourai-dojo/-/archive/master/samourai-dojo-master.zip
+> wget -O samourai-dojo-master.zip https://github.com/Dojo-Open-Source-Project/samourai-dojo/archive/refs/heads/master.zip
 ```
 
 Uncompress the archive
@@ -359,7 +359,7 @@ Overwrite the dojo-app directory with the content of the archive
 
 #### 4.1.3/ Update Configuration (optional)
 
-Check the [release notes](https://code.samourai.io/dojo/samourai-dojo/-/blob/master/RELEASES.md) of the new vesion for a list of new features that may require to tune the value of new configuration options.
+Check the [release notes](/RELEASES.md) of the new vesion for a list of new features that may require to tune the value of new configuration options.
 
 If applicable, edit the templates files stored in `~/dojo-app/docker/my-dojo/conf/` and modify the values set for new configuration options.
 
@@ -402,24 +402,24 @@ Download the archive of version `X.Y.Z`
 
 ```sh
 > cd ~
-> wget https://code.samourai.io/dojo/samourai-dojo/-/archive/vX.Y.Z/samourai-dojo-vX.Y.Z.zip
+> wget https://github.com/Dojo-Open-Source-Project/samourai-dojo/archive/refs/tags/vX.Y.Z.zip
 ```
 
 Uncompress the archive
 
 ```sh
-> unzip samourai-dojo-vX.Y.Z.zip -d .
+> unzip vX.Y.Z.zip -d .
 ```
 
 Overwrite the dojo-app directory with the content of the archive
 
 ```sh
-> cp -a samourai-dojo-vX.Y.Z/. dojo-app/
+> cp -a vX.Y.Z/. dojo-app/
 ```
 
 #### 4.2.3/ Update Configuration (optional)
 
-Check the [release notes](https://code.samourai.io/dojo/samourai-dojo/-/blob/master/RELEASES.md) for a list of new features that may require to tune the value of new configuration options.
+Check the [release notes](/RELEASES.md) for a list of new features that may require to tune the value of new configuration options.
 
 If applicable, edit the templates files stored in `~/dojo-app/docker/my-dojo/conf/` and modify the values set for new configuration options.
 

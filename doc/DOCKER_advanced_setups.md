@@ -21,7 +21,7 @@ A word of caution, though, the default values of these options try to maximize y
 
 ## Local indexer of Bitcoin addresses ##
 
-By default, Dojo uses the local full node as its data source for imports and rescans of HD accounts and addresses. While private, this default option has many limitations. MyDojo allows to install a local indexer ([addrindexrs](https://code.samourai.io/dojo/addrindexrs)) providing the best of both worlds (no request sent to a third party, fast and real time rescans, complete transactional history is retrieved).
+By default, Dojo uses the local full node as its data source for imports and rescans of HD accounts and addresses. While private, this default option has many limitations. MyDojo allows to install a local indexer ([addrindexrs](https://github.com/Dojo-Open-Source-Project/addrindexrs)) providing the best of both worlds (no request sent to a third party, fast and real time rescans, complete transactional history is retrieved).
 
 
 ### Requirements ###
