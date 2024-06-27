@@ -1,6 +1,7 @@
 services:
   fulcrum:
     image: "samouraiwallet/dojo-fulcrum:${DOJO_FULCRUM_VERSION_TAG}"
+    pull_policy: never
     container_name: fulcrum
     build:
       context: ./fulcrum

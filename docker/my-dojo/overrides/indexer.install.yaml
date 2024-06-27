@@ -1,6 +1,7 @@
 services:
   indexer:
     image: "samouraiwallet/dojo-indexer:${DOJO_INDEXER_VERSION_TAG}"
+    pull_policy: never
     container_name: indexer
     build:
       context: ./indexer

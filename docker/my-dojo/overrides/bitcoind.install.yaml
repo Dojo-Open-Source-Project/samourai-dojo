@@ -1,6 +1,7 @@
 services:
   bitcoind:
     image: "samouraiwallet/dojo-bitcoind:${DOJO_BITCOIND_VERSION_TAG}"
+    pull_policy: never
     container_name: bitcoind
     build:
       context: ./bitcoin
