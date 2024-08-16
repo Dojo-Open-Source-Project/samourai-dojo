@@ -55,6 +55,10 @@ if [ "$BITCOIND_BLOOM_FILTERS" == "on" ]; then
   bitcoind_options+=(-peerbloomfilters=1)
 fi
 
+if [ "$BITCOIND_BLOCKS_DIR" != "/dev/null" ]; then
+  bitcoind_options+=(-blocksdir="$BITCOIND_BLOCKS_DIR")
+fi
+
 if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
   bitcoind_options+=(-testnet)
 fi
