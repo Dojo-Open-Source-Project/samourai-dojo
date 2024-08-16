@@ -38,7 +38,7 @@ source_file "$DIR/conf/docker-tor.conf"
 source_file "$DIR/.env"
 
 # Export some variables for compose
-export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT
+export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT BITCOIND_BLOCKS_DIR
 
 # Select YAML files
 select_yaml_files() {

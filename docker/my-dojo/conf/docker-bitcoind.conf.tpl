@@ -121,3 +121,7 @@ BITCOIND_ZMQ_BLK_HASH=9502
 # Enable cron jobs running inside bitcoind container
 # Type: on | off
 BITCOIND_CRON_JOBS=on
+
+# Allow to set a directory for the blocks
+# Type: string
+BITCOIND_BLOCKS_DIR=""
