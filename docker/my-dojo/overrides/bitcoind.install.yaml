@@ -23,7 +23,7 @@ services:
     volumes:
       - data-bitcoind:/home/bitcoin/.bitcoin
       - data-tor:/var/lib/tor
-      - ${BITCOIND_BLOCKS_DIR}:/home/bitcoin/.bitcoin/blocks
+      - ${BITCOIND_BLOCKS_DIR}:$BITCOIND_BLOCKS_DIR
     logging:
       driver: "json-file"
       options:
