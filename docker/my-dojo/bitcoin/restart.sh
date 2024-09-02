@@ -56,6 +56,10 @@ if [ "$BITCOIND_BLOOM_FILTERS" == "on" ]; then
 fi
 
 if [ "$BITCOIND_BLOCKS_DIR" != "/dev/null" ]; then
+  # To use this first create the directory on the host and give it the correct permissions
+  # sudo mkdir BITCOIND_BLOCKS_DIR
+  # sudo chmod u+rwx -R BITCOIND_BLOCKS_DIR
+  # sudo chown 1000:1000 -R BITCOIND_BLOCKS_DIR
   bitcoind_options+=(-blocksdir="$BITCOIND_BLOCKS_DIR")
 fi
 
