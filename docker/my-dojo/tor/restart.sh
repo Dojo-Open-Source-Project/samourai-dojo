@@ -38,11 +38,21 @@ if [ "$EXPLORER_INSTALL" == "on" ]; then
 fi
 
 if [ "$TOR_USE_BRIDGES" == "on" ]; then
-  tor_options+=(--ClientTransportPlugin "obfs4 exec /usr/local/bin/obfs4proxy")
   tor_options+=(--UseBridges 1)
+  if [ "$TOR_BRIDGE_TYPE" == "obfs4" ]; then
+    tor_options+=(--ClientTransportPlugin "obfs4 exec $OBFS_PROXY")
+  fi
+  if [ "$TOR_BRIDGE_TYPE" == "snowflake" ]; then
+    tor_options+=(--ClientTransportPlugin "snowflake exec $SNOWFLAKE_PROXY")
+  fi
+
   tor_options+=(--Bridge "$TOR_BRIDGE_1")
-  tor_options+=(--Bridge "$TOR_BRIDGE_2")
-  tor_options+=(--Bridge "$TOR_BRIDGE_3")
+  if [ "$TOR_BRIDGE_2" != "" ]; then
+    tor_options+=(--Bridge "$TOR_BRIDGE_2")
+  fi
+  if [ "$TOR_BRIDGE_3" != "" ]; then
+    tor_options+=(--Bridge "$TOR_BRIDGE_3")
+  fi
 fi
 
 if [ "$INDEXER_INSTALL" == "on" ]; then

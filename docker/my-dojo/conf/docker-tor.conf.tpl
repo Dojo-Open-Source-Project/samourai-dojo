@@ -28,11 +28,15 @@ TOR_SOCKS_PORT=9050
 # Value: on | off
 TOR_USE_BRIDGES=off
 
+# Type of bridge
+# Value: obfs4 | snowflake
+TOR_BRIDGE_TYPE=obfs4
+
 # Bridge 1
-TOR_BRIDGE_1=ToBeDefined
+TOR_BRIDGE_1=
 
 # Bridge 2
-TOR_BRIDGE_2=ToBeDefined
+TOR_BRIDGE_2=
 
 # Bridge 3
-TOR_BRIDGE_3=ToBeDefined
+TOR_BRIDGE_3=
