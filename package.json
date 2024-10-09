@@ -23,7 +23,7 @@
     "@samouraiwallet/bitcoin-rpc": "0.4.0",
     "@samouraiwallet/bitcoinjs-message": "3.0.0",
     "@samouraiwallet/electrum-client": "1.5.2",
-    "@samouraiwallet/one-dollar-fee-estimator": "0.6.0",
+    "@samouraiwallet/one-dollar-fee-estimator": "0.7.0",
     "@tinyhttp/app": "2.3.1",
     "async-sema": "3.1.1",
     "bip32": "4.0.0",
