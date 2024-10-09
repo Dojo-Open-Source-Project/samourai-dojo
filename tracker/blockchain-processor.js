@@ -72,7 +72,7 @@ class BlockchainProcessor {
             const daemonNbHeaders = info.headers
 
             // Consider that we are in IBD mode if Dojo is far in the past (> 13,000 blocks)
-            this.isIBD = (highest.blockHeight < 773800) || (highest.blockHeight < daemonNbHeaders - 13000)
+            this.isIBD = (highest.blockHeight < network.ibdBlockHeight) || (highest.blockHeight < daemonNbHeaders - 13000)
 
             return this.isIBD ? this.catchupIBDMode() : this.catchupNormalMode()
         } catch (error) {
@@ -314,6 +314,9 @@ class BlockchainProcessor {
 
         if (headers.length > 1)
             Logger.info(`Tracker : chainBacktrace @ height ${deepest.height}, ${headers.length} blocks`)
+
+        // reached the genesis block
+        if (!deepest.previousblockhash) return headers
 
         // Look for previous block in the database
         const block = await db.getBlockByHash(deepest.previousblockhash)

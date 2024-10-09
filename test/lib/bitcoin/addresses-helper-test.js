@@ -5,10 +5,14 @@
 
 
 import assert from 'assert'
-import btcMessage from 'bitcoinjs-message'
+// eslint-disable-next-line import/no-unresolved
+import {bitcoinMessageFactory} from '@samouraiwallet/bitcoinjs-message'
+import * as ecc from 'tiny-secp256k1'
 
 import network from '../../../lib/bitcoin/network.js'
 import addrHelper from '../../../lib/bitcoin/addresses-helper.js'
+
+const btcMessage = bitcoinMessageFactory(ecc)
 
 const activeNet = network.network
 
@@ -176,7 +180,7 @@ describe('AddressesHelper', () => {
                     const sig = btcMessage.sign(msg, privKey, true, prefix)
 
                     // Check that library returns valid result
-                    assert.strictEqual((sig.compare(targetSig) === 0), expectedResult)
+                    assert.strictEqual((Buffer.from(sig).compare(targetSig) === 0), expectedResult)
 
                     // Check method
                     const result = addrHelper.verifySignature(msg, address, sig)

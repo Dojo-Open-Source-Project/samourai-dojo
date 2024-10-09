@@ -22,7 +22,7 @@ Follow the instructions in this [video](https://www.youtube.com/watch?v=6M1DivpQ
 
 Also, remember to install the virtual box at a directory where you have __enough free space__ to install the Dojo. Specially if you are running a full node.
 
-After the setup is complete, start the virtual box and open a terminal window then proceed to install the Dojo following these [instructions](https://code.samourai.io/dojo/samourai-dojo/-/blob/master/doc/DOCKER_setup.md#install).
+After the setup is complete, start the virtual box and open a terminal window then proceed to install the Dojo following these [instructions](/doc/DOCKER_setup.md#install).
 
 
 
@@ -73,7 +73,7 @@ Note: _This is an important step, otherwise, it's probable that when you run the
 (_At 4 CPUs, 8GB of RAM and a 4GiB Swap - the initial block download took 4.5 days at the time of writing_).
 
 ### Install the DOJO
-Follow the instructions [here](https://code.samourai.io/dojo/samourai-dojo/-/blob/master/doc/DOCKER_setup.md) starting at the step:
+Follow the instructions [here](/doc/DOCKER_setup.md) starting at the step:
 __"Download the most recent release of Dojo from Github"__
 _Note: For tracking progress, open Kitematic and follow the bitcoind logs. You'll be able to see the Blockchain verification process under the _progress_ log variable (1.00 = fully validated). This process takes a long time. Just let it do its thing. In my system it took 3 days._
 
@@ -105,11 +105,11 @@ This installation was tested on an iMac (late 2014) with a 3.5GHz i5 processor w
 4.  Click __Advanced__ and increase the CPU count, Memory and Swap sizes. Adjusting these will speed up the blockchain validation process
 
 ### Install the DOJO Pointing and Existing bitcoind
-Follow the instructions [here](hhttps://code.samourai.io/dojo/samourai-dojo/-/blob/master/doc/DOCKER_setup.md) starting at the step:
+Follow the instructions [here](/doc/DOCKER_setup.md) starting at the step:
 __"Download the most recent release of Dojo from Github"__ until you reach __"Launch the Installation of Your Dojo with"__ ***DO NOT LAUNCH DOJO YET***
 
-Once you Reach Step __"Launch the Installation of Your Dojo with"__ from above you will need to read and follow the instructions from [here](https://code.samourai.io/dojo/samourai-dojo/-/blob/master/doc/DOCKER_advanced_setups.md)
-Once adjustments are made to your external bitcoind bitcoin.conf __(location dependent on what device you have bitcoind)__ and docker-bitcoind.conf.tpl __(dojo_dir > docker > my-dojo > conf)__ you can proceed with Install and revert back to original instructions [here](https://code.samourai.io/dojo/samourai-dojo/-/blob/master/doc/DOCKER_setup.md) at section __"Launch the Installation of Your Dojo with"__
+Once you Reach Step __"Launch the Installation of Your Dojo with"__ from above you will need to read and follow the instructions from [here](/doc/DOCKER_advanced_setups.md)
+Once adjustments are made to your external bitcoind bitcoin.conf __(location dependent on what device you have bitcoind)__ and docker-bitcoind.conf.tpl __(dojo_dir > docker > my-dojo > conf)__ you can proceed with Install and revert back to original instructions [here](/doc/DOCKER_setup.md) at section __"Launch the Installation of Your Dojo with"__
 
 _Note: For tracking progress, open terminal, change directory to my-dojo and run /dojo.sh logs nodejs
 __Some possible optimization tips:__

@@ -76,13 +76,13 @@ cd <dojo_dir>
 ```sh
 cp -r ./ ../dojo-backup
 ```
-- Download latest Dojo from [Gitlab releases](https://code.samourai.io/dojo/samourai-dojo/-/releases)
+- Download latest Dojo from [Releases](https://github.com/Dojo-Open-Source-Project/samourai-dojo/releases)
 ```sh
   mkdir newDojo
   cd newDojo
-  wget https://code.samourai.io/dojo/samourai-dojo/-/archive/v1.7.0/samourai-dojo-v1.7.0.tar.gz
-  tar xzvf samourai-dojo-v1.7.0.tar.gz
-  cp -r samourai-dojo-v1.7.0/* ../
+  wget https://github.com/Dojo-Open-Source-Project/samourai-dojo/archive/refs/tags/v1.26.0.tar.gz
+  tar xzvf samourai-dojo-v1.26.0.tar.gz
+  cp -r samourai-dojo-v1.26.0/* ../
   cd ..
 ```
 - Upgrade

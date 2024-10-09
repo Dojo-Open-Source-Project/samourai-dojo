@@ -5,8 +5,8 @@ MyDojo is a set of Docker containers providing a full Samourai backend composed 
 * a backend database,
 * backend modules with an API accessible as a static Tor hidden service,
 * a maintenance tool accessible through a Tor web browser,
-* a block explorer ([BTC RPC Explorer](https://github.com/janoside/btc-rpc-explorer)) accessible as a static Tor hidden service.
-* an optional indexer of Bitcoin addresses ([addrindexrs](https://code.samourai.io/dojo/addrindexrs)) providing fast and private rescans of HD accounts and loose addresses.
+* a block explorer ([BTC RPC Explorer](https://github.com/Dojo-Open-Source-Project/btc-rpc-explorer)) accessible as a static Tor hidden service.
+* an optional indexer of Bitcoin addresses ([addrindexrs](https://github.com/Dojo-Open-Source-Project/addrindexrs)) providing fast and private rescans of HD accounts and loose addresses.
 
 
 ## Table of Content ##
@@ -115,7 +115,7 @@ For MacOS, see this detailed [installation guide](./DOCKER_mac_setup.MD).
 
 For Synology, see this detailed [installation guide](./DOCKER_synology_setup.md).
 
-For Raspberry Pi4 and Odroid N2, see the [Ronin Dojo Project](https://code.samourai.io/ronindojo/RoninDojo)
+For Raspberry Pi4 and Odroid N2, see the [Ronin Dojo Project](https://wiki.ronindojo.io/en/home)
 
 
 This procedure allows to install a new Dojo from scratch.
@@ -124,7 +124,7 @@ This procedure allows to install a new Dojo from scratch.
 
 * Install [Tor Browser](https://www.torproject.org/projects/torbrowser.html.en) on the host machine.
 
-* Download the most recent release of Dojo from [Gitlab](https://code.samourai.io/dojo/samourai-dojo/-/archive/master/samourai-dojo-master.zip)
+* Download the most recent release of Dojo from [Releases](https://github.com/Dojo-Open-Source-Project/samourai-dojo/releases)
 
 * Uncompress the archive on the host machine in a temporary directory of your choice (named `<tmp_dir>` in this doc)
 
@@ -209,7 +209,7 @@ This procedure allows to upgrade your Dojo with a new version.
 ./dojo.sh stop
 ```
 
-* Download the most recent release of Dojo from [Gitlab](https://code.samourai.io/dojo/samourai-dojo/-/releases)
+* Download the most recent release of Dojo from [Releases](https://github.com/Dojo-Open-Source-Project/samourai-dojo/releases)
 
 * Uncompress the archive on the host machine in a temporary directory of your choice (named `<tmp_dir>` in this doc)
 

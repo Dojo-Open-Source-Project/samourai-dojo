@@ -1,14 +1,10 @@
-FROM    golang:1.19.1-bullseye AS builder
+FROM    debian:bullseye-slim AS torbuilder
 
 ENV     TOR_URL             https://dist.torproject.org
 ENV     TOR_MIRROR_URL      https://tor.eff.org/dist
-ENV     TOR_VERSION         0.4.8.11
+ENV     TOR_VERSION         0.4.8.12
 ENV     TOR_GPG_KS_URI      hkps://keyserver.ubuntu.com:443
 ENV     TOR_GPG_KEYS        0xEB5A896A28988BF5 0xC218525819F78451 0x21194EBB165733EA 0x6AFEE6D49E92B601 B74417EDDF22AC9F9E90F49142E86A2A11F48D36 514102454D0A87DB0767A1EBBE6A0531C18A9179
-
-ENV     OBFS4_URL           https://github.com/Yawning/obfs4.git
-ENV     OBFS4_VERSION       0.0.14
-
 
 # Install Tor
 RUN     set -ex && \
@@ -40,19 +36,41 @@ RUN     set -ex && \
             --disable-asciidoc \
             --sysconfdir=/etc \
             --disable-unittests && \
-        make && make install && \
-        cd .. && \
-        rm -rf "tor-$TOR_VERSION" && \
-        rm "tor-$TOR_VERSION.tar.gz" "tor-$TOR_VERSION.tar.gz.sha256sum" "tor-$TOR_VERSION.tar.gz.sha256sum.asc"
+        make && make install
 
-# Install Golang & OBFS4 proxy
+FROM    golang:1.23-bullseye AS obfs4builder
+
+ENV     OBFS4_URL           https://github.com/Yawning/obfs4.git
+ENV     OBFS4_VERSION       0.0.14
+
+RUN     set -ex && \
+        apt-get update && \
+        apt-get install -y git
+
+# Build OBFS4 proxy
 RUN     git clone "$OBFS4_URL" /usr/local/src/obfs4proxy && \
         cd /usr/local/src/obfs4proxy && \
         git checkout "tags/obfs4proxy-$OBFS4_VERSION" && \
         go build -o obfs4proxy/obfs4proxy ./obfs4proxy && \
-        cp ./obfs4proxy/obfs4proxy /usr/local/bin && \
-        cd .. && \
-        rm -rf obfs4proxy
+        cp ./obfs4proxy/obfs4proxy /usr/local/bin
+
+FROM    golang:1.23-bullseye AS snowflakebuilder
+
+ENV     SNOWFLAKE_URL       https://git.torproject.org/pluggable-transports/snowflake.git
+ENV     SNOWFLAKE_VERSION   2.9.2
+
+RUN     set -ex && \
+        apt-get update && \
+        apt-get install -y git
+
+# Build Snowflake proxy
+RUN     git clone "$SNOWFLAKE_URL" /usr/local/src/snowflake && \
+        cd /usr/local/src/snowflake && \
+        git checkout "tags/v$SNOWFLAKE_VERSION" && \
+        cd client && \
+        go get && \
+        go build -o snowflake-client && \
+        cp ./snowflake-client /usr/local/bin
 
 FROM    debian:bullseye-slim
 
@@ -61,14 +79,16 @@ ENV     TOR_BIN         /usr/local/bin/tor
 ENV     TOR_CONF        /etc/tor
 ENV     TOR_MAN         /usr/local/share/man
 ENV     OBFS_PROXY      /usr/local/bin/obfs4proxy
+ENV     SNOWFLAKE_PROXY /usr/local/bin/snowflake-client
 
 ARG     TOR_LINUX_UID
 ARG     TOR_LINUX_GID
 
-COPY    --from=builder $TOR_BIN $TOR_BIN
-COPY    --from=builder $TOR_CONF $TOR_CONF
-COPY    --from=builder $TOR_MAN $TOR_MAN
-COPY    --from=builder $OBFS_PROXY $OBFS_PROXY
+COPY    --from=torbuilder $TOR_BIN $TOR_BIN
+COPY    --from=torbuilder $TOR_CONF $TOR_CONF
+COPY    --from=torbuilder $TOR_MAN $TOR_MAN
+COPY    --from=obfs4builder $OBFS_PROXY $OBFS_PROXY
+COPY    --from=snowflakebuilder $SNOWFLAKE_PROXY $SNOWFLAKE_PROXY
 
 RUN     set -ex && \
         apt-get update && \

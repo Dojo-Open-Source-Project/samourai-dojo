@@ -18,7 +18,7 @@ It provides in a single command the setup of a full Samourai backend composed of
 * the backend modules with an API accessible as a static Tor hidden service,
 * a maintenance tool accessible through a Tor web browser,
 * a block explorer ([BTC RPC Explorer](https://github.com/janoside/btc-rpc-explorer)) accessible through a Tor web browser,
-* an optional indexer of Bitcoin addresses ([addrindexrs](hhttps://code.samourai.io/dojo/addrindexrs)) providing fast and private rescans of HD accounts and loose addresses.
+* an optional indexer of Bitcoin addresses ([addrindexrs](https://github.com/Dojo-Open-Source-Project/addrindexrs)) providing fast and private rescans of HD accounts and loose addresses.
 
 See [the documentation](./doc/DOCKER_setup.md) for detailed setup instructions.
 

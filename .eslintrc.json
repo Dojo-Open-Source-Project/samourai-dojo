@@ -15,7 +15,7 @@
   ],
   "ignorePatterns": ["*.min.js"],
   "parserOptions": {
-    "ecmaVersion": 13,
+    "ecmaVersion": 2022,
     "sourceType": "module"
   },
   "rules": {
