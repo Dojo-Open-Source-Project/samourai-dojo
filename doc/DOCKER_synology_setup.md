@@ -80,9 +80,9 @@ cp -r ./ ../dojo-backup
 ```sh
   mkdir newDojo
   cd newDojo
-  wget https://github.com/Dojo-Open-Source-Project/samourai-dojo/archive/refs/tags/v1.25.0.tar.gz
-  tar xzvf samourai-dojo-v1.25.0.tar.gz
-  cp -r samourai-dojo-v1.25.0/* ../
+  wget https://github.com/Dojo-Open-Source-Project/samourai-dojo/archive/refs/tags/v1.26.0.tar.gz
+  tar xzvf samourai-dojo-v1.26.0.tar.gz
+  cp -r samourai-dojo-v1.26.0/* ../
   cd ..
 ```
 - Upgrade
