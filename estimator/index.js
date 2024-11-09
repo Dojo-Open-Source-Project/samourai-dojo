@@ -23,6 +23,7 @@ try {
             port: keys.bitcoind.rpc.port,
             username: keys.bitcoind.rpc.user,
             password: keys.bitcoind.rpc.pass,
+            cookie: keys.bitcoind.rpc.cookie_path
         }
     })
 

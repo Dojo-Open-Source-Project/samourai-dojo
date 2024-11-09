@@ -27,6 +27,8 @@ export default {
                 user: 'user',
                 // Password
                 pass: 'password',
+                // Cookie path
+                cookie_path: '/path/to/cookie',
                 // IP address
                 host: '127.0.0.1',
                 // TCP port
