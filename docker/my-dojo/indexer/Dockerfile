@@ -12,7 +12,7 @@ ENV     FINGERPRINT_SIG_URL         https://github.com/Dojo-Open-Source-Project/
 ENV     PGP_KEY                     377DE507FDC47F020099E342CFA54E4C0CD58DF0
 
 RUN     apt-get update && \
-        apt-get install -y clang cmake wget gpg
+        apt-get install -y clang cmake wget gpg ca-certificates
 
 # Get PGP key
 RUN     gpg --batch --recv-keys $PGP_KEY

@@ -1,4 +1,4 @@
-FROM    node:20-alpine3.18 AS builder
+FROM    node:20-alpine3.20 AS builder
 
 ENV     NODE_ENV             production
 
@@ -11,10 +11,6 @@ ENV     EXPLORER_URL         https://github.com/Dojo-Open-Source-Project/btc-rpc
 RUN     set -ex && \
         apk --no-cache add gcc g++ make python3 git
 
-# Update NPM to latest version
-RUN     set -ex && \
-        npm i -g npm
-
 # Download the source code and install it
 RUN     set -ex && \
         mkdir "$APP_DIR" && \
@@ -24,7 +20,7 @@ RUN     set -ex && \
         cd "$APP_DIR" && \
         npm install --omit=dev
 
-FROM    node:20-alpine3.18
+FROM    node:20-alpine3.20
 
 ENV     NODE_ENV        production
 ENV     APP_DIR         /home/node/app

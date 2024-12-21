@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
 - [v1.24.1](#samourai-dojo-v1241)
@@ -37,6 +38,15 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
+
+## Samourai Dojo v1.26.1
+
+### Changelog
+- Fixed Node.js build issues [5a2fc631](5a2fc631)
+- Update fee estimator [43c01ddb](43c01ddb)
+- Fixed addrindexrs installation [48c2f8f2](48c2f8f2)
+- Updated Tor to v0.4.8.13 [ac3eeeec](ac3eeeec)
+- Updated Snowflake to v2.10.1 [ac3eeeec](ac3eeeec)
 
 ## Samourai Dojo v1.26.0
 
