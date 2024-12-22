@@ -50,6 +50,8 @@ export default {
                 user: process.env.BITCOIND_RPC_USER,
                 // Password
                 pass: process.env.BITCOIND_RPC_PASSWORD,
+                // Cookie path
+                cookie_path: process.env.BITCOIND_RPC_COOKIE_PATH,
                 // IP address
                 host: process.env.BITCOIND_IP,
                 // TCP port
