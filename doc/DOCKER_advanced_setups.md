@@ -26,7 +26,7 @@ By default, Dojo uses the local full node as its data source for imports and res
 
 ### Requirements ###
 
-To date, the initial installation of the indexer requires 60GB of additionnal disk space.
+To date, the initial installation of the indexer requires 60GB of additional disk space.
 
 
 ### Main benefits ###
