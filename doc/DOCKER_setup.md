@@ -109,13 +109,15 @@ Most options provided in the configuration files can be later modified. New valu
 
 ## First-time Setup ##
 
-For Ubuntu 16, see this detailed [installation and upgrade guide](./DOCKER_ubuntu_setup.MD).
+For Ubuntu 16, see this detailed [installation and upgrade guide](./DOCKER_ubuntu_setup.md).
 
 For MacOS, see this detailed [installation guide](./DOCKER_mac_setup.MD).
 
 For Synology, see this detailed [installation guide](./DOCKER_synology_setup.md).
 
-For Raspberry Pi4 and Odroid N2, see the [Ronin Dojo Project](https://wiki.ronindojo.io/en/home)
+For Raspberry Pi4 and Odroid N2, see the [Ronin Dojo Project](https://wiki.ronindojo.io/en/home).
+
+To copy blockchain or Fulcrum data from an existing node, see [Copying data from an existing node](./DOCKER_data_exiting_node.md).
 
 
 This procedure allows to install a new Dojo from scratch.
