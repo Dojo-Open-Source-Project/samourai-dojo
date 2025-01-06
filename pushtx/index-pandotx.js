@@ -35,16 +35,18 @@ try {
     pushTxProcessor.initNotifications({
         uriSocket: `tcp://127.0.0.1:${keys.ports.pandoTx}`
     })
+    pushTxProcessor.start()
 
     // Initialize and start the orchestrator
-    const processor = new PandoTxProcessor()
-    processor.start()
+    const pandoTxProcessor = new PandoTxProcessor()
+    pandoTxProcessor.start()
 
     // Signal that the process is ready
     process.send('ready')
 
     const exit = async () => {
-        processor.stop()
+        pushTxProcessor.stop()
+        pandoTxProcessor.stop()
         process.exit(0)
     }
 

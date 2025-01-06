@@ -47,6 +47,7 @@ try {
     pushTxProcessor.initNotifications({
         uriSocket: `tcp://127.0.0.1:${keys.ports.orchestrator}`
     })
+    pushTxProcessor.start()
 
     // Initialize and start the orchestrator
     const orchestrator = new Orchestrator()
@@ -56,6 +57,7 @@ try {
     process.send('ready')
 
     const exit = async () => {
+        pushTxProcessor.stop()
         orchestrator.stop()
         await db.disconnect()
         process.exit(0)

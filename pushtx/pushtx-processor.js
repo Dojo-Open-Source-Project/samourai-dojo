@@ -37,7 +37,28 @@ class PushTxProcessor {
         // Initialize the bitcoind rpc client
         this.rpcClient = createRpcClient()
         // Initialize the PandoTxEmitter
-        this.pandoTxEmitter = new PandoTxEmitter()
+        if (keys['pandoTx']['push'] === 'active') {
+            this.pandoTxEmitter = new PandoTxEmitter(this.rpcClient)
+        }
+    }
+
+    /**
+     * Start the processor
+     * @returns {Promise}
+     */
+    start() {
+        if (keys['pandoTx']['push'] === 'active') {
+            this.pandoTxEmitter.start()
+        }
+    }
+
+    /**
+     * Stop the processor
+     */
+    async stop() {
+        if (keys['pandoTx']['push'] === 'active') {
+            this.pandoTxEmitter.stop()
+        }
     }
 
     /**
