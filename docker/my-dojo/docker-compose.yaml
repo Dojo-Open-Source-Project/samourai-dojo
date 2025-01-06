@@ -101,6 +101,7 @@ services:
       - ./conf/docker-bitcoind.conf
       - ./conf/docker-explorer.conf
       - ./conf/docker-indexer.conf
+      - ./conf/docker-soroban.conf
       - ./conf/docker-tor.conf
     restart: always
     command: /restart.sh

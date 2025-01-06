@@ -24,6 +24,12 @@ else
   source ./conf/docker-indexer.conf.tpl
 fi
 
+if [ -f ./conf/docker-soroban.conf ]; then
+  source ./conf/docker-soroban.conf
+else
+  source ./conf/docker-soroban.conf.tpl
+fi
+
 
 source ./conf/docker-bitcoind.conf
 
@@ -72,6 +78,9 @@ update_config_files() {
 
   update_config_file ./conf/docker-indexer.conf ./conf/docker-indexer.conf.tpl
   echo "Initialized docker-indexer.conf"
+
+  update_config_file ./conf/docker-soroban.conf ./conf/docker-soroban.conf.tpl
+  echo "Initialized docker-soroban.conf"
 
   # Initialize config files for nginx and the maintenance tool
   if [ "$EXPLORER_INSTALL" == "on" ]; then
