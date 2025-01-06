@@ -135,7 +135,9 @@ export default {
             // Port used by pushtx for its notifications
             notifpushtx: 5556,
             // Port used by the pushtx orchestrator for its notifications
-            orchestrator: 5557
+            orchestrator: 5557,
+            // Port used by the pandotx processor for its notifications
+            pandoTx: 5558
         },
         /*
          * Authenticated access to the APIs (account & pushtx)
