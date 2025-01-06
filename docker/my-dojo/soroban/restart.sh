@@ -3,7 +3,7 @@ set -e
 
 soroban_options=(
   --log "$SOROBAN_LOG_LEVEL"
-  --hostname "$NET_DMZ_SOROBAN_IPV4"
+  --hostname "$NET_DOJO_SOROBAN_IPV4"
   --port $SOROBAN_PORT
   --p2pListenPort $SOROBAN_P2P_LISTEN_PORT
   --p2pLowWater $SOROBAN_P2P_LOWWATER
