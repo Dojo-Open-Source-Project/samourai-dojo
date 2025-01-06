@@ -250,6 +250,24 @@ INDEXER_INSTALL=on
 Save and exit the file with `CTRL+X`, `Y` and `ENTER`.
 
 
+### 3.3.5/ Soroban configuration
+
+Edit the `docker-soroban.conf.tpl` file.
+
+```sh
+> nano docker-soroban.conf.tpl
+```
+
+Customize the content of the file
+
+```sh
+SOROBAN_INSTALL="on"
+SOROBAN_ANNOUNCE="on"
+```
+
+Save and exit the file with `CTRL+X`, `Y` and `ENTER`.
+
+
 ### 3.6/ Execute the first installation of MyDojo
 
 From this point on the install process is automatic. Launch the installation of MyDojo
