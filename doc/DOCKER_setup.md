@@ -83,13 +83,14 @@ MyDojo is a set of Docker containers providing a full Samourai backend composed 
 
 ## Configuration files ##
 
-Each new release of Dojo is packaged with 7 template files stored in the `<dojo_dir>/docker/my-dojo/conf` directory:
+Each new release of Dojo is packaged with 8 template files stored in the `<dojo_dir>/docker/my-dojo/conf` directory:
 - docker-common.conf.tpl
 - docker-bitcoin.conf.tpl
 - docker-explorer.conf.tpl
 - docker-indexer.conf.tpl
 - docker-mysql.conf.tpl
 - docker-node.conf.tpl
+- docker-soroban.conf.tpl
 - docker-tor.conf.tpl
 
 These template files define default values for configuration options of your Dojo.
@@ -158,6 +159,10 @@ This procedure allows to install a new Dojo from scratch.
   * Edit docker-explorer.conf.tpl and provide a new value for the following parameter:
       * If you want to deactivate the block explorer, set the value of `EXPLORER_INSTALL` to `off`.
     See this [section](#explorer) for more details about the block explorer.
+
+  * Edit docker-soroban.conf.tpl and provide a new value for the following parameters:
+      * If you want to deactivate the Soroban instance, set the value of `SOROBAN_INSTALL` to `off`.
+      * If you want to allow others users to access the Soroban network through your Soroban instance (through a dedicated onion address), set the value of `SOROBAN_ANNOUNCE` to `on`.
 
 * Dojo provides a few additional settings for advanced setups:
   * installation of an address indexer used for fast imports and rescans,
@@ -260,6 +265,7 @@ Available commands:
                                   dojo.sh logs indexer        : display the logs of the internal indexer
                                   dojo.sh logs nodejs         : display the logs of NodeJS modules (API, Tracker, PushTx API, Orchestrator)
                                   dojo.sh logs explorer       : display the logs of the Explorer
+                                  dojo.sh logs soroban        : display the logs of the Soroban instance
 
                                 Available options:
                                   -n [VALUE]                  : display the last VALUE lines
