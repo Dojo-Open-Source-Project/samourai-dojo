@@ -4,7 +4,7 @@
  */
 
 import bitcoin from 'bitcoinjs-lib'
-import { RPC } from 'soroban-client-nodejs'
+import { RPC, RPCCallError } from 'soroban-client-nodejs'
 import Logger from '../lib/logger.js'
 import network from '../lib/bitcoin/network.js'
 import keysFile from '../keys/index.js'
@@ -85,43 +85,64 @@ class PandoTxEmitter {
             throw errors.tx.PARSE
         }
 
-        // Select a random 'honest' Soroban node
-        let entry = null
+        // Prepare an array of remote Soroban node urls
+        let url = null
         let remoteNodes = await this.sorobanRpc.directoryList(this.keyAnnounce)
-        
-        while (entry == null) {
-            if (remoteNodes == null || remoteNodes.length == 0)
+        if (remoteNodes == null || remoteNodes.length == 0)
+            throw new Error('No available Soroban node found')
+        // Extract the urls from the announcement messages
+        let urls = remoteNodes.map((n) => {
+            const o = JSON.parse(n)
+            if (Object.hasOwn(o, 'url')) {
+                return o['url']
+            }
+        });
+        // Remove duplicate urls
+        urls = [...new Set(urls)]
+
+        // Select a random 'honest' Soroban node
+        while (url == null) {
+            if (urls == null || urls.length == 0)
                 throw new Error('No available Soroban node found')
 
-            const idx = Math.floor(Math.random() * remoteNodes.length)
-            entry = JSON.parse(remoteNodes[idx])
+            // Select a random url
+            const idx = Math.floor(Math.random() * urls.length)
+            url = urls[idx]
 
-            if (!Object.hasOwn(entry, 'url')) {
-                remoteNodes.splice(idx, 1)
-                entry = null
-                Logger.info(`PandoTx : Invalid announce message received: ${JSON.stringify(entry)}`)
-                continue
-            }
-
-            if (this.watchdogBlacklist.has(entry['url'])) {
+            if (this.watchdogBlacklist.has(url)) {
                 // Check if blacklisting has expired (>24h)
-                const delta = Date.now() - this.watchdogBlacklist.get(entry['url'])
+                const delta = Date.now() - this.watchdogBlacklist.get(url)
                 if (delta < 86400000) {
-                    remoteNodes.splice(idx, 1)
-                    entry = null
+                    urls.splice(idx, 1)
+                    url = null
                     continue
                 } else {
-                    this.watchdogBlacklist.delete(entry['url'])
+                    this.watchdogBlacklist.delete(url)
                 }
             }
         }
         
         // Push the transaction over PandoTx
-        const sorobanPushClient = new RPC(
-            `${entry['url']}/rpc`, 
-            this.keySocks5Proxy
-        )
-        await sorobanPushClient.directoryAdd(this.keyPush, rawtx, 'fast')
+        try {
+            const sorobanPushClient = new RPC(
+                `${url}/rpc`, 
+                this.keySocks5Proxy
+            )
+            await sorobanPushClient.directoryAdd(this.keyPush, rawtx, 'fast')
+        } catch (e) {
+            if (e instanceof RPCCallError) {
+                if (e.message.includes('Socks5 proxy rejected connection')) {
+                    // Blacklist the soroban node 
+                    this.watchdogBlacklist.set(url, Date.now())
+                    Logger.info(`PandoTx : Blacklisted Soroban node ${url} (not responding)`)
+                } else if (e.message.includes('Proxy connection timed out')) {
+                    // Blacklist the soroban node 
+                    this.watchdogBlacklist.set(url, Date.now())
+                    Logger.info(`PandoTx : Blacklisted Soroban node ${url} (connection timeout)`)
+                }
+            }
+            throw e
+        }
         
         // Wait for a confirmation
         const t0 = Date.now()
@@ -135,10 +156,10 @@ class PandoTxEmitter {
                         this.watchdogTxsList.push({
                             'tx': rawtx,
                             'txid': txid,
-                            'node': entry['url'],
+                            'node': url,
                             'ts': Date.now()
                         })
-                        Logger.info(`PandoTx : Successfully pushed tx ${txid} through Soroban node ${entry['url']}`)
+                        Logger.info(`PandoTx : Successfully pushed tx ${txid} through Soroban node ${url}`)
                         return txid
                     }
                 }
@@ -146,12 +167,12 @@ class PandoTxEmitter {
             // Return a failure if no response received after 15s
             const t1 = Date.now()
             if (t1-t0 > 15000) {
-                this.watchdogBlacklist.set(entry['url'], Date.now())
-                Logger.info(`PandoTx : Blacklisted Soroban node ${entry['url']} (timeout)`)
+                this.watchdogBlacklist.set(url, Date.now())
+                Logger.info(`PandoTx : Blacklisted Soroban node ${url} (timeout)`)
                 if (retry) {
                     return await this.emit(rawtx, retry)
                 } else {
-                    throw new Error(`Timeout: Failed to push tx ${txid} through Soroban node ${entry['url']} in less than 15s`)
+                    throw new Error(`Timeout: Failed to push tx ${txid} through Soroban node ${url} in less than 15s`)
                 }
             }
             // Pause
