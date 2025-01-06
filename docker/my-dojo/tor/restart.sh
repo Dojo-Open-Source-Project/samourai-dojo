@@ -67,7 +67,7 @@ fi
 if [ "$SOROBAN_INSTALL" == "on" ]; then
   tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3soroban)
   tor_options+=(--HiddenServiceVersion 3)
-  tor_options+=(--HiddenServicePort "80 $NET_DMZ_SOROBAN_IPV4:$SOROBAN_PORT")
+  tor_options+=(--HiddenServicePort "80 $NET_DOJO_SOROBAN_IPV4:$SOROBAN_PORT")
   tor_options+=(--HiddenServiceDirGroupReadable 1)
 fi
 
