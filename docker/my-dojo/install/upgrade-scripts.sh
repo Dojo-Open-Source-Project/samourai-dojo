@@ -195,7 +195,7 @@ post_start_cleanup() {
 
   # Remove debug.log from bitcoind volume
   if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
-    docker exec -i bitcoind rm /home/bitcoin/.bitcoin/testnet3/debug.log
+    docker exec -i bitcoind rm /home/bitcoin/.bitcoin/testnet4/debug.log
   else
     docker exec -i bitcoind rm /home/bitcoin/.bitcoin/debug.log
   fi
