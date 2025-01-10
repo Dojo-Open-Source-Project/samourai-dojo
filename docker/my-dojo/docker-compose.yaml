@@ -40,6 +40,7 @@ services:
       - ./conf/docker-explorer.conf
       - ./conf/docker-indexer.conf
       - ./conf/docker-node.conf
+      - ./conf/docker-soroban.conf
       - ./conf/docker-tor.conf
     restart: always
     command: "/home/node/app/wait-for-it.sh db:3306 --timeout=720 --strict -- /home/node/app/restart.sh"

@@ -38,6 +38,7 @@
     "quick-lru": "7.0.0",
     "sirv": "2.0.4",
     "socks": "2.8.3",
+    "soroban-client-nodejs": "1.0.0",
     "tiny-secp256k1": "2.2.3",
     "undici": "6.19.8",
     "validator": "13.12.0",
