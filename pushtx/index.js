@@ -50,6 +50,7 @@ try {
     pushTxProcessor.initNotifications({
         uriSocket: `tcp://127.0.0.1:${keys.ports.notifpushtx}`
     })
+    pushTxProcessor.start()
 
     // Initialize the http server
     const host = keys.apiBind
@@ -66,6 +67,7 @@ try {
     process.send('ready')
 
     const exit = async () => {
+        pushTxProcessor.stop()
         httpServer.stop()
         await db.disconnect()
         process.exit(0)
