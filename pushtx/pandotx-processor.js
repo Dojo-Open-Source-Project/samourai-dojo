@@ -18,12 +18,17 @@ const keys = keysFile[network.key]
 
 
 /**
- * A singleton processing the push of transactions received through PandoTx
+ * A class processing the push of transactions received through PandoTx
  */
 class PandoTxProcessor {
 
     constructor() {
         this.checkProcessTxs = null
+        
+        // Check if processor is active
+        if (keys['pandoTx']['process'] == 'inactive') {
+            return
+        }
         
         this.keyPush = keys['pandoTx']['keyPush']
         this.keyResults = keys['pandoTx']['keyResults']
@@ -47,6 +52,8 @@ class PandoTxProcessor {
     start() {
         if (keys['pandoTx']['process'] == 'inactive') {
             Logger.info('PandoTx : Processor is inactive')
+        } else {
+            Logger.info('PandoTx : Processor started')
         }
 
         this.checkProcessTxs = setInterval(
@@ -115,4 +122,4 @@ class PandoTxProcessor {
 
 }
 
-export default new PandoTxProcessor()
+export default PandoTxProcessor

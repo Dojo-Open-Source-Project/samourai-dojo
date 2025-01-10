@@ -81,7 +81,9 @@ export default {
             // Port used by pushtx for its notifications
             notifpushtx: 5556,
             // Port used by the pushtx orchestrator for its notifications
-            orchestrator: 5557
+            orchestrator: 5557,
+            // Port used by the pandotx processor for its notifications
+            pandoTx: 5558
         },
         /*
          * Authenticated access to the APIs (account & pushtx)
@@ -288,7 +290,8 @@ export default {
             trackerApi: 18082,
             tracker: 15555,
             notifpushtx: 15556,
-            orchestrator: 15557
+            orchestrator: 15557,
+            pandoTx: 15558
         },
         auth: {
             activeStrategy: null,

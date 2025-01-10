@@ -3,12 +3,9 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-
 import bitcoin from 'bitcoinjs-lib'
 import zmq from 'zeromq/v5-compat.js'
-import { RPC } from 'soroban-client-nodejs'
 
-import util from '../lib/util.js'
 import Logger from '../lib/logger.js'
 import errors from '../lib/errors.js'
 import db from '../lib/db/mysql-db-wrapper.js'
@@ -17,6 +14,8 @@ import addrHelper from '../lib/bitcoin/addresses-helper.js'
 import network from '../lib/bitcoin/network.js'
 import keysFile from '../keys/index.js'
 import status from './status.js'
+import PandoTxEmitter from './pandotx-emitter.js'
+
 
 const keys = keysFile[network.key]
 
@@ -37,12 +36,8 @@ class PushTxProcessor {
         this.sources = new Sources()
         // Initialize the bitcoind rpc client
         this.rpcClient = createRpcClient()
-        // Initialize the soroban rpc client
-        const sorobanUrl = keys['pandoTx']['sorobanUrl']
-        const socks5ProxyUrl = (sorobanUrl.includes('.onion')) ?
-            keys['pandoTx']['socks5Proxy'] :
-            null
-        this.sorobanClient = new RPC(sorobanUrl, socks5ProxyUrl)
+        // Initialize the PandoTxEmitter
+        this.pandoTxEmitter = new PandoTxEmitter()
     }
 
     /**
@@ -123,14 +118,15 @@ class PushTxProcessor {
         }
 
         // At this point, the raw hex parses as a legitimate transaction.
-        // Attempt to send via RPC to the bitcoind instance
         let txid = null
         try {
             if ((keys['pandoTx']['push'] === 'active') && !forceLocalPush) {
-                txid = await this.pandoTx(rawtx)
+                // Attempt to send via PandoTx (Soroban)
+                txid = await this.pandoTxEmitter.emit(rawtx)
                 Logger.info(`PandoTx : Pushed!`)
             } else {
-                txid = await this.localPushTx(rawtx)
+                // Attempt to send via RPC to the bitcoind instance
+                txid = await this.rpcClient.sendrawtransaction({ hexstring: rawtx })
                 Logger.info('PushTx : Pushed!')
             }
             // Update the stats
@@ -144,74 +140,6 @@ class PushTxProcessor {
         }
     }
 
-    /**
-     * Push transactions to the Bitcoin network through Soroban PandoTx
-     * @param {string} rawtx - raw bitcoin transaction in hex format
-     * @returns {string} returns the txid of the transaction
-     */
-    async pandoTx(rawtx) {
-        const keyAnnounce = keys['pandoTx']['keyAnnounce']
-        const keyPush = keys['pandoTx']['keyPush']
-        const keyResults = keys['pandoTx']['keyResults']
-
-        // Computes the txid of the transaction
-        let txid = null
-        try {
-            const tx = bitcoin.Transaction.fromHex(rawtx)
-            txid = tx.getId()
-        } catch {
-            throw errors.tx.PARSE
-        }
-
-        // Retrieve the list of public Soroban nodes
-        const remoteNodes = await this.sorobanClient.directoryList(keyAnnounce)
-        if (remoteNodes == null || remoteNodes.length == 0)
-            throw new Error('Not enough Soroban nodes found')
-        
-        // Select a random Soroban node and push the transaction over PandoTx
-        const idx = Math.floor(Math.random() * remoteNodes.length)
-        const entry = JSON.parse(remoteNodes[idx])
-        if (!Object.hasOwn(entry, 'url')) {
-            throw new Error(`Invalid Announce message: ${JSON.stringify(entry)}`)
-        }
-        
-        const sorobanPushClient = new RPC(
-            `${entry['url']}/rpc`, 
-            keys['pandoTx']['socks5Proxy']
-        )
-        await sorobanPushClient.directoryAdd(keyPush, rawtx, 'fast')
-        
-        // Wait for a confirmation
-        const t0 = Date.now()
-        while (true) {
-            const entries = await this.sorobanClient.directoryList(keyResults)
-            // Check if txid found in confirmations
-            if (entries != null && entries.length > 0) {
-                for (const entry of entries) {
-                    if (entry == txid) {
-                        return txid
-                    }
-                }
-            }
-            // Return a failure if no response received after 15s
-            const t1 = Date.now()
-            if (t1-t0 > 15000) {
-                throw new Error('Timeout: Failed to push transaction through PandoTx in less than 15s')
-            }
-            // Pause
-            await util.delay(500)
-        }
-    }
-
-    /**
-     * Push transactions to the Bitcoin network through the local bitcoin
-     * @param {string} rawtx - raw bitcoin transaction in hex format
-     * @returns {string} returns the txid of the transaction
-     */
-    async localPushTx(rawtx) {
-        const txid = await this.rpcClient.sendrawtransaction({ hexstring: rawtx })
-        return txid
-    }
 }
 
 export default new PushTxProcessor()
