@@ -27,6 +27,37 @@ try {
     console.error(error)
 }
 
+// Retrieve PandoTx config from conf files
+let pandoTxPushActive = 'inactive'
+let pandoTxProcessActive = 'inactive'
+let pandoTxSorobanUrl = null
+let pandoTxKeyPush = null
+let pandoTxKeyResults = null
+let pandoTxKeyAnnounce = null
+
+if (process.env.SOROBAN_INSTALL === 'on') {
+    pandoTxSorobanUrl = `http://${process.env.NET_DOJO_SOROBAN_IPV4}:${process.env.SOROBAN_PORT}/rpc`
+    
+    if (process.env.NODE_PANDOTX_PUSH === 'on') {
+        pandoTxPushActive = 'active'
+    }
+
+    if (process.env.SOROBAN_ANNOUNCE === 'on') {
+        if (process.env.NODE_PANDOTX_PROCESS === 'on') {
+            pandoTxProcessActive = 'active'
+        }
+    }
+
+    if (bitcoinNetwork === 'bitcoin') {
+        pandoTxKeyPush = 'pandotx.mainnet.push'
+        pandoTxKeyResults = 'pandotx.mainnet.results'
+        pandoTxKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_MAIN}`
+    } else {
+        pandoTxKeyPush = 'pandotx.testnet.push'
+        pandoTxKeyResults = 'pandotx.testnet.results'
+        pandoTxKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_TEST}`
+    }
+}
 
 /**
  * Desired structure of /keys/index.js, which is ignored in the repository.
@@ -104,7 +135,9 @@ export default {
             // Port used by pushtx for its notifications
             notifpushtx: 5556,
             // Port used by the pushtx orchestrator for its notifications
-            orchestrator: 5557
+            orchestrator: 5557,
+            // Port used by the pandotx processor for its notifications
+            pandoTx: 5558
         },
         /*
          * Authenticated access to the APIs (account & pushtx)
@@ -246,6 +279,28 @@ export default {
             maxNbEntries: Number.parseInt(process.env.NODE_TXS_SCHED_MAX_ENTRIES, 10),
             // Max number of blocks allowed in the future
             maxDeltaHeight: Number.parseInt(process.env.NODE_TXS_SCHED_MAX_DELTA_HEIGHT, 10)
+        },
+        /*
+         * PandoTx
+         */
+        pandoTx: {
+            // Push transactions through PandoTx
+            // Values: active | inactive
+            push: pandoTxPushActive,
+            // Process PandoTx transactions
+            // Values: active | inactive
+            process: pandoTxProcessActive,
+            // Url of the Soroban RPC API used by this node
+            sorobanUrl: pandoTxSorobanUrl,
+            // Use a SOCKS5 proxy for all communications with the Soroban node
+            // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
+            socks5Proxy: `socks5h://${process.env.NET_DOJO_TOR_IPV4}:${process.env.TOR_SOCKS_PORT}`,
+            // Soroban key used for pushed transactions
+            keyPush: pandoTxKeyPush,
+            // Soroban key used for results of pushes
+            keyResults: pandoTxKeyResults,
+            // Soroban key used to announce public Soroban API endpoints
+            keyAnnounce: pandoTxKeyAnnounce
         },
         /*
          * Tracker

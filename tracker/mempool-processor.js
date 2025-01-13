@@ -359,7 +359,7 @@ class MempoolProcessor {
             }
 
             // Tolerate a delay of 6 blocks
-            this.isActive = (blockHeight >= 773800) && (blockHeight <= highestBlock.blockHeight + 6)
+            this.isActive = (blockHeight >= network.ibdBlockHeight) && (blockHeight <= highestBlock.blockHeight + 6)
         } catch (error) {
             Logger.error(error, 'Tracker : MempoolProcessor._refreshActiveStatus()')
         }

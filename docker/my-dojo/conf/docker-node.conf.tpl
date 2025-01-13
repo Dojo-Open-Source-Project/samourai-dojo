@@ -31,3 +31,15 @@ NODE_ACTIVE_INDEXER=local_bitcoind
 # FEE TYPE USED FOR FEES ESTIMATIONS BY BITCOIND
 # Allowed values are ECONOMICAL or CONSERVATIVE
 NODE_FEE_TYPE=ECONOMICAL
+
+# Push transaction through PandoTx (Soroban network)
+# Has effect only if SOROBAN_INSTALL=on
+# Value: on | off
+NODE_PANDOTX_PUSH=off
+
+# Process transaction received through PandoTx (Soroban network)
+# Has effect only if SOROBAN_INSTALL=on and SOROBAN_ANNOUNCE=on
+# Value: on | off
+NODE_PANDOTX_PROCESS=on
+
+

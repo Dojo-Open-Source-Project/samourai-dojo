@@ -3,6 +3,8 @@
 
 ## Releases ##
 
+- [v1.26.1](#samourai-dojo-v1261)
+- [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
 - [v1.24.1](#samourai-dojo-v1241)
 - [v1.23.0](#samourai-dojo-v1230)
@@ -36,6 +38,49 @@
 - [v1.3.0](#samourai-dojo-v130)
 - [v1.2.0](#samourai-dojo-v120)
 - [v1.1.0](#samourai-dojo-v110)
+
+## Samourai Dojo v1.26.1
+
+### Changelog
+- Fixed Node.js build issues [5a2fc631](5a2fc631)
+- Update fee estimator [43c01ddb](43c01ddb)
+- Fixed addrindexrs installation [48c2f8f2](48c2f8f2)
+- Updated Tor to v0.4.8.13 [ac3eeeec](ac3eeeec)
+- Updated Snowflake to v2.10.1 [ac3eeeec](ac3eeeec)
+
+## Samourai Dojo v1.26.0
+
+### Notable changes
+
+#### Testnet4 support
+This version updates Bitcoin Core to v28.0 with support for testnet4.
+If you wish to stay on testnet3, DO NOT upgrade.
+
+Furthermore, testnet4 is only supported by Fulcrum. Addrindexrs does not support testnet4.
+
+Dojo tracker will automatically detect block hash mismatch and will delete the block database and resync - all tracked addresses and XPUBs will stay tracked, only their history will be erased due to switch to new chain.
+
+Fulcrum DB has to be deleted manually using `docker exec -it fulcrum rm -rf /home/fulcrum/.fulcrum/db`.
+
+**Mainnet users are unaffected by this change.**
+
+#### Snowflake bridges support in Tor
+This version adds support for Snowflake bridges in Tor. Snowflake is a pluggable transport for Tor that uses WebRTC to disguise traffic.
+
+[See documentation](./doc/DOCKER_advanced_setups.md#configure-tor-bridges) on how to setup Tor bridges.
+
+### Changelog
+- Updated dependencies
+- Updated Fulcrum to v1.11.1
+- Updated Bitcoin Core to v28.0 + testnet4 support
+- Updated Tor to v0.4.8.12
+- Updated MariaDB to v11.5.2
+- Updated Nginx to v1.27.1
+- Updated electrum client library
+- Added support for Snowflake Tor bridges
+- Better multistage build for Tor image
+- Switch from axios to undici
+- Updated documentation
 
 ## Samourai Dojo v1.25.0
 

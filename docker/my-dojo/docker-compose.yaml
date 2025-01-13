@@ -1,6 +1,7 @@
 services:
   db:
     image: "samouraiwallet/dojo-db:${DOJO_DB_VERSION_TAG}"
+    pull_policy: never
     container_name: db
     build:
       context: ./../..
@@ -24,6 +25,7 @@ services:
 
   node:
     image: "samouraiwallet/dojo-nodejs:${DOJO_NODEJS_VERSION_TAG}"
+    pull_policy: never
     container_name: nodejs
     build:
       context: ./../..
@@ -38,6 +40,7 @@ services:
       - ./conf/docker-explorer.conf
       - ./conf/docker-indexer.conf
       - ./conf/docker-node.conf
+      - ./conf/docker-soroban.conf
       - ./conf/docker-tor.conf
     restart: always
     command: "/home/node/app/wait-for-it.sh db:3306 --timeout=720 --strict -- /home/node/app/restart.sh"
@@ -60,6 +63,7 @@ services:
 
   nginx:
     image: "samouraiwallet/dojo-nginx:${DOJO_NGINX_VERSION_TAG}"
+    pull_policy: never
     container_name: nginx
     build:
       context: ./nginx
@@ -86,6 +90,7 @@ services:
 
   tor:
     image: "samouraiwallet/dojo-tor:${DOJO_TOR_VERSION_TAG}"
+    pull_policy: never
     container_name: tor
     build:
       context: ./tor
@@ -97,6 +102,7 @@ services:
       - ./conf/docker-bitcoind.conf
       - ./conf/docker-explorer.conf
       - ./conf/docker-indexer.conf
+      - ./conf/docker-soroban.conf
       - ./conf/docker-tor.conf
     restart: always
     command: /restart.sh

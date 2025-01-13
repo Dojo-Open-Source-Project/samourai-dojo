@@ -4,6 +4,12 @@ Samourai Dojo is the backing server for Samourai Wallet. Provides HD account & l
 
 [View API documentation](../master/doc/README.md)
 
+## Support us
+Samourai Dojo is a free open-source project build by and for the community.
+
+If you wish to support further development, consider donating to: `PM8TJcvPG6fxeRBAutY24DNCvHfqKDvmp7ynsG8KhdNo6BnDRMzBnXjgV5vkF2p1ekQJxA5DgWxVjLMcnkSCiGhnBdWKzm8vR4PS7iXSxDggKDsVnb2N`
+
+<img alt="paynym.png" height="200" src="paynym.png" width="200"/>
 
 ## Installation ##
 
@@ -76,7 +82,7 @@ Authentication is enforced by an API key and Json Web Tokens.
   * Edit /keys/index.js and set "indexer.active" to "third_party_explorer".
 
 * Main drawbacks of using your local bitcoind for these imports:
-  * This option is considered as experimental. 
+  * This option is considered as experimental.
   * It doesn't return the full transactional history associated to an HD account or to an address but only transactions having an unspent output controlled by the HD account or the address.
   * It's slightly slower than using the option relying on the OXT API.
   * It may fail to correctly import an existing wallet if this wallet had a large activity.

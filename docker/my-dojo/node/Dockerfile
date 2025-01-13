@@ -1,14 +1,10 @@
-FROM    node:20-alpine3.18 AS builder
+FROM    node:20-alpine3.20 AS builder
 
 ENV     NODE_ENV    production
 ENV     APP_DIR     /home/node/app
 
 RUN     set -ex && \
         apk --no-cache add gcc g++ make python3 curl cmake
-
-# Update NPM to latest version
-RUN     set -ex && \
-        npm i -g npm
 
 # Create app directory
 RUN     mkdir "$APP_DIR"
@@ -20,7 +16,7 @@ COPY    . "$APP_DIR"
 RUN     cd "$APP_DIR" && \
         npm install --omit=dev
 
-FROM    node:20-alpine3.18
+FROM    node:20-alpine3.20
 
 ENV     NODE_ENV    production
 ENV     APP_DIR     /home/node/app

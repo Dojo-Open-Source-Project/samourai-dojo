@@ -16,7 +16,7 @@ export default {
         /*
          * Dojo version
          */
-        dojoVersion: '1.25.0',
+        dojoVersion: '1.26.1',
         /*
          * Bitcoind
          */
@@ -40,8 +40,8 @@ export default {
             feeType: 'ECONOMICAL'
         },
         /*
-     * MySQL database
-     */
+         * MySQL database
+         */
         db: {
             // User
             user: 'user',
@@ -63,12 +63,12 @@ export default {
             connectionLimitPushTxOrchestrator: 5
         },
         /*
-     * IP address used to expose the API ports
-     */
+         * IP address used to expose the API ports
+         */
         apiBind: '127.0.0.1',
         /*
-     * TCP Ports
-     */
+         * TCP Ports
+         */
         ports: {
             // Port used by the API
             account: 8080,
@@ -81,11 +81,13 @@ export default {
             // Port used by pushtx for its notifications
             notifpushtx: 5556,
             // Port used by the pushtx orchestrator for its notifications
-            orchestrator: 5557
+            orchestrator: 5557,
+            // Port used by the pandotx processor for its notifications
+            pandoTx: 5558
         },
         /*
-     * Authenticated access to the APIs (account & pushtx)
-     */
+         * Authenticated access to the APIs (account & pushtx)
+         */
         auth: {
             // Name of the authentication strategy used
             // Available values:
@@ -126,9 +128,9 @@ export default {
             }
         },
         /*
-     * Prefixes used by the API
-     * for /support and /status endpoints
-     */
+         * Prefixes used by the API
+         * for /support and /status endpoints
+         */
         prefixes: {
             // Prefix for /support endpoint
             support: 'support',
@@ -138,8 +140,8 @@ export default {
             statusPushtx: 'status'
         },
         /*
-     * Gaps used for derivation of keys
-     */
+         * Gaps used for derivation of keys
+         */
         gap: {
             // Gap for derivation of external addresses
             external: 20,
@@ -147,16 +149,16 @@ export default {
             internal: 20
         },
         /*
-     * Multiaddr endpoint
-     */
+         * Multiaddr endpoint
+         */
         multiaddr: {
             // Number of transactions returned by the endpoint
             transactions: 50
         },
         /*
-     * Indexer or third party service
-     * used for fast scan of addresses
-     */
+         * Indexer or third party service
+         * used for fast scan of addresses
+         */
         indexer: {
             // Active indexer
             // Values: local_bitcoind | local_indexer | third_party_explorer
@@ -180,8 +182,8 @@ export default {
             oxt: 'https://api.oxt.me'
         },
         /*
-     * Explorer recommended by this Dojo
-     */
+         * Explorer recommended by this Dojo
+         */
         explorer: {
             // Active explorer
             // Values: oxt | btc_rpc_explorer
@@ -190,15 +192,15 @@ export default {
             uri: 'https://oxt.me'
         },
         /*
-     * Max number of transactions per address
-     * accepted during fast scan
-     */
+         * Max number of transactions per address
+         * accepted during fast scan
+         */
         addrFilterThreshold: 1000,
         /*
-     * Pool of child processes
-     * for parallel derivation of addresses
-     * Be careful with these parameters ;)
-     */
+         * Pool of child processes
+         * for parallel derivation of addresses
+         * Be careful with these parameters ;)
+         */
         addrDerivationPool: {
             // Min number of child processes always running
             minNbChildren: 2,
@@ -212,8 +214,8 @@ export default {
             thresholdParallelDerivation: 10
         },
         /*
-     * PushTx - Scheduler
-     */
+         * PushTx - Scheduler
+         */
         txsScheduler: {
             // Max number of transactions allowed in a single script
             maxNbEntries: 10,
@@ -221,8 +223,30 @@ export default {
             maxDeltaHeight: 18
         },
         /*
-     * Tracker
-     */
+         * PandoTx
+         */
+        pandoTx: {
+            // Push transactions through PandoTx
+            // Values: active | inactive
+            push: "inactive",
+            // Process PandoTx transactions
+            // Values: active | inactive
+            process: "inactive",
+            // Url of the Soroban RPC API used by this node
+            sorobanUrl: null,
+            // Use a SOCKS5 proxy for all communications with the Soroban node
+            // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
+            socks5Proxy: null,
+            // Soroban key used for pushed transactions
+            keyPush: "pandotx.mainnet.push",
+            // Soroban key used for results of pushes
+            keyResults: "pandotx.mainnet.results",
+            // Soroban key used to announce public Soroban API endpoints
+            keyAnnounce: "soroban.cluster.mainnet.nodes"
+        },
+        /*
+         * Tracker
+         */
         tracker: {
             // Processing of mempool (periodicity in ms)
             mempoolProcessPeriod: 2000,
@@ -232,10 +256,10 @@ export default {
     },
 
     /*
-   * Testnet parameters
-   */
+     * Testnet parameters
+     */
     testnet: {
-        dojoVersion: '1.25.0',
+        dojoVersion: '1.26.1',
         bitcoind: {
             rpc: {
                 user: 'user',
@@ -266,7 +290,8 @@ export default {
             trackerApi: 18082,
             tracker: 15555,
             notifpushtx: 15556,
-            orchestrator: 15557
+            orchestrator: 15557,
+            pandoTx: 15558
         },
         auth: {
             activeStrategy: null,
@@ -328,6 +353,15 @@ export default {
         txsScheduler: {
             maxNbEntries: 10,
             maxDeltaHeight: 18
+        },
+        pandoTx: {
+            push: "inactive",
+            process: "inactive",
+            sorobanUrl: null,
+            socks5Proxy: null,
+            keyPush: "pandotx.testnet.push",
+            keyResults: "pandotx.testnet.results",
+            keyAnnounce: "soroban.cluster.testnet.nodes"
         },
         tracker: {
             mempoolProcessPeriod: 2000,
