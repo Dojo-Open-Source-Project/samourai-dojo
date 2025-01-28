@@ -33,9 +33,9 @@ class PandoTxProcessor {
         this.keyPush = keys['pandoTx']['keyPush']
         this.keyResults = keys['pandoTx']['keyResults']
 
-        const sorobanUrl = keys['pandoTx']['sorobanUrl']
+        const sorobanUrl = keys['soroban']['rpc']
         const socks5ProxyUrl = (sorobanUrl.includes('.onion')) ?
-            keys['pandoTx']['socks5Proxy'] :
+            keys['soroban']['socks5Proxy'] :
             null
         this.sorobanRpc = new RPC(sorobanUrl, socks5ProxyUrl)
 
