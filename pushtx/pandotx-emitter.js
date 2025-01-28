@@ -28,10 +28,10 @@ class PandoTxEmitter {
         // Retrieve a few useful keys
         this.keyPush = keys['pandoTx']['keyPush']
         this.keyResults = keys['pandoTx']['keyResults']
-        this.keyAnnounce = keys['pandoTx']['keyAnnounce']
-        this.keySocks5Proxy = keys['pandoTx']['socks5Proxy']
+        this.keyAnnounce = keys['soroban']['keyAnnounce']
+        this.keySocks5Proxy = keys['soroban']['socks5Proxy']
         // Initialize a Soroban RPC client
-        const sorobanUrl = keys['pandoTx']['sorobanUrl']
+        const sorobanUrl = keys['soroban']['rpc']
         const socks5ProxyUrl = (sorobanUrl.includes('.onion')) ?
             this.keySocks5Proxy :
             null
