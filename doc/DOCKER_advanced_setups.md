@@ -474,3 +474,39 @@ nano ./conf/docker-common.conf.tpl
 Note: This option must be set before the first installation of Dojo and mustn't be changed after this first installation.
 
 Known limitation: A single instance of Dojo can be run per machine (a same machine can't host both a mainnet and a testnet instance of Dojo).
+
+## Change the blocks directory ##
+
+By default, Dojo will use your main hard drive when downloading the bitcoin blocks.
+
+The following steps allow to change the directory to a external hard drive for example
+
+```sh
+# Create a bitcoin user and group
+sudo adduser --gecos "" --disabled-password bitcoin
+
+# Save and exit nano
+
+# Edit the /etc/passwd folder to have the same user id and group id as dojo
+sudo nano /etc/passwd
+
+# Find the line with the bitcoin user and change the ids to the same as dojo (you can find the correct ids inside the .env file but the defaults are 1105 and 1108)
+bitcoin:x:1105:1108:,,,:/home/bitcoin:/bin/bash
+
+# Save and exit nano
+
+# Create the directory you want to save the blocks
+mkdir /external/bitcoin
+
+# Give the user bitcoin permission to the folder created above
+sudo chown -R bitcoin:bitcoin /external/bitcoin
+
+# Edit the docker-bitcoind.conf.tpl file
+nano ./conf/docker-bitcoind.conf.tpl
+
+#
+# Set the value of BITCOIND_BLOCKS_DIR to the folder you created "/external/bitcoin"
+#
+# Save and exit nano
+#
+```

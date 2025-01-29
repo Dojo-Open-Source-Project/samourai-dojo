@@ -122,6 +122,10 @@ BITCOIND_ZMQ_BLK_HASH=9502
 # Type: on | off
 BITCOIND_CRON_JOBS=on
 
+# Allow to set a directory for the blocks
+# Type: string
+BITCOIND_BLOCKS_DIR=""
+
 
 #
 # SHUTDOWN
