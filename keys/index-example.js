@@ -249,7 +249,9 @@ export default {
             // Soroban key used for pushed transactions
             keyPush: "pandotx.mainnet.push",
             // Soroban key used for results of pushes
-            keyResults: "pandotx.mainnet.results"
+            keyResults: "pandotx.mainnet.results",
+            // Max number of retries after a failed push
+            nbRetries: 2
         },
         /*
          * Tracker
@@ -371,7 +373,8 @@ export default {
             push: "inactive",
             process: "inactive",
             keyPush: "pandotx.testnet.push",
-            keyResults: "pandotx.testnet.results"
+            keyResults: "pandotx.testnet.results",
+            nbRetries: 2
         },
         tracker: {
             mempoolProcessPeriod: 2000,
