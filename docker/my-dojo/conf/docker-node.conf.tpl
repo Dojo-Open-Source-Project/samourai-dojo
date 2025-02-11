@@ -42,4 +42,8 @@ NODE_PANDOTX_PUSH=off
 # Value: on | off
 NODE_PANDOTX_PROCESS=on
 
+# Max number of retries in case of a failed push
+# Type: numeric
+NODE_PANDOTX_NB_RETRIES=2
+
 

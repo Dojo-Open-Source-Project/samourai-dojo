@@ -30,6 +30,7 @@ class PandoTxEmitter {
         this.keyResults = keys['pandoTx']['keyResults']
         this.keyAnnounce = keys['soroban']['keyAnnounce']
         this.keySocks5Proxy = keys['soroban']['socks5Proxy']
+        this.maxNbAttempts = keys['pandoTx']['nbRetries'] + 1
         // Initialize a Soroban RPC client
         const sorobanUrl = keys['soroban']['rpc']
         const socks5ProxyUrl = (sorobanUrl.includes('.onion')) ?
@@ -100,84 +101,104 @@ class PandoTxEmitter {
         // Remove duplicate urls
         urls = [...new Set(urls)]
 
-        // Select a random 'honest' Soroban node
-        while (url == null) {
-            if (urls == null || urls.length == 0)
-                throw new Error('No available Soroban node found')
+        // We will try a few times in case of failure
+        let counter = this.maxNbAttempts
 
-            // Select a random url
-            const idx = Math.floor(Math.random() * urls.length)
-            url = urls[idx]
+        while (counter > 0) {
+            // Select a random 'honest' Soroban node
+            while (url == null) {
+                if (urls == null || urls.length == 0)
+                    throw new Error('No available Soroban node found')
 
-            if (this.watchdogBlacklist.has(url)) {
-                // Check if blacklisting has expired (>24h)
-                const delta = Date.now() - this.watchdogBlacklist.get(url)
-                if (delta < 86400000) {
-                    urls.splice(idx, 1)
-                    url = null
-                    continue
-                } else {
-                    this.watchdogBlacklist.delete(url)
-                }
-            }
-        }
-        
-        // Push the transaction over PandoTx
-        try {
-            const sorobanPushClient = new RPC(
-                `${url}/rpc`, 
-                this.keySocks5Proxy
-            )
-            await sorobanPushClient.directoryAdd(this.keyPush, rawtx, 'fast')
-        } catch (e) {
-            if (e instanceof RPCCallError) {
-                if (e.message.includes('Socks5 proxy rejected connection')) {
-                    // Blacklist the soroban node 
-                    this.watchdogBlacklist.set(url, Date.now())
-                    Logger.info(`PandoTx : Blacklisted Soroban node ${url} (not responding)`)
-                } else if (e.message.includes('Proxy connection timed out')) {
-                    // Blacklist the soroban node 
-                    this.watchdogBlacklist.set(url, Date.now())
-                    Logger.info(`PandoTx : Blacklisted Soroban node ${url} (connection timeout)`)
-                }
-            }
-            throw e
-        }
-        
-        // Wait for a confirmation
-        const t0 = Date.now()
-        while (true) {
-            const confirmations = await this.sorobanRpc.directoryList(this.keyResults)
-            // Check if txid found in confirmations
-            if (confirmations != null && confirmations.length > 0) {
-                for (const confirmation of confirmations) {
-                    if (confirmation == txid) {
-                        // Add an entry to watchdogTxsList 
-                        this.watchdogTxsList.push({
-                            'tx': rawtx,
-                            'txid': txid,
-                            'node': url,
-                            'ts': Date.now()
-                        })
-                        Logger.info(`PandoTx : Successfully pushed tx ${txid} through Soroban node ${url}`)
-                        return txid
+                // Select a random url
+                const idx = Math.floor(Math.random() * urls.length)
+                url = urls[idx]
+
+                if (this.watchdogBlacklist.has(url)) {
+                    // Check if blacklisting has expired (>24h)
+                    const delta = Date.now() - this.watchdogBlacklist.get(url)
+                    if (delta < 86400000) {
+                        urls.splice(idx, 1)
+                        url = null
+                        continue
+                    } else {
+                        this.watchdogBlacklist.delete(url)
                     }
                 }
             }
-            // Return a failure if no response received after 15s
-            const t1 = Date.now()
-            if (t1-t0 > 15000) {
-                this.watchdogBlacklist.set(url, Date.now())
-                Logger.info(`PandoTx : Blacklisted Soroban node ${url} (timeout)`)
-                if (retry) {
-                    return await this.emit(rawtx, retry)
+            
+            counter--
+
+            // Push the transaction over PandoTx
+            let addedToDirectory = true
+            try {
+                // Push on local soroban node with a probability of 1 / maxNbAttempts
+                if (util.secureGetRandomInt(0, this.maxNbAttempts) == 0) {
+                    // Local push
+                    await this.sorobanRpc.directoryAdd(this.keyPush, rawtx, 'fast')
                 } else {
-                    throw new Error(`Timeout: Failed to push tx ${txid} through Soroban node ${url} in less than 15s`)
+                    // Remote push
+                    const sorobanPushClient = new RPC(
+                        `${url}/rpc`, 
+                        this.keySocks5Proxy
+                    )
+                    await sorobanPushClient.directoryAdd(this.keyPush, rawtx, 'fast')
                 }
+            } catch (e) {
+                if (e instanceof RPCCallError) {
+                    if (e.message.includes('Socks5 proxy rejected connection')) {
+                        // Blacklist the soroban node 
+                        this.watchdogBlacklist.set(url, Date.now())
+                        Logger.info(`PandoTx : Blacklisted Soroban node ${url} (not responding)`)
+                    } else if (e.message.includes('Proxy connection timed out')) {
+                        // Blacklist the soroban node 
+                        this.watchdogBlacklist.set(url, Date.now())
+                        Logger.info(`PandoTx : Blacklisted Soroban node ${url} (connection timeout)`)
+                    }
+                }
+                addedToDirectory = false
             }
-            // Pause
-            await util.delay(500)
+            
+            if (!addedToDirectory)
+                continue
+
+            // Wait for a confirmation
+            const t0 = Date.now()
+            while (true) {
+                const confirmations = await this.sorobanRpc.directoryList(this.keyResults)
+                // Check if txid found in confirmations
+                if (confirmations != null && confirmations.length > 0) {
+                    for (const confirmation of confirmations) {
+                        if (confirmation == txid) {
+                            // Add an entry to watchdogTxsList 
+                            this.watchdogTxsList.push({
+                                'tx': rawtx,
+                                'txid': txid,
+                                'node': url,
+                                'ts': Date.now()
+                            })
+                            Logger.info(`PandoTx : Successfully pushed tx ${txid} through Soroban node ${url}`)
+                            return txid
+                        }
+                    }
+                }
+                // Return a failure if no response received after 15s
+                const t1 = Date.now()
+                if (t1-t0 > 15000) {
+                    this.watchdogBlacklist.set(url, Date.now())
+                    Logger.info(`PandoTx : Blacklisted Soroban node ${url} (timeout)`)
+                    if (retry) {
+                        return await this.emit(rawtx, retry)
+                    } else {
+                        throw new Error(`Timeout: Failed to push tx ${txid} through Soroban node ${url} in less than 15s`)
+                    }
+                }
+                // Pause
+                await util.delay(500)
+            }
         }
+        // Failed to push the transaction after a given number of attempts
+        throw new Error(`Failed to push tx ${txid} through Soroban after ${this.maxNbAttempts} attempts`)
     }
 
     /**

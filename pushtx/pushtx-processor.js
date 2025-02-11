@@ -141,12 +141,19 @@ class PushTxProcessor {
         // At this point, the raw hex parses as a legitimate transaction.
         let txid = null
         try {
+            let processLocalPush = true
+            // Attempt to send via PandoTx (Soroban)
             if ((keys['pandoTx']['push'] === 'active') && !forceLocalPush) {
-                // Attempt to send via PandoTx (Soroban)
-                txid = await this.pandoTxEmitter.emit(rawtx)
-                Logger.info(`PandoTx : Pushed!`)
-            } else {
-                // Attempt to send via RPC to the bitcoind instance
+                try {
+                    txid = await this.pandoTxEmitter.emit(rawtx)
+                    Logger.info(`PandoTx : Pushed!`)
+                    processLocalPush = false
+                } catch (e) {
+                    Logger.error(e.message ? e.message : e, 'PandoTx : ')
+                }
+            }
+            // Attempt to send via RPC to the bitcoind instance 
+            if (processLocalPush) {
                 txid = await this.rpcClient.sendrawtransaction({ hexstring: rawtx })
                 Logger.info('PushTx : Pushed!')
             }

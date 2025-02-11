@@ -49,10 +49,12 @@ let pandoTxPushActive = 'inactive'
 let pandoTxProcessActive = 'inactive'
 let pandoTxKeyPush = null
 let pandoTxKeyResults = null
+let pandoTxNbRetries = 2
 
 if (process.env.SOROBAN_INSTALL === 'on') {
     if (process.env.NODE_PANDOTX_PUSH === 'on') {
         pandoTxPushActive = 'active'
+        pandoTxNbRetries = Number.parseInt(process.env.NODE_PANDOTX_NB_RETRIES, 10)
     }
 
     if (process.env.SOROBAN_ANNOUNCE === 'on') {
@@ -318,7 +320,9 @@ export default {
             // Soroban key used for pushed transactions
             keyPush: pandoTxKeyPush,
             // Soroban key used for results of pushes
-            keyResults: pandoTxKeyResults
+            keyResults: pandoTxKeyResults,
+            // Max number of retries after a failed push
+            nbRetries: pandoTxNbRetries
         },
         /*
          * Tracker
