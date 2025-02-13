@@ -50,10 +50,12 @@ let pandoTxProcessActive = 'inactive'
 let pandoTxKeyPush = null
 let pandoTxKeyResults = null
 let pandoTxNbRetries = 2
+let pandoTxFallbackMode = null
 
 if (process.env.SOROBAN_INSTALL === 'on') {
     if (process.env.NODE_PANDOTX_PUSH === 'on') {
         pandoTxPushActive = 'active'
+        pandoTxFallbackMode = process.env.NODE_PANDOTX_FALLBACK_MODE
         pandoTxNbRetries = Number.parseInt(process.env.NODE_PANDOTX_NB_RETRIES, 10)
     }
 
@@ -321,6 +323,9 @@ export default {
             keyPush: pandoTxKeyPush,
             // Soroban key used for results of pushes
             keyResults: pandoTxKeyResults,
+            // Fallback mode
+            // Values: secure | convenient
+            fallbackMode: pandoTxFallbackMode,
             // Max number of retries after a failed push
             nbRetries: pandoTxNbRetries
         },

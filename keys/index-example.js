@@ -250,6 +250,9 @@ export default {
             keyPush: "pandotx.mainnet.push",
             // Soroban key used for results of pushes
             keyResults: "pandotx.mainnet.results",
+            // Fallback mode
+            // Values: secure | convenient
+            fallbackMode: "convenient",
             // Max number of retries after a failed push
             nbRetries: 2
         },
@@ -374,6 +377,7 @@ export default {
             process: "inactive",
             keyPush: "pandotx.testnet.push",
             keyResults: "pandotx.testnet.results",
+            fallbackMode: "convenient",
             nbRetries: 2
         },
         tracker: {

@@ -42,6 +42,15 @@ NODE_PANDOTX_PUSH=off
 # Value: on | off
 NODE_PANDOTX_PROCESS=on
 
+# Fallback mode
+# Has effect only if NODE_PANDOTX_PUSH=on
+# In convenient mode, a push will ultimately be processed 
+#   through the local node (soroban or bitcoind) in case of an active attack
+# In secure mode, it will fail if it can't be processed through 
+#   a randomnly selected Soroban node 
+# Value: secure | convenient
+NODE_PANDOTX_FALLBACK_MODE=convenient
+
 # Max number of retries in case of a failed push
 # Type: numeric
 NODE_PANDOTX_NB_RETRIES=2

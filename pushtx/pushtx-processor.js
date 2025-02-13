@@ -150,6 +150,9 @@ class PushTxProcessor {
                     processLocalPush = false
                 } catch (e) {
                     Logger.error(e.message ? e.message : e, 'PandoTx : ')
+                    if (keys['pandoTx']['fallbackMode'] === 'secure') {
+                        processLocalPush = false
+                    }
                 }
             }
             // Attempt to send via RPC to the bitcoind instance 

@@ -31,6 +31,7 @@ class PandoTxEmitter {
         this.keyAnnounce = keys['soroban']['keyAnnounce']
         this.keySocks5Proxy = keys['soroban']['socks5Proxy']
         this.maxNbAttempts = keys['pandoTx']['nbRetries'] + 1
+        this.fallbackMode = keys['pandoTx']['fallbackMode']
         // Initialize a Soroban RPC client
         const sorobanUrl = keys['soroban']['rpc']
         const socks5ProxyUrl = (sorobanUrl.includes('.onion')) ?
@@ -133,7 +134,7 @@ class PandoTxEmitter {
             let addedToDirectory = true
             try {
                 // Last attempt: push on local soroban node
-                if (counter == 0) {
+                if (counter == 0 && this.fallbackMode !== 'secure') {
                     // Local push
                     await this.sorobanRpc.directoryAdd(this.keyPush, rawtx, 'fast')
                 } else {
