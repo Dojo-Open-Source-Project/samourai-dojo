@@ -132,8 +132,8 @@ class PandoTxEmitter {
             // Push the transaction over PandoTx
             let addedToDirectory = true
             try {
-                // Push on local soroban node with a probability of 1 / maxNbAttempts
-                if (util.secureGetRandomInt(0, this.maxNbAttempts) == 0) {
+                // Last attempt: push on local soroban node
+                if (counter == 0) {
                     // Local push
                     await this.sorobanRpc.directoryAdd(this.keyPush, rawtx, 'fast')
                 } else {
