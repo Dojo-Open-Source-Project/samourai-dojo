@@ -56,7 +56,7 @@ RUN     git clone "$OBFS4_URL" /usr/local/src/obfs4proxy && \
 
 FROM    golang:1.23-bullseye AS snowflakebuilder
 
-ENV     SNOWFLAKE_URL       https://git.torproject.org/pluggable-transports/snowflake.git
+ENV     SNOWFLAKE_URL       https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git
 ENV     SNOWFLAKE_VERSION   2.10.1
 
 RUN     set -ex && \
