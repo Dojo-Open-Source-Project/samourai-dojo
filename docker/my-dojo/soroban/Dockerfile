@@ -38,7 +38,6 @@ RUN     apk --update --no-cache add ca-certificates bash
 RUN     apk --no-cache add openssl libevent zlib
 
 COPY    --from=torproject /stage /usr/local
-COPY    ./proxy_torrc /usr/local/etc/tor/torrc.socks
 
 USER    root
 RUN     addgroup -g ${SOROBAN_TOR_LINUX_GID} -S tor && \
