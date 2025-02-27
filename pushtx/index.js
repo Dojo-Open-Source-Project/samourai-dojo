@@ -11,6 +11,7 @@ import network from '../lib/bitcoin/network.js'
 import keysFile from '../keys/index.js'
 import HttpServer from '../lib/http-server/http-server.js'
 import PushTxRestApi from './pushtx-rest-api.js'
+import PandoTxProcessor from './pandotx-processor.js'
 import pushTxProcessor from './pushtx-processor.js'
 
 
@@ -28,7 +29,7 @@ try {
     // being ready to process requests
     await waitForBitcoindRpcApi()
 
-    if (keys['pandoTx']['push'] == 'active') {
+    if (keys.pandoTx?.push === 'active') {
         // Wait for Soroban RPC API
         // being ready to process requests
         await sorobanUtil.waitForSorobanRpcApi()
@@ -45,6 +46,10 @@ try {
     }
 
     db.connect(dbConfig)
+
+    // Initialize and start the orchestrator
+    const pandoTxProcessor = new PandoTxProcessor()
+    pandoTxProcessor.start()
 
     // Initialize notification sockets of singleton pushTxProcessor
     pushTxProcessor.initNotifications({
@@ -67,9 +72,9 @@ try {
     process.send('ready')
 
     const exit = async () => {
-        pushTxProcessor.stop()
         httpServer.stop()
-        await db.disconnect()
+        pandoTxProcessor.stop()
+        await Promise.all([pushTxProcessor.stop(), db.disconnect()])
         process.exit(0)
     }
 

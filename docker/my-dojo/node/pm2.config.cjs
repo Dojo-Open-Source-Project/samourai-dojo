@@ -39,18 +39,6 @@ module.exports = {
             error_file: '/dev/null'
         },
         {
-            name: 'Samourai Dojo - PandoTx Processor',
-            namespace: process.env.COMMON_BTC_NETWORK,
-            script: './index-pandotx.js',
-            cwd: path.join(process.env.APP_DIR, 'pushtx'),
-            wait_ready: true,
-            stop_exit_codes: 0,
-            listen_timeout: 5000,
-            kill_timeout: 3000,
-            out_file: '/dev/null',
-            error_file: '/dev/null'
-        },
-        {
             name: 'Samourai Dojo - Tracker',
             namespace: process.env.COMMON_BTC_NETWORK,
             script: './index.js',
