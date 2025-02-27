@@ -25,10 +25,13 @@ services:
     stop_grace_period: 1m
     depends_on:
       - tor
-      - node
     networks:
       dojonet:
         ipv4_address: ${NET_DOJO_INDEXER_IPV4}
+
+  node:
+    depends_on:
+      - fulcrum
 
 volumes:
   data-fulcrum:
