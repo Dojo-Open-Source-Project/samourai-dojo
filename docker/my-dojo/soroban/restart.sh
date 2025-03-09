@@ -49,6 +49,9 @@ if [ "$SOROBAN_DHT_SERVER_MODE" == "on" ]; then
   soroban_options+=(--p2pDHTServerMode)
 fi
 
+# Clean /tmp directory
+rm -rf /tmp/*
+
 touch /home/soroban/tor.log
 
 # Start Tor in background
