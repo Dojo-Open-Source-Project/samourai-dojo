@@ -56,7 +56,7 @@ EXPOSE  9050
 #
 FROM    golang:1.22.8-alpine3.20 AS gobuild
 
-ENV     SOROBAN_VERSION         0.4.0
+ENV     SOROBAN_VERSION         0.4.1
 ENV     SOROBAN_URL             https://github.com/Dojo-Open-Source-Project/soroban/archive/refs/tags/v$SOROBAN_VERSION.tar.gz
 
 RUN     apk --no-cache --update add ca-certificates
