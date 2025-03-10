@@ -20,10 +20,10 @@
   "homepage": "https://github.com/Dojo-Open-Source-Project/samourai-dojo",
   "dependencies": {
     "@samouraiwallet/auth47": "1.0.1",
-    "@samouraiwallet/bitcoin-rpc": "0.4.0",
+    "@samouraiwallet/bitcoin-rpc": "0.5.0",
     "@samouraiwallet/bitcoinjs-message": "3.0.0",
     "@samouraiwallet/electrum-client": "1.5.2",
-    "@samouraiwallet/one-dollar-fee-estimator": "0.7.0",
+    "@samouraiwallet/one-dollar-fee-estimator": "0.8.0",
     "@tinyhttp/app": "2.3.1",
     "async-sema": "3.1.1",
     "bip32": "4.0.0",
@@ -33,7 +33,7 @@
     "jsonwebtoken": "9.0.2",
     "lodash.clonedeep": "4.5.0",
     "milliparsec": "3.0.0",
-    "mysql2": "3.12.0",
+    "mysql2": "3.13.0",
     "nocache": "4.0.0",
     "quick-lru": "7.0.0",
     "sirv": "2.0.4",
@@ -47,9 +47,9 @@
     "zeromq": "6.3.0"
   },
   "devDependencies": {
-    "eslint": "^8.57.0",
-    "eslint-plugin-import": "^2.30.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-unicorn": "^51.0.1",
-    "mocha": "^10.7.3"
+    "mocha": "^10.8.2"
   }
 }
