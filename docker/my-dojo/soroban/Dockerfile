@@ -35,7 +35,7 @@ ARG     SOROBAN_TOR_LINUX_UID
 ARG     SOROBAN_TOR_LINUX_GID
 
 RUN     apk --update --no-cache add ca-certificates bash
-RUN     apk --no-cache add openssl libevent zlib
+RUN     apk --no-cache add openssl libevent zlib curl
 
 COPY    --from=torproject /stage /usr/local
 
@@ -104,8 +104,18 @@ COPY    ./restart.sh /restart.sh
 RUN     chown soroban:soroban  /restart.sh && \
         chmod 754  /restart.sh
 
+# Copy healthcheck script
+COPY    ./healthcheck.sh /healthcheck.sh
+
+RUN     chown soroban:soroban  /healthcheck.sh && \
+        chmod 754  /healthcheck.sh
+
+# Start Soroban
 USER    soroban
 
 ENTRYPOINT [ "/restart.sh" ]
 
 STOPSIGNAL SIGINT
+
+# Set healthcheck
+HEALTHCHECK --interval=600s --timeout=60s --start-period=600s --start-interval=30s CMD /healthcheck.sh
