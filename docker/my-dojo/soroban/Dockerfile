@@ -99,16 +99,10 @@ RUN     mkdir "$SOROBAN_HOME/data" && \
 RUN     cp /home/tor/.torrc /home/soroban/.torrc
 
 # Copy restart script
-COPY    ./restart.sh /restart.sh
-
-RUN     chown soroban:soroban  /restart.sh && \
-        chmod 754  /restart.sh
+COPY    --chown=soroban:soroban --chmod=754 ./restart.sh /restart.sh
 
 # Copy healthcheck script
-COPY    ./healthcheck.sh /healthcheck.sh
-
-RUN     chown soroban:soroban  /healthcheck.sh && \
-        chmod 754  /healthcheck.sh
+COPY    --chown=soroban:soroban --chmod=754 ./healthcheck.sh /healthcheck.sh
 
 # Start Soroban
 USER    soroban
