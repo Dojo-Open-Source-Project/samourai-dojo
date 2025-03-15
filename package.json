@@ -20,7 +20,7 @@
   "homepage": "https://github.com/Dojo-Open-Source-Project/samourai-dojo",
   "dependencies": {
     "@samouraiwallet/auth47": "1.0.1",
-    "@samouraiwallet/bitcoin-rpc": "0.5.0",
+    "@samouraiwallet/bitcoin-rpc": "0.6.0",
     "@samouraiwallet/bitcoinjs-message": "3.0.0",
     "@samouraiwallet/electrum-client": "1.5.2",
     "@samouraiwallet/one-dollar-fee-estimator": "0.8.0",
