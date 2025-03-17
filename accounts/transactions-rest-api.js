@@ -69,7 +69,7 @@ class TransactionsRestApi {
      */
     async getTransaction(req, res) {
         try {
-            const tx = await rpcTxns.getTransaction(req.params.txid, req.query.fees)
+            const tx = await rpcTxns.getTransaction(req.params.txid, {fees: req.query.fees, rawHex: req.query.rawHex})
             const returnValue = JSON.stringify(tx, null, 2)
             HttpServer.sendRawData(res, returnValue)
         } catch (error) {
