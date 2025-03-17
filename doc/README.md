@@ -16,9 +16,14 @@ Keeps track of HD account balances, represented by `xpub` extended public keys.
 * [POST xpub](./POST_xpub.md)
 * [POST xpub/lock](./POST_xpub_lock.md)
 * [GET tx](./GET_tx.md)
+* [GET tx_hex](./GET_tx_hex.md)
 * [GET txs](./GET_txs.md)
 * [GET header](./GET_header.md)
 * [GET fees](./GET_fees.md)
+* [GET fees_estimator](./GET_fees_estimator.md)
+* [GET seen](./GET_seen.md)
+* [GET txout](./GET_txout.md)
+* [GET latest_block](./GET_latest_block.md)
 
 
 ## PushTX Server
