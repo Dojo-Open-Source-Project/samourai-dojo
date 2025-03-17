@@ -22,6 +22,7 @@ import MultiaddrRestApi from './multiaddr-rest-api.js'
 import UnspentRestApi from './unspent-rest-api.js'
 import SupportRestApi from './support-rest-api.js'
 import SeenRestApi from './seen-rest-api.js'
+import LatestBlockRestApi from './latest-block-rest-api.js'
 
 const keys = keysFile[network.key]
 
@@ -70,6 +71,7 @@ try {
     new UnspentRestApi(httpServer)
     new SupportRestApi(httpServer)
     new SeenRestApi(httpServer)
+    new LatestBlockRestApi(httpServer)
 
     // Start the http server
     httpServer.start()
