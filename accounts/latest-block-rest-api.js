@@ -34,7 +34,6 @@ class LatestBlockRestApi {
             '/latest-block',
             authMgr.checkAuthentication.bind(authMgr),
             this.getLatestBlock.bind(this),
-            HttpServer.sendAuthError
         )
     }
 

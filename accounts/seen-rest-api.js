@@ -40,7 +40,6 @@ class SeenRestApi {
             authMgr.checkAuthentication.bind(authMgr),
             this.validateArgsGetSeen.bind(this),
             this.getSeen.bind(this),
-            HttpServer.sendAuthError
         )
     }
 
