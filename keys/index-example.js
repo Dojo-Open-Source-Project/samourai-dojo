@@ -165,6 +165,9 @@ export default {
             active: 'local_bitcoind',
             // Local indexer
             localIndexer: {
+                // Name of the installed indexer
+                // Values: null | addrindexrs | fulcrum
+                type: null,
                 // IP address or hostname
                 host: '127.0.0.1',
                 // Port
@@ -173,7 +176,9 @@ export default {
                 // Values: active | inactive
                 batchRequests: 'inactive',
                 // Protocol for communication (TCP or TLS)
-                protocol: 'tcp'
+                protocol: 'tcp',
+                // External URI (if exposed fullcrum)
+                externalUri: null
             },
             // Use a SOCKS5 proxy for all communications with external services
             // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
@@ -228,6 +233,8 @@ export default {
         soroban: {
             // Url of the Soroban RPC API used by this node
             rpc: null,
+            // External url of the Soroban RPC API
+            externalRpc: null,
             // Use a SOCKS5 proxy for all communications with the Soroban node
             // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
             socks5Proxy: null,
@@ -343,10 +350,12 @@ export default {
         indexer: {
             active: 'third_party_explorer',
             localIndexer: {
+                type: null,
                 host: '127.0.0.1',
                 port: 50001,
                 batchRequests: 'inactive',
-                protocol: 'tcp'
+                protocol: 'tcp',
+                externalUri: null
             },
             socks5Proxy: null,
             esplora: 'https://blockstream.info/testnet'
@@ -368,6 +377,7 @@ export default {
         },
         soroban: {
             rpc: null,
+            externalRpc: null,
             socks5Proxy: null,
             keyAnnounce: "soroban.cluster.testnet.nodes",
             keyAuth47: "soroban.auth47.testnet.auth"

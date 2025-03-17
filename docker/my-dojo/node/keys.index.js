@@ -27,8 +27,22 @@ try {
     console.error(error)
 }
 
+
+// Retrieve indexer config from conf files
+let indexerUrl = null
+let indexerType = null
+
+if (process.env.INDEXER_INSTALL === 'on') {
+    indexerType = process.env.INDEXER_TYPE
+    if (indexerType === 'fulcrum') {
+        indexerUrl = `${process.env.INDEXER_PROTOCOL}://${fs.readFileSync('/var/lib/tor/hsv3fulcrum/hostname', 'utf8').trim()}:50001`
+    }
+}
+
+
 // Retrieve Soroban config from conf files
 let sorobanRpcUrl = null
+let sorobanExternalUrl = null
 let sorobanKeyAuth47 = null
 let sorobanKeyAnnounce = null
 
@@ -40,6 +54,9 @@ if (process.env.SOROBAN_INSTALL === 'on') {
     } else {
         sorobanKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_TEST}`
         sorobanKeyAuth47 = 'soroban.auth47.testnet.auth'
+    }
+    if (process.env.SOROBAN_ANNOUNCE === 'on') {
+        sorobanExternalUrl = `http://${fs.readFileSync('/var/lib/tor/hsv3soroban/hostname', 'utf8').trim()}/rpc`
     }
 }
 
@@ -236,6 +253,9 @@ export default {
             active: process.env.NODE_ACTIVE_INDEXER,
             // Local indexer
             localIndexer: {
+                // Name of the installed indexer
+                // Values: null | addrindexrs | fulcrum
+                type: indexerType,
                 // IP address or hostname of the local indexer
                 host: process.env.INDEXER_IP,
                 // Port
@@ -244,7 +264,9 @@ export default {
                 // Values: active | inactive
                 batchRequests: process.env.INDEXER_BATCH_SUPPORT,
                 // Protocol for communication (TCP or TLS)
-                protocol: process.env.INDEXER_PROTOCOL
+                protocol: process.env.INDEXER_PROTOCOL,
+                // External URI (if exposed fullcrum)
+                externalUri: indexerUrl
             },
             // Use a SOCKS5 proxy for all communications with external services
             // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
@@ -301,6 +323,8 @@ export default {
         soroban: {
             // Url of the Soroban RPC API used by this node
             rpc: sorobanRpcUrl,
+            // External url of the Soroban RPC API
+            externalRpc: sorobanExternalUrl,
             // Use a SOCKS5 proxy for all communications with the Soroban node
             // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
             socks5Proxy: `socks5h://${process.env.NET_DOJO_TOR_IPV4}:${process.env.TOR_SOCKS_PORT}`,

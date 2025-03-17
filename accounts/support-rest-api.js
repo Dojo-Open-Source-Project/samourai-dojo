@@ -83,6 +83,12 @@ class SupportRestApi {
             authMgr.checkHasAdminProfile.bind(authMgr),
             this.getPairing.bind(this),
         )
+
+        this.httpServer.app.get(
+            `/${keys.prefixes.support}/services`,
+            authMgr.checkAuthentication.bind(authMgr),
+            this.getServices.bind(this),
+        )
     }
 
     /**
@@ -328,6 +334,44 @@ class SupportRestApi {
             debugApi && Logger.info('API : Completed GET /pairing/explorer')
         }
     }
+
+    /**
+     * Get pairing info for miscellaneous services provided by the dojo
+     */
+    async getServices(req, res) {
+        try {
+            const returnValue = {
+                services: [{
+                    type: `explorer.${keys.explorer.active}`,
+                    url: keys.explorer.uri
+                }]
+            }
+            if (keys.indexer.active == 'local_indexer' && keys.indexer.localIndexer.externalUri !== null) {
+                returnValue.services.push({
+                    type: `indexer.fullcrum`,
+                    url: keys.indexer.localIndexer.externalUri
+                })
+            }
+            if (keys.soroban.externalRpc !== null) {
+                returnValue.services.push({
+                    type: `soroban.rpc`,
+                    url: keys.soroban.externalRpc,
+                    keyAnnounce: keys.soroban.keyAnnounce,
+                    keyAuth47: keys.soroban.keyAuth47
+                })
+            }
+            HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2))
+        } catch (error) {
+            const returnValue = {
+                status: 'error'
+            }
+            Logger.error(error, 'API : SupportRestApi.getServices() : Error')
+            HttpServer.sendError(res, JSON.stringify(returnValue, null, 2))
+        } finally {
+            debugApi && Logger.info('API : Completed GET /services')
+        }
+    }
+
 
     /**
      * Validate arguments related to GET xpub info requests
