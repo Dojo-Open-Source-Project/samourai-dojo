@@ -25,7 +25,7 @@ if [ "$BITCOIND_INSTALL" == "on" ]; then
   if [ "$BITCOIND_LISTEN_MODE" == "on" ]; then
     tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3bitcoind)
     tor_options+=(--HiddenServiceVersion 3)
-    tor_options+=(--HiddenServicePort "8333 $NET_DOJO_BITCOIND_IPV4:8333")
+    tor_options+=(--HiddenServicePort "8333 $NET_DOJO_BITCOIND_IPV4:8334")
     tor_options+=(--HiddenServiceDirGroupReadable 1)
   fi
 fi
