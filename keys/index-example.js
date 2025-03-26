@@ -223,6 +223,20 @@ export default {
             maxDeltaHeight: 18
         },
         /*
+         * Soroban
+         */
+        soroban: {
+            // Url of the Soroban RPC API used by this node
+            rpc: null,
+            // Use a SOCKS5 proxy for all communications with the Soroban node
+            // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
+            socks5Proxy: null,
+            // Soroban key used to announce public Soroban API endpoints
+            keyAnnounce: "soroban.cluster.mainnet.nodes",
+            // Soroban key used to announce response to auth47 challenge
+            keyAuth47: "soroban.auth47.mainnet.auth"
+        },
+        /*
          * PandoTx
          */
         pandoTx: {
@@ -232,17 +246,15 @@ export default {
             // Process PandoTx transactions
             // Values: active | inactive
             process: "inactive",
-            // Url of the Soroban RPC API used by this node
-            sorobanUrl: null,
-            // Use a SOCKS5 proxy for all communications with the Soroban node
-            // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
-            socks5Proxy: null,
             // Soroban key used for pushed transactions
             keyPush: "pandotx.mainnet.push",
             // Soroban key used for results of pushes
             keyResults: "pandotx.mainnet.results",
-            // Soroban key used to announce public Soroban API endpoints
-            keyAnnounce: "soroban.cluster.mainnet.nodes"
+            // Fallback mode
+            // Values: secure | convenient
+            fallbackMode: "convenient",
+            // Max number of retries after a failed push
+            nbRetries: 2
         },
         /*
          * Tracker
@@ -354,14 +366,19 @@ export default {
             maxNbEntries: 10,
             maxDeltaHeight: 18
         },
+        soroban: {
+            rpc: null,
+            socks5Proxy: null,
+            keyAnnounce: "soroban.cluster.testnet.nodes",
+            keyAuth47: "soroban.auth47.testnet.auth"
+        },
         pandoTx: {
             push: "inactive",
             process: "inactive",
-            sorobanUrl: null,
-            socks5Proxy: null,
             keyPush: "pandotx.testnet.push",
             keyResults: "pandotx.testnet.results",
-            keyAnnounce: "soroban.cluster.testnet.nodes"
+            fallbackMode: "convenient",
+            nbRetries: 2
         },
         tracker: {
             mempoolProcessPeriod: 2000,

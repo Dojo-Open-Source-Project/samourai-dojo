@@ -25,7 +25,7 @@ try {
     // being ready to process requests
     await waitForBitcoindRpcApi()
 
-    if (keys['pandoTx']['push'] == 'active') {
+    if (keys.pandoTx?.push === 'active') {
         // Wait for Soroban RPC API
         // being ready to process requests
         await sorobanUtil.waitForSorobanRpcApi()
@@ -51,15 +51,17 @@ try {
 
     // Initialize and start the orchestrator
     const orchestrator = new Orchestrator()
-    orchestrator.start()
+    await orchestrator.start()
 
     // Signal that the process is ready
     process.send('ready')
 
     const exit = async () => {
-        pushTxProcessor.stop()
-        orchestrator.stop()
-        await db.disconnect()
+        await Promise.all([
+            pushTxProcessor.stop(),
+            orchestrator.stop(),
+            db.disconnect()
+        ])
         process.exit(0)
     }
 

@@ -37,6 +37,7 @@ if [ "$SOROBAN_ANNOUNCE" == "on" ]; then
   else
     soroban_options+=(--announce "$SOROBAN_ANNOUNCE_KEY_MAIN")
   fi
+  soroban_options+=(--onionFile "$SOROBAN_ONION_FILE")
   # Announced onion address will be different
   # from onion addeess used by the users of this dojo
   soroban_options+=(--withTor)
@@ -44,16 +45,25 @@ else
   soroban_options+=(--announce "")
 fi
 
-# All options without an associated value should be last in the list 
+# All options without an associated value should be last in the list
 if [ "$SOROBAN_DHT_SERVER_MODE" == "on" ]; then
   soroban_options+=(--p2pDHTServerMode)
 fi
 
-# Start Tor in background
-tor &
+# Clean /tmp directory
+rm -rf /tmp/*
 
-# Pause a few seconds
-sleep 60
+touch /home/soroban/tor.log
+
+# Start Tor in background
+tor 2>&1 | tee /home/soroban/tor.log &
+
+# Wait for Tor to bootstrap completely
+while ! grep -q "Bootstrapped 100% (done)" /home/soroban/tor.log; do
+  sleep 1
+done
+
+echo "Tor initialization complete!"
 
 # Start Soroban server
-soroban-server "${soroban_options[@]}"
+exec soroban-server "${soroban_options[@]}"

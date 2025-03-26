@@ -4,7 +4,7 @@
 FROM    alpine:3.20 AS torproject
 
 ENV     TOR_GIT_URL     https://git.torproject.org/tor.git
-ENV     TOR_VERSION     tor-0.4.8.12
+ENV     TOR_VERSION     tor-0.4.8.14
 
 RUN     apk --update --no-cache add ca-certificates
 RUN     apk --no-cache add alpine-sdk automake autoconf
@@ -35,10 +35,9 @@ ARG     SOROBAN_TOR_LINUX_UID
 ARG     SOROBAN_TOR_LINUX_GID
 
 RUN     apk --update --no-cache add ca-certificates bash
-RUN     apk --no-cache add openssl libevent zlib
+RUN     apk --no-cache add openssl libevent zlib curl
 
 COPY    --from=torproject /stage /usr/local
-COPY    ./proxy_torrc /usr/local/etc/tor/torrc.socks
 
 USER    root
 RUN     addgroup -g ${SOROBAN_TOR_LINUX_GID} -S tor && \
@@ -57,7 +56,7 @@ EXPOSE  9050
 #
 FROM    golang:1.22.8-alpine3.20 AS gobuild
 
-ENV     SOROBAN_VERSION         0.4.0
+ENV     SOROBAN_VERSION         0.4.1
 ENV     SOROBAN_URL             https://github.com/Dojo-Open-Source-Project/soroban/archive/refs/tags/v$SOROBAN_VERSION.tar.gz
 
 RUN     apk --no-cache --update add ca-certificates
@@ -100,13 +99,17 @@ RUN     mkdir "$SOROBAN_HOME/data" && \
 RUN     cp /home/tor/.torrc /home/soroban/.torrc
 
 # Copy restart script
-COPY    ./restart.sh /restart.sh
+COPY    --chown=soroban:soroban --chmod=754 ./restart.sh /restart.sh
 
-RUN     chown soroban:soroban  /restart.sh && \
-        chmod 754  /restart.sh
+# Copy healthcheck script
+COPY    --chown=soroban:soroban --chmod=754 ./healthcheck.sh /healthcheck.sh
 
+# Start Soroban
 USER    soroban
 
 ENTRYPOINT [ "/restart.sh" ]
 
 STOPSIGNAL SIGINT
+
+# Set healthcheck
+HEALTHCHECK --interval=600s --timeout=60s --start-period=600s --start-interval=30s CMD /healthcheck.sh

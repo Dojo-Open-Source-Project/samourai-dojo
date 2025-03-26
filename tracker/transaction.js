@@ -57,7 +57,7 @@ class Transaction {
 
     /**
      * Register transaction in db if it's a transaction of interest
-     * @returns {Promise<{ tx:object, broadcast: boolean }>} returns a composite result object
+     * @returns {Promise<{ broadcast: boolean }>} returns a composite result object
      */
     async checkTransaction() {
         try {

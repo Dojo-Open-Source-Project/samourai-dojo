@@ -42,7 +42,7 @@ fi
 
 if [ "$BITCOIND_LISTEN_MODE" == "on" ]; then
   bitcoind_options+=(-listen=1)
-  bitcoind_options+=(-bind="$NET_DOJO_BITCOIND_IPV4")
+  bitcoind_options+=(-bind="$NET_DOJO_BITCOIND_IPV4:8334=onion")
   bitcoind_options+=(-externalip=$(cat /var/lib/tor/hsv3bitcoind/hostname))
 fi
 

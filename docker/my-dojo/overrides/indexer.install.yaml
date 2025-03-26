@@ -25,11 +25,13 @@ services:
       options:
         max-size: "20m"
         max-file: "10"
-    depends_on:
-      - node
     networks:
       dojonet:
         ipv4_address: ${NET_DOJO_INDEXER_IPV4}
+
+  node:
+    depends_on:
+      - indexer
 
 volumes:
   data-indexer:

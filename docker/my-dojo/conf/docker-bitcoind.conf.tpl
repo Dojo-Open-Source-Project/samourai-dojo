@@ -125,14 +125,3 @@ BITCOIND_CRON_JOBS=on
 # Allow to set a directory for the blocks
 # Type: string
 BITCOIND_BLOCKS_DIR=""
-
-
-#
-# SHUTDOWN
-#
-
-# Max delay for bitcoind shutdown (expressed in seconds)
-# Defines how long Dojo waits for a clean shutdown of bitcoind before shutting down the bitcoind container
-# This parameter is inactive if BITCOIND_INSTALL is set to 'off'
-# Type: integer
-BITCOIND_SHUTDOWN_DELAY=180

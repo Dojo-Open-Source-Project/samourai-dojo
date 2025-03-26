@@ -27,19 +27,36 @@ try {
     console.error(error)
 }
 
+// Retrieve Soroban config from conf files
+let sorobanRpcUrl = null
+let sorobanKeyAuth47 = null
+let sorobanKeyAnnounce = null
+
+if (process.env.SOROBAN_INSTALL === 'on') {
+    sorobanRpcUrl = `http://${process.env.NET_DOJO_SOROBAN_IPV4}:${process.env.SOROBAN_PORT}/rpc`
+    if (bitcoinNetwork === 'bitcoin') {
+        sorobanKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_MAIN}`
+        sorobanKeyAuth47 = 'soroban.auth47.mainnet.auth'
+    } else {
+        sorobanKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_TEST}`
+        sorobanKeyAuth47 = 'soroban.auth47.testnet.auth'
+    }
+}
+
+
 // Retrieve PandoTx config from conf files
 let pandoTxPushActive = 'inactive'
 let pandoTxProcessActive = 'inactive'
-let pandoTxSorobanUrl = null
 let pandoTxKeyPush = null
 let pandoTxKeyResults = null
-let pandoTxKeyAnnounce = null
+let pandoTxNbRetries = 2
+let pandoTxFallbackMode = null
 
 if (process.env.SOROBAN_INSTALL === 'on') {
-    pandoTxSorobanUrl = `http://${process.env.NET_DOJO_SOROBAN_IPV4}:${process.env.SOROBAN_PORT}/rpc`
-    
     if (process.env.NODE_PANDOTX_PUSH === 'on') {
         pandoTxPushActive = 'active'
+        pandoTxFallbackMode = process.env.NODE_PANDOTX_FALLBACK_MODE
+        pandoTxNbRetries = Number.parseInt(process.env.NODE_PANDOTX_NB_RETRIES, 10)
     }
 
     if (process.env.SOROBAN_ANNOUNCE === 'on') {
@@ -51,11 +68,9 @@ if (process.env.SOROBAN_INSTALL === 'on') {
     if (bitcoinNetwork === 'bitcoin') {
         pandoTxKeyPush = 'pandotx.mainnet.push'
         pandoTxKeyResults = 'pandotx.mainnet.results'
-        pandoTxKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_MAIN}`
     } else {
         pandoTxKeyPush = 'pandotx.testnet.push'
         pandoTxKeyResults = 'pandotx.testnet.results'
-        pandoTxKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_TEST}`
     }
 }
 
@@ -281,6 +296,20 @@ export default {
             maxDeltaHeight: Number.parseInt(process.env.NODE_TXS_SCHED_MAX_DELTA_HEIGHT, 10)
         },
         /*
+         * Soroban
+         */
+        soroban: {
+            // Url of the Soroban RPC API used by this node
+            rpc: sorobanRpcUrl,
+            // Use a SOCKS5 proxy for all communications with the Soroban node
+            // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
+            socks5Proxy: `socks5h://${process.env.NET_DOJO_TOR_IPV4}:${process.env.TOR_SOCKS_PORT}`,
+            // Soroban key used to announce public Soroban API endpoints
+            keyAnnounce: sorobanKeyAnnounce,
+            // Soroban key used to announce response to auth47 challenge
+            keyAuth47: sorobanKeyAuth47
+        },
+        /*
          * PandoTx
          */
         pandoTx: {
@@ -290,17 +319,15 @@ export default {
             // Process PandoTx transactions
             // Values: active | inactive
             process: pandoTxProcessActive,
-            // Url of the Soroban RPC API used by this node
-            sorobanUrl: pandoTxSorobanUrl,
-            // Use a SOCKS5 proxy for all communications with the Soroban node
-            // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
-            socks5Proxy: `socks5h://${process.env.NET_DOJO_TOR_IPV4}:${process.env.TOR_SOCKS_PORT}`,
             // Soroban key used for pushed transactions
             keyPush: pandoTxKeyPush,
             // Soroban key used for results of pushes
             keyResults: pandoTxKeyResults,
-            // Soroban key used to announce public Soroban API endpoints
-            keyAnnounce: pandoTxKeyAnnounce
+            // Fallback mode
+            // Values: secure | convenient
+            fallbackMode: pandoTxFallbackMode,
+            // Max number of retries after a failed push
+            nbRetries: pandoTxNbRetries
         },
         /*
          * Tracker

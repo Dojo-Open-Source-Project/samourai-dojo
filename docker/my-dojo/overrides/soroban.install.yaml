@@ -29,5 +29,9 @@ services:
       dojonet:
         ipv4_address: ${NET_DOJO_SOROBAN_IPV4}
 
+  node:
+    depends_on:
+      - soroban
+
 volumes:
   data-soroban:
