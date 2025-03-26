@@ -55,7 +55,7 @@ if [ "$BITCOIND_BLOOM_FILTERS" == "on" ]; then
   bitcoind_options+=(-peerbloomfilters=1)
 fi
 
-if [ "$BITCOIND_BLOCKS_DIR" != "" ]; then
+if [ -n "$BITCOIND_BLOCKS_DIR" ]; then
   bitcoind_options+=(-blocksdir="/home/bitcoin/blocks")
 fi
 
