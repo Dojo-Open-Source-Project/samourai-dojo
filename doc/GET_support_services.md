@@ -23,15 +23,18 @@ Status code 200 with JSON response:
 {
   "services": [
     {
-      "type": "explorer.btc_rpc_explorer",
+      "type": "explorer",
+      "kind": "btc_rpc_explorer",
       "url": "http://[...].onion"
     },
     {
-      "type": "indexer.fullcrum",
+      "type": "indexer",
+      "kind": "fullcrum",
       "url": "tcp://[...].onion:50001"
     },
     {
-      "type": "soroban.rpc",
+      "type": "soroban",
+      "kind": "rpc",
       "url": "http://[...].onion/rpc",
       "keyAnnounce": "soroban.cluster.testnet.nodes",
       "keyAuth47": "soroban.auth47.testnet.auth"

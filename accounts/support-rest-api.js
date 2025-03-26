@@ -342,19 +342,22 @@ class SupportRestApi {
         try {
             const returnValue = {
                 services: [{
-                    type: `explorer.${keys.explorer.active}`,
+                    type: `explorer`,
+                    kind: keys.explorer.active,
                     url: keys.explorer.uri
                 }]
             }
             if (keys.indexer.active == 'local_indexer' && keys.indexer.localIndexer.externalUri !== null) {
                 returnValue.services.push({
-                    type: `indexer.fullcrum`,
+                    type: `indexer`,
+                    kind: `fullcrum`,
                     url: keys.indexer.localIndexer.externalUri
                 })
             }
             if (keys.soroban.externalRpc !== null) {
                 returnValue.services.push({
-                    type: `soroban.rpc`,
+                    type: `soroban`,
+                    kind: `rpc`,
                     url: keys.soroban.externalRpc,
                     keyAnnounce: keys.soroban.keyAnnounce,
                     keyAuth47: keys.soroban.keyAuth47
