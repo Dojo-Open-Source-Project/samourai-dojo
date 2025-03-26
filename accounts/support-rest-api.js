@@ -340,12 +340,13 @@ class SupportRestApi {
      */
     async getServices(req, res) {
         try {
-            const returnValue = {
-                services: [{
+            const returnValue = { services: [] }
+            if (keys.explorer.active !== null) {
+                returnValue.services.push({
                     type: `explorer`,
                     kind: keys.explorer.active,
                     url: keys.explorer.uri
-                }]
+                })
             }
             if (keys.indexer.active == 'local_indexer' && keys.indexer.localIndexer.externalUri !== null) {
                 returnValue.services.push({

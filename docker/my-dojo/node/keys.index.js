@@ -11,8 +11,8 @@ const bitcoinNetwork = (process.env.COMMON_BTC_NETWORK === 'testnet')
     : 'bitcoin'
 
 // Retrieve explorer config from conf files
-let explorerActive = 'oxt'
-let explorerUrl = 'https://oxt.me'
+let explorerActive = null
+let explorerUrl = null
 let auth47Hostname = ''
 if (process.env.EXPLORER_INSTALL === 'on') {
     try {
