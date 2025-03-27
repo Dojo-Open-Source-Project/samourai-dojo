@@ -29,7 +29,7 @@ Status code 200 with JSON response:
     },
     {
       "type": "indexer",
-      "kind": "fullcrum",
+      "kind": "fulcrum",
       "url": "tcp://[...].onion:50001"
     },
     {
