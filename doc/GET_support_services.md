@@ -48,7 +48,7 @@ Each service provided by the Dojo has a corresponding entry in the list.
 Each entry in the list is at least composed of:
 * a **type** attribute identifying the service,
 * a **kind** attribute identifying kind of the service,
-* an **url** attribute storing information allowing to access the service.
+* a **url** attribute storing information allowing to access the service.
 
 
 #### Additional attributes
