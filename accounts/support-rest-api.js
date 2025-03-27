@@ -338,7 +338,7 @@ class SupportRestApi {
     /**
      * Get pairing info for miscellaneous services provided by the dojo
      */
-    async getServices(req, res) {
+    getServices(req, res) {
         try {
             const returnValue = { services: [] }
             if (keys.explorer.active !== null) {
