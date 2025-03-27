@@ -364,7 +364,7 @@ class SupportRestApi {
                     keyAuth47: keys.soroban.keyAuth47
                 })
             }
-            HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2))
+            HttpServer.sendOkDataOnly(res, returnValue)
         } catch (error) {
             const returnValue = {
                 status: 'error'
