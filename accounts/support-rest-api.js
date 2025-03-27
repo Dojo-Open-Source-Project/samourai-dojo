@@ -351,7 +351,7 @@ class SupportRestApi {
             if (keys.indexer.active == 'local_indexer' && keys.indexer.localIndexer.externalUri !== null) {
                 returnValue.services.push({
                     type: `indexer`,
-                    kind: `fullcrum`,
+                    kind: keys.indexer.localIndexer.type,
                     url: keys.indexer.localIndexer.externalUri
                 })
             }
