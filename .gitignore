@@ -1,6 +1,3 @@
-db-scripts/updates/
-db-scripts/1_db.sql
-db-scripts/2_update.sql
 docker/my-dojo/conf/*.conf
 docker/my-dojo/conf/*.conf.save
 docker/my-dojo/nginx/*.conf

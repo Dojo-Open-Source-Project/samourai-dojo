@@ -64,15 +64,6 @@ get_confirmation_reinstall() {
 
 # Initialize configuration files from templates
 init_config_files() {
-  # Initialize db scripts
-  cp ../../db-scripts/1_db.sql.tpl ../../db-scripts/1_db.sql
-  echo "Initialized 1_db.sql"
-
-  if [ -f ../../db-scripts/2_update.sql ]; then
-    rm ../../db-scripts/2_update.sql
-    echo "Deleted 2_update.sql"
-  fi
-
   # Initialize config files for MyDojo
   cp ./conf/docker-common.conf.tpl ./conf/docker-common.conf
   echo "Initialized docker-common.conf"
