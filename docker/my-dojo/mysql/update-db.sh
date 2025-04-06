@@ -1,7 +1,14 @@
 #!/bin/bash
 
+# Determine the database client binary to use (mysql if present, mariadb otherwise)
+if command -v mysql &> /dev/null; then
+  DBCLIENT="mysql"
+else
+  DBCLIENT="mariadb"
+fi
+
 for i in {30..0}; do
-  if echo "SELECT 1" | mysql -h"db" -u"root" -p"$MYSQL_ROOT_PASSWORD" &> /dev/null; then
+  if echo "SELECT 1" | "$DBCLIENT" -h"db" -u"root" -p"$MYSQL_ROOT_PASSWORD" &> /dev/null; then
     break
   fi
   echo "MySQL init process in progress..."
@@ -9,7 +16,7 @@ for i in {30..0}; do
 done
 
 if [ -f /docker-entrypoint-initdb.d/2_update.sql ]; then
-  mysql -h"db" -u"root" -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /docker-entrypoint-initdb.d/2_update.sql
+  "$DBCLIENT" -h"db" -u"root" -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /docker-entrypoint-initdb.d/2_update.sql
   echo "Updated database with 2_update.sql"
 fi
 

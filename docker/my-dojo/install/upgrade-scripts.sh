@@ -48,15 +48,6 @@ get_confirmation() {
 
 # Update configuration files from templates
 update_config_files() {
-  # Initialize db scripts
-  if [ -f ../../db-scripts/1_db.sql ]; then
-    rm ../../db-scripts/1_db.sql
-    echo "Deleted 1_db.sql"
-  fi
-
-  cp ../../db-scripts/2_update.sql.tpl ../../db-scripts/2_update.sql
-  echo "Initialized 2_update.sql"
-
   # Initialize config files for MyDojo
   update_config_file ./conf/docker-common.conf ./conf/docker-common.conf.tpl
   echo "Initialized docker-common.conf"
@@ -137,6 +128,7 @@ update_config_file() {
 
 # Update dojo database
 update_dojo_db() {
+  echo "Updating dojo database..."
   docker exec -d db /update-db.sh
 }
 
