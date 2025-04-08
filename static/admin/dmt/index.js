@@ -8,6 +8,7 @@ const screens = [
     '#screen-status',
     '#screen-pushtx',
     '#screen-pairing',
+    '#screen-api-keys',
     '#screen-xpubs-tools',
     '#screen-addresses-tools',
     '#screen-txs-tools',
@@ -21,6 +22,7 @@ const tabs = [
     '#link-status',
     '#link-pushtx',
     '#link-pairing',
+    '#link-api-keys',
     '#link-xpubs-tools',
     '#link-addresses-tools',
     '#link-txs-tools',
@@ -86,10 +88,15 @@ function preparePage() {
         const screen = screens[idxTab]
         if (tabs[idxTab] === activeTab) {
             document.querySelector(screen).removeAttribute('hidden')
-            if (screenScripts.has(screen))
+            if (screenScripts.has(screen)) {
                 screenScripts.get(screen).preparePage()
+            }
         } else {
             document.querySelector(screen).setAttribute('hidden', '')
+            if (screenScripts.has(screen)) {
+                const pageScripts = screenScripts.get(screen)
+                pageScripts.unpreparePage && pageScripts.unpreparePage()
+            }
         }
     }
 }
