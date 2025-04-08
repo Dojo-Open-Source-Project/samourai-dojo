@@ -1,0 +1,93 @@
+<div id="pairing">
+    <h1>API KEYS</h1>
+
+    <div class="box-context">Provide other users an ability to connect to your Dojo.</div>
+
+    <div class="row box-main">
+        <div id="dojo-api-keys" class="fullwidth box">
+            <div class="box-header">Your API keys</div>
+            <div class="spacer10"></div>
+            <div class="box-body fullwidth">
+                <div class="spacer10"></div>
+                <div id="api-key-container"></div>
+                <div class="spacer10"></div>
+                <div class="text-center">
+                    <button type="button" id="new-api-key-button" class="btn btn-success">New API key</button>
+                </div>
+                <div class="spacer10"></div>
+            </div>
+            <dialog id="new-api-key-dialog">
+                <form id="new-api-key-form">
+                    <div class="dialog-header">
+                        <h2>New API key</h2>
+                    </div>
+                    <div class="dialog-body">
+                        <div class="form-group">
+                            <label for="new-api-key-label">Label</label>
+                            <input id="new-api-key-label" type="text" name="label" placeholder="API key label" maxlength="30" required>
+                        </div>
+                        <div class="spacer10"></div>
+
+                        <div class="form-group">
+                            <label for="new-api-key-expiration">Expiration</label>
+                            <input id="new-api-key-expiration" type="datetime-local" name="expiresAt" required>
+                        </div>
+                        <div class="spacer10"></div>
+                    </div>
+                    <div class="dialog-footer text-center">
+                        <button type="reset" class="btn">Cancel</button>
+                        <button type="submit"  class="btn btn-primary">Create</button>
+                    </div>
+                </form>
+            </dialog>
+            <dialog id="edit-api-key-dialog">
+                <form id="edit-api-key-form">
+                    <input id="edit-api-key-apikey" type="hidden" name="apikey" />
+                    <div class="dialog-header">
+                        <h2>Edit API key</h2>
+                    </div>
+                    <div class="dialog-body">
+                        <div class="form-group">
+                            <label for="edit-api-key-label">Label</label>
+                            <input id="edit-api-key-label" type="text" name="label" placeholder="API key label" maxlength="30" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="edit-api-key-expiration">Expiration</label>
+                            <input id="edit-api-key-expiration" type="datetime-local" name="expiresAt" required>
+                        </div>
+
+                        <div class="checkbox">
+                            <label for="edit-api-key-active">
+                                <input id="edit-api-key-active" type="checkbox" name="active" class="checkbox"> Active
+                            </label>
+                        </div>
+
+                        <div class="spacer10"></div>
+                    </div>
+                    <div class="dialog-footer text-center">
+                        <button type="reset" class="btn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                </form>
+            </dialog>
+            <dialog id="api-key-pairing-dialog">
+                <div class="dialog-header">
+                    <h2 id="api-key-pairing-heading"></h2>
+                </div>
+                <div class="dialog-body">
+                    <div id="api-key-qr-pairing" class="center"></div>
+                    <div class="spacer10"></div>
+                    <textarea id="api-key-pairing-payload" class="payload-textarea" rows="10" readonly></textarea>
+                    <div class="spacer10"></div>
+                </div>
+                <div class="dialog-footer text-center">
+                    <button id="api-key-pairing-close" type="button" class="btn btn-default">Close</button>
+                </div>
+            </dialog>
+        </div>
+    </div>
+
+</div>
+
+<script data-include-js="api-keys/api-keys.js"></script>

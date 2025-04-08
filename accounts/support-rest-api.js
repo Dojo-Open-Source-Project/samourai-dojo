@@ -3,8 +3,10 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-
+import crypto from 'crypto'
 import validator from 'validator'
+// eslint-disable-next-line import/no-unresolved
+import { json } from 'milliparsec'
 
 import errors from '../lib/errors.js'
 import Logger from '../lib/logger.js'
@@ -15,12 +17,18 @@ import hdaService from '../lib/bitcoin/hd-accounts-service.js'
 import addrService from '../lib/bitcoin/addresses-service.js'
 import HdAccountInfo from '../lib/wallet/hd-account-info.js'
 import AddressInfo from '../lib/wallet/address-info.js'
+import db from '../lib/db/mysql-db-wrapper.js'
 import apiHelper from './api-helper.js'
 import keysFile from '../keys/index.js'
 
 const keys = keysFile[network.key]
 const debugApi = process.argv.includes('api-debug')
 
+/**
+ * @typedef {import('@tinyhttp/app').Request} Request
+ * @typedef {import('@tinyhttp/app').Response} Response
+ * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
+ */
 
 /**
  * Support API endpoints
@@ -33,6 +41,8 @@ class SupportRestApi {
      */
     constructor(httpServer) {
         this.httpServer = httpServer
+
+        const jsonParser = json()
 
         this.httpServer.app.get(
             `/${keys.prefixes.support}/address/:addr/info`,
@@ -89,12 +99,39 @@ class SupportRestApi {
             authMgr.checkAuthentication.bind(authMgr),
             this.getServices.bind(this),
         )
+
+        /* API keys */
+        this.httpServer.app.get(
+            `/${keys.prefixes.support}/apikeys`,
+            authMgr.checkHasAdminProfile.bind(authMgr),
+            this.getApiKeys.bind(this),
+        )
+
+        this.httpServer.app.post(
+            `/${keys.prefixes.support}/apikey`,
+            jsonParser,
+            authMgr.checkHasAdminProfile.bind(authMgr),
+            this.createApiKey.bind(this),
+        )
+
+        this.httpServer.app.patch(
+            `/${keys.prefixes.support}/apikey/:apikey`,
+            jsonParser,
+            authMgr.checkHasAdminProfile.bind(authMgr),
+            this.updateApiKey.bind(this),
+        )
+
+        this.httpServer.app.delete(
+            `/${keys.prefixes.support}/apikey/:apikey`,
+            authMgr.checkHasAdminProfile.bind(authMgr),
+            this.deleteApiKey.bind(this),
+        )
     }
 
     /**
      * Retrieve information for a given address
-     * @param {object} req - http request object
-     * @param {object} res - http response object
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
      */
     async getAddressInfo(req, res) {
         try {
@@ -132,8 +169,8 @@ class SupportRestApi {
 
     /**
      * Rescan the blockchain for a given address
-     * @param {object} req - http request object
-     * @param {object} res - http response object
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
      */
     async getAddressRescan(req, res) {
         try {
@@ -161,8 +198,8 @@ class SupportRestApi {
 
     /**
      * Retrieve information for a given hd account
-     * @param {object} req - http request object
-     * @param {object} res - http response object
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
      */
     async getXpubInfo(req, res) {
         try {
@@ -209,8 +246,8 @@ class SupportRestApi {
 
     /**
      * Rescan the blockchain for a given address
-     * @param {object} req - http request object
-     * @param {object} res - http response object
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
      */
     async getXpubRescan(req, res) {
         try {
@@ -255,8 +292,8 @@ class SupportRestApi {
 
     /**
      * Delete all data related to a hd account
-     * @param {object} req - http request object
-     * @param {object} res - http response object
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
      */
     async getXpubDelete(req, res) {
         try {
@@ -285,6 +322,8 @@ class SupportRestApi {
 
     /**
      * Get pairing info
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
      */
     async getPairing(req, res) {
         try {
@@ -337,28 +376,30 @@ class SupportRestApi {
 
     /**
      * Get pairing info for miscellaneous services provided by the dojo
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
      */
     getServices(req, res) {
         try {
             const returnValue = { services: [] }
             if (keys.explorer.active !== null) {
                 returnValue.services.push({
-                    type: `explorer`,
+                    type: 'explorer',
                     kind: keys.explorer.active,
                     url: keys.explorer.uri
                 })
             }
-            if (keys.indexer.active == 'local_indexer' && keys.indexer.localIndexer.externalUri !== null) {
+            if (keys.indexer.active === 'local_indexer' && keys.indexer.localIndexer.externalUri !== null) {
                 returnValue.services.push({
-                    type: `indexer`,
+                    type: 'indexer',
                     kind: keys.indexer.localIndexer.type,
                     url: keys.indexer.localIndexer.externalUri
                 })
             }
             if (keys.soroban.externalRpc !== null) {
                 returnValue.services.push({
-                    type: `soroban`,
-                    kind: `rpc`,
+                    type: 'soroban',
+                    kind: 'rpc',
                     url: keys.soroban.externalRpc,
                     keyAnnounce: keys.soroban.keyAnnounce,
                     keyAuth47: keys.soroban.keyAuth47
@@ -376,6 +417,87 @@ class SupportRestApi {
         }
     }
 
+    /**
+     * Get API keys
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
+     */
+    async getApiKeys(req, res) {
+        const tokens = await db.getApiKeys()
+
+        HttpServer.sendOkDataOnly(res, tokens)
+    }
+
+    /**
+     * Create API key
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
+     */
+    async createApiKey(req, res) {
+        try {
+            const label = req.body.label
+            const expiresAt = req.body.expiresAt
+
+            if (typeof label !== 'string' || label.trim().length === 0 || label.trim().length > 30) throw 'Invalid label'
+            if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) throw 'Invalid expiration date'
+
+            const apikey = crypto.randomBytes(16).toString('hex')
+
+            await db.createApiKey(label.trim(), apikey, new Date(expiresAt))
+
+            HttpServer.sendOk(res)
+        } catch (error) {
+            HttpServer.sendError(res, error)
+        }
+    }
+
+    /**
+     * Update API key
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
+     */
+    async updateApiKey(req, res) {
+        try {
+            const apikey = req.params.apikey
+            const label = req.body.label
+            const expiresAt = req.body.expiresAt
+            const active = req.body.active
+
+            if (!apikey) throw 'Invalid API key'
+            if (typeof label !== 'string' || label.trim().length === 0 || label.trim().length > 30) throw 'Invalid label'
+            if (!expiresAt || Number.isNaN(Date.parse(expiresAt))) throw 'Invalid expiration date'
+            if (active === undefined) throw 'Invalid active status'
+
+            const apikeyID = await db.getApiKeyID(apikey)
+
+            if (!apikeyID) throw 'API key not found'
+
+            await db.updateApiKey(apikeyID, label.trim(), active, new Date(expiresAt))
+
+            HttpServer.sendOk(res)
+        } catch (error) {
+            HttpServer.sendError(res, error)
+        }
+    }
+
+    /**
+     * Delete API key
+     * @param {Request} req - http request object
+     * @param {Response} res - http response object
+     */
+    async deleteApiKey(req, res) {
+        try {
+            const apikey = req.params.apikey
+
+            if (!apikey) throw 'Invalid API key'
+
+            await db.deleteApiKey(apikey)
+
+            HttpServer.sendOk(res)
+        } catch (error) {
+            HttpServer.sendError(res, error)
+        }
+    }
 
     /**
      * Validate arguments related to GET xpub info requests
