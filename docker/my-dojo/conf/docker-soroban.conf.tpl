@@ -10,4 +10,4 @@ SOROBAN_INSTALL=on
 # Setting the value to "on" advertizes the onion address of your Soroban node on the network
 # Making this address public allows others users to interact with the Soroban network through your Soroban node
 # Values: on | off
-SOROBAN_ANNOUNCE=off
+SOROBAN_ANNOUNCE=on

@@ -35,7 +35,7 @@ NODE_FEE_TYPE=ECONOMICAL
 # Push transaction through PandoTx (Soroban network)
 # Has effect only if SOROBAN_INSTALL=on
 # Value: on | off
-NODE_PANDOTX_PUSH=off
+NODE_PANDOTX_PUSH=on
 
 # Process transaction received through PandoTx (Soroban network)
 # Has effect only if SOROBAN_INSTALL=on and SOROBAN_ANNOUNCE=on
@@ -44,10 +44,10 @@ NODE_PANDOTX_PROCESS=on
 
 # Fallback mode
 # Has effect only if NODE_PANDOTX_PUSH=on
-# In convenient mode, a push will ultimately be processed 
+# In convenient mode, a push will ultimately be processed
 #   through the local node (soroban or bitcoind) in case of an active attack
-# In secure mode, it will fail if it can't be processed through 
-#   a randomnly selected Soroban node 
+# In secure mode, it will fail if it can't be processed through
+#   a randomnly selected Soroban node
 # Value: secure | convenient
 NODE_PANDOTX_FALLBACK_MODE=convenient
 
