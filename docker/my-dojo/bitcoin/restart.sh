@@ -33,7 +33,6 @@ bitcoind_options=(
   -txindex=1
   -zmqpubhashblock=tcp://0.0.0.0:9502
   -zmqpubrawtx=tcp://0.0.0.0:9501
-  -mempoolfullrbf=0
 )
 
 if [ "$BITCOIND_PERSIST_MEMPOOL" == "on" ]; then

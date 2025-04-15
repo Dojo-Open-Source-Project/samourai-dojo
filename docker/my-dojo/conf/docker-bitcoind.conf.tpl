@@ -24,7 +24,7 @@ BITCOIND_DB_CACHE=1024
 
 # Number of threads to service RPC calls
 # Type: integer
-BITCOIND_RPC_THREADS=6
+BITCOIND_RPC_THREADS=16
 
 # RPC Work queue size
 # Type: integer
