@@ -128,10 +128,12 @@ class PushTxProcessor {
      */
     async pushTx(rawtx, forceLocalPush = false) {
         let value = 0
+        let txid = null
 
         // Attempt to parse incoming TX hex as a bitcoin Transaction
         try {
             const tx = bitcoin.Transaction.fromHex(rawtx)
+            txid = tx.getId()
             for (let output of tx.outs)
                 value += output.value
             Logger.info(`PushTx : Push for ${(value / 1e8).toFixed(8)} BTC`)
@@ -139,8 +141,18 @@ class PushTxProcessor {
             throw errors.tx.PARSE
         }
 
+        // check if transaction is already in the mempool/blockchain
+        try {
+            const present = await this.rpcClient.getrawtransaction({ txid: txid, verbose: false })
+            if (present) {
+                Logger.info('PushTx : Transaction already in mempool/blockchain')
+                return txid
+            }
+        } catch {
+            // continue
+        }
+
         // At this point, the raw hex parses as a legitimate transaction.
-        let txid = null
         try {
             let processLocalPush = true
             // Attempt to send via PandoTx (Soroban)
