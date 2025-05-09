@@ -4,7 +4,7 @@ ENV     NODE_ENV             production
 
 ENV     APP_DIR              /home/node/app
 
-ENV     EXPLORER_VERSION     3.4.0+SW
+ENV     EXPLORER_VERSION     3.4.1+SW
 ENV     EXPLORER_URL         https://github.com/Dojo-Open-Source-Project/btc-rpc-explorer/archive/refs/tags/v$EXPLORER_VERSION.tar.gz
 
 # Install netcat
