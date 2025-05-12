@@ -1,8 +1,27 @@
 #!/bin/bash
 set -e
 
-if [ ! -e "$SSL_CERTFILE" ] || [ ! -e "$SSL_KEYFILE" ] ; then
-  openssl req -newkey rsa:2048 -sha256 -nodes -x509 -days 365 -subj "/O=Fulcrum" -keyout "$SSL_KEYFILE" -out "$SSL_CERTFILE"
+# Function to check if certificate exists and is valid
+check_cert_validity() {
+  # Check if files exist
+  if [ ! -e "$SSL_CERTFILE" ] || [ ! -e "$SSL_KEYFILE" ]; then
+    return 1
+  fi
+
+  # Check if certificate is expired
+  if openssl x509 -checkend 0 -noout -in "$SSL_CERTFILE" > /dev/null 2>&1; then
+    # Certificate is still valid
+    return 0
+  else
+    # Certificate is expired
+    rm -f "$SSL_CERTFILE" "$SSL_KEYFILE"
+    return 1
+  fi
+}
+
+
+if ! check_cert_validity; then
+  openssl req -newkey rsa:4096 -sha256 -nodes -x509 -days 365 -subj "/O=Fulcrum/CN=fulcrum-server/C=US" -keyout "$SSL_KEYFILE" -out "$SSL_CERTFILE"
 fi
 
 fulcrum_options=(
