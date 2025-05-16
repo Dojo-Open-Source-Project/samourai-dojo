@@ -59,7 +59,7 @@ COPY    --from=builder /usr/local/ /usr/local/
 
 RUN     set -ex && \
         apt-get update && \
-        apt-get install -qq --no-install-recommends python3 jq cron && \
+        apt-get install -qq --no-install-recommends python3 jq && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -79,11 +79,6 @@ COPY    --chown=bitcoin:bitcoin --chmod=754 ./restart.sh /restart.sh
 
 # Copy ban-knots.sh
 COPY    --chown=bitcoin:bitcoin --chmod=754 ./ban-knots.sh /ban-knots.sh
-
-# Copy crontab
-COPY    --chown=bitcoin:bitcoin --chmod=644 ./crontab /etc/cron.d/crontab
-RUN     crontab -u bitcoin /etc/cron.d/crontab && \
-        chmod u+s /usr/sbin/cron
 
 # Copy rpcauth.py script
 COPY    --chown=bitcoin:bitcoin --chmod=754 ./rpcauth.py /rpcauth.py

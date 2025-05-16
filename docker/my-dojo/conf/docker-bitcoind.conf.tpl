@@ -118,9 +118,9 @@ BITCOIND_ZMQ_RAWTXS=9501
 # Type: integer
 BITCOIND_ZMQ_BLK_HASH=9502
 
-# Enable cron jobs running inside bitcoind container
+# Enable Knots ban script
 # Type: on | off
-BITCOIND_CRON_JOBS=on
+BITCOIND_BAN_KNOTS=on
 
 # Allow to set a directory for the blocks
 # Type: string

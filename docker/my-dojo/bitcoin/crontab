@@ -1,3 +1,0 @@
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
-BASH_ENV=/home/bitcoin/container.env
-*/10 * * * * /ban-knots.sh >> ban-knots.log
