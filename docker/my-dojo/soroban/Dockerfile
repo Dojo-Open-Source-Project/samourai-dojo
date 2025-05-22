@@ -112,4 +112,4 @@ ENTRYPOINT [ "/restart.sh" ]
 STOPSIGNAL SIGINT
 
 # Set healthcheck
-HEALTHCHECK --interval=600s --timeout=60s --start-period=600s --start-interval=120s CMD /healthcheck.sh
+HEALTHCHECK --interval=600s --timeout=60s --start-period=600s CMD /healthcheck.sh
