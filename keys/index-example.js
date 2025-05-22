@@ -16,7 +16,7 @@ export default {
         /*
          * Dojo version
          */
-        dojoVersion: '1.26.1',
+        dojoVersion: '1.27.0',
         /*
          * Bitcoind
          */
@@ -278,7 +278,7 @@ export default {
      * Testnet parameters
      */
     testnet: {
-        dojoVersion: '1.26.1',
+        dojoVersion: '1.27.0',
         bitcoind: {
             rpc: {
                 user: 'user',

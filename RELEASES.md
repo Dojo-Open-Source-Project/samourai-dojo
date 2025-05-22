@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.27.0](#samourai-dojo-v1270)
 - [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
@@ -11,33 +12,77 @@
 - [v1.22.0](#samourai-dojo-v1220)
 - [v1.21.0](#samourai-dojo-v1210)
 - [v1.20.0](#samourai-dojo-v1200)
-- [v1.19.2](#samourai-dojo-v1192)
-- [v1.19.1](#samourai-dojo-v1191)
-- [v1.19.0](#samourai-dojo-v1190)
-- [v1.18.1](#samourai-dojo-v1181)
-- [v1.18.0](#samourai-dojo-v1180)
-- [v1.17.0](#samourai-dojo-v1170)
-- [v1.16.1](#samourai-dojo-v1161)
-- [v1.16.0](#samourai-dojo-v1160)
-- [v1.15.0](#samourai-dojo-v1150)
-- [v1.14.0](#samourai-dojo-v1140)
-- [v1.13.0](#samourai-dojo-v1130)
-- [v1.12.1](#samourai-dojo-v1121)
-- [v1.12.0](#samourai-dojo-v1120)
-- [v1.11.0](#samourai-dojo-v1110)
-- [v1.10.1](#samourai-dojo-v1101)
-- [v1.10.0](#samourai-dojo-v1100)
-- [v1.9.0](#samourai-dojo-v190)
-- [v1.8.1](#samourai-dojo-v181)
-- [v1.8.0](#samourai-dojo-v180)
-- [v1.7.0](#samourai-dojo-v170)
-- [v1.6.0](#samourai-dojo-v160)
-- [v1.5.0](#samourai-dojo-v150)
-- [v1.4.1](#samourai-dojo-v141)
-- [v1.4.0](#samourai-dojo-v140)
-- [v1.3.0](#samourai-dojo-v130)
-- [v1.2.0](#samourai-dojo-v120)
-- [v1.1.0](#samourai-dojo-v110)
+
+## Samourai Dojo v1.27.0
+
+### Notable changes
+
+#### Soroban P2P network
+This version introduces Soroban P2P network. MyDojo (docker setup) users will automatically have Soroban installed as part of their Dojo.
+Dojo will be able to leverage Soroban P2P network for various future applications.
+
+Dojo already has its first feature based on Soroban: PandoTx.
+PandoTx is a transaction transport layer - when your wallet pushes a transaction to Dojo, it will be relayed to a random Soroban node which will then push it to the Bitcoin network.
+This also means that your Soroban node can receive other people's transactions and relay them to Bitcoin network.
+This feature is meant to break the heuristic that a node relaying the transaction is closely coupled with person who made that transaction.
+
+Pushing transactions through Soroban can be deactivated by setting `NODE_PANDOTX_PUSH=off` in `docker-node.conf`.
+
+Processing incoming transactions from Soroban network can be deactivated by setting `NODE_PANDOTX_PROCESS=off` in `docker-node.conf`.
+
+#### API key management
+There has been an uptick of people providing their Dojos for the community. In order to make giving access to Dojo more manageable, the API key management has been introduced.
+Dojo admins can now find new API management tab in their DMT. Here they can create unlimited number of API keys, assign labels for easy identification and set expiration of an API key.
+This allows admins to not compromise their main API key and distribute specific API keys just to desired parties.
+
+#### New API endpoints
+Several new API endpoints have been created so that API consumers have better time developing new features on top of Dojo.
+
+New:
+- `/latest-block` - returns data about latest block
+- `/txout/:txid/:index` - returns unspent output data
+- `/support/services` - returns info about services that Dojo exposes
+
+Updated:
+- `/tx/:txid` - endpoint has been updated to return raw transaction with parameter `?rawHex=1`
+
+The introduction of `/support/services` now also means that the explorer field in the Dojo pairing payload is deprecated.
+While it will still be present, API consumers should switch to using this new endpoint to get explorer and other pairing information.
+
+Please refer to the [API docs](doc/README.md) for details.
+
+### Changelog
+- Added Soroban and PandoTx functionality
+- Update ban script to disconnect inbound Knots nodes [8ca7a8a1](8ca7a8a1)
+- Regenerate fulcrum certificate if expired [4a2aba15](4a2aba15)
+- Check if transaction already exists in pushTx [33ca0451](33ca0451)
+- Bump BTC-RPC Explorer [3c3c48ed](3c3c48ed)
+- Bump Tor to v0.4.8.16, bump Snowflake [eaf7c79d](eaf7c79d)
+- Updated Bitcoin Core to v29.0 [b50bded2](b50bded2)
+- Removed unnecessary middleware [f7591c36](f7591c36)
+- Added "/latest-block" API endpoint [fa19416a](fa19416a)
+- Added new information to transaction API endpoint [4433d4b1](4433d4b1)
+- Added txout API endpoint [5376e16d](5376e16d)
+- Added ability to manage API keys [a82e0e5e](a82e0e5e)
+- Fixed DB update mechanism, added api_keys table [3de7e80f](3de7e80f)
+- Add new /support/services RPC endpoint [8b4f39e4](8b4f39e4)
+- Add an option to use blocksdir config for bitcoin blocks directory [d873d275](d873d275)
+- Removed deprecated configuration [7b5c44fa](7b5c44fa)
+- Updated Fulcrum to v1.12.0 [d073e59e](d073e59e)
+- Updated Node.js dependencies [c1981d0b](c1981d0b), [fbc1f1e1](fbc1f1e1)
+- Reconfigured container dependencies [d5a73c65](d5a73c65)
+- Fix Snowflake git URL [7baa71c5](7baa71c5)
+- Fix log path for testnet4 [c8c6a805](c8c6a805)
+- Use prebuilt addrindexrs binaries [7dd4f55e](7dd4f55e)
+- Add instructions to migrate blockchain/fulcrum [f00ac34b](f00ac34b)
+- Added pull policies [425d6d6e](425d6d6e)
+
+### Credits
+- DojoCoder
+- LaurentMT
+- 零火怖
+- ottosch
+- greenart7c3
 
 ## Samourai Dojo v1.26.1
 
