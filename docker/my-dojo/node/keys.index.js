@@ -11,8 +11,8 @@ const bitcoinNetwork = (process.env.COMMON_BTC_NETWORK === 'testnet')
     : 'bitcoin'
 
 // Retrieve explorer config from conf files
-let explorerActive = 'oxt'
-let explorerUrl = 'https://oxt.me'
+let explorerActive = null
+let explorerUrl = null
 let auth47Hostname = ''
 if (process.env.EXPLORER_INSTALL === 'on') {
     try {
@@ -27,6 +27,69 @@ try {
     console.error(error)
 }
 
+
+// Retrieve indexer config from conf files
+let indexerUrl = null
+let indexerType = null
+
+if (process.env.INDEXER_INSTALL === 'on') {
+    indexerType = process.env.INDEXER_TYPE
+    if (indexerType === 'fulcrum') {
+        indexerUrl = `${process.env.INDEXER_PROTOCOL}://${fs.readFileSync('/var/lib/tor/hsv3fulcrum/hostname', 'utf8').trim()}:50001`
+    }
+}
+
+
+// Retrieve Soroban config from conf files
+let sorobanRpcUrl = null
+let sorobanExternalUrl = null
+let sorobanKeyAuth47 = null
+let sorobanKeyAnnounce = null
+
+if (process.env.SOROBAN_INSTALL === 'on') {
+    sorobanRpcUrl = `http://${process.env.NET_DOJO_SOROBAN_IPV4}:${process.env.SOROBAN_PORT}/rpc`
+    if (bitcoinNetwork === 'bitcoin') {
+        sorobanKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_MAIN}`
+        sorobanKeyAuth47 = 'soroban.auth47.mainnet.auth'
+    } else {
+        sorobanKeyAnnounce = `${process.env.SOROBAN_ANNOUNCE_KEY_TEST}`
+        sorobanKeyAuth47 = 'soroban.auth47.testnet.auth'
+    }
+    if (process.env.SOROBAN_ANNOUNCE === 'on') {
+        sorobanExternalUrl = `http://${fs.readFileSync('/var/lib/tor/hsv3soroban/hostname', 'utf8').trim()}/rpc`
+    }
+}
+
+
+// Retrieve PandoTx config from conf files
+let pandoTxPushActive = 'inactive'
+let pandoTxProcessActive = 'inactive'
+let pandoTxKeyPush = null
+let pandoTxKeyResults = null
+let pandoTxNbRetries = 2
+let pandoTxFallbackMode = null
+
+if (process.env.SOROBAN_INSTALL === 'on') {
+    if (process.env.NODE_PANDOTX_PUSH === 'on') {
+        pandoTxPushActive = 'active'
+        pandoTxFallbackMode = process.env.NODE_PANDOTX_FALLBACK_MODE
+        pandoTxNbRetries = Number.parseInt(process.env.NODE_PANDOTX_NB_RETRIES, 10)
+    }
+
+    if (process.env.SOROBAN_ANNOUNCE === 'on') {
+        if (process.env.NODE_PANDOTX_PROCESS === 'on') {
+            pandoTxProcessActive = 'active'
+        }
+    }
+
+    if (bitcoinNetwork === 'bitcoin') {
+        pandoTxKeyPush = 'pandotx.mainnet.push'
+        pandoTxKeyResults = 'pandotx.mainnet.results'
+    } else {
+        pandoTxKeyPush = 'pandotx.testnet.push'
+        pandoTxKeyResults = 'pandotx.testnet.results'
+    }
+}
 
 /**
  * Desired structure of /keys/index.js, which is ignored in the repository.
@@ -104,7 +167,9 @@ export default {
             // Port used by pushtx for its notifications
             notifpushtx: 5556,
             // Port used by the pushtx orchestrator for its notifications
-            orchestrator: 5557
+            orchestrator: 5557,
+            // Port used by the pandotx processor for its notifications
+            pandoTx: 5558
         },
         /*
          * Authenticated access to the APIs (account & pushtx)
@@ -188,6 +253,9 @@ export default {
             active: process.env.NODE_ACTIVE_INDEXER,
             // Local indexer
             localIndexer: {
+                // Name of the installed indexer
+                // Values: null | addrindexrs | fulcrum
+                type: indexerType,
                 // IP address or hostname of the local indexer
                 host: process.env.INDEXER_IP,
                 // Port
@@ -196,7 +264,9 @@ export default {
                 // Values: active | inactive
                 batchRequests: process.env.INDEXER_BATCH_SUPPORT,
                 // Protocol for communication (TCP or TLS)
-                protocol: process.env.INDEXER_PROTOCOL
+                protocol: process.env.INDEXER_PROTOCOL,
+                // External URI (if exposed fullcrum)
+                externalUri: indexerUrl
             },
             // Use a SOCKS5 proxy for all communications with external services
             // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
@@ -246,6 +316,42 @@ export default {
             maxNbEntries: Number.parseInt(process.env.NODE_TXS_SCHED_MAX_ENTRIES, 10),
             // Max number of blocks allowed in the future
             maxDeltaHeight: Number.parseInt(process.env.NODE_TXS_SCHED_MAX_DELTA_HEIGHT, 10)
+        },
+        /*
+         * Soroban
+         */
+        soroban: {
+            // Url of the Soroban RPC API used by this node
+            rpc: sorobanRpcUrl,
+            // External url of the Soroban RPC API
+            externalRpc: sorobanExternalUrl,
+            // Use a SOCKS5 proxy for all communications with the Soroban node
+            // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
+            socks5Proxy: `socks5h://${process.env.NET_DOJO_TOR_IPV4}:${process.env.TOR_SOCKS_PORT}`,
+            // Soroban key used to announce public Soroban API endpoints
+            keyAnnounce: sorobanKeyAnnounce,
+            // Soroban key used to announce response to auth47 challenge
+            keyAuth47: sorobanKeyAuth47
+        },
+        /*
+         * PandoTx
+         */
+        pandoTx: {
+            // Push transactions through PandoTx
+            // Values: active | inactive
+            push: pandoTxPushActive,
+            // Process PandoTx transactions
+            // Values: active | inactive
+            process: pandoTxProcessActive,
+            // Soroban key used for pushed transactions
+            keyPush: pandoTxKeyPush,
+            // Soroban key used for results of pushes
+            keyResults: pandoTxKeyResults,
+            // Fallback mode
+            // Values: secure | convenient
+            fallbackMode: pandoTxFallbackMode,
+            // Max number of retries after a failed push
+            nbRetries: pandoTxNbRetries
         },
         /*
          * Tracker

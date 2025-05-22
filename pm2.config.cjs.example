@@ -32,7 +32,7 @@ module.exports = {
             kill_timeout: 3000,
         },
         {
-            name: `Samourai Dojo - PushTX orhestrator (${NAMESPACE})`,
+            name: `Samourai Dojo - PushTX orchestrator (${NAMESPACE})`,
             namespace: NAMESPACE,
             script: './index-orchestrator.js',
             cwd: path.join(__dirname, 'pushtx'),

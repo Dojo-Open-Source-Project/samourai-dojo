@@ -40,6 +40,25 @@ a:hover {
 	color: #2196f3;
 }
 
+dialog {
+    width: 600px;
+    border: 0;
+    background: #1a1d1f;
+}
+
+dialog::backdrop {
+    backdrop-filter: blur(5px);
+}
+
+dialog .dialog-header,
+dialog .dialog-body {
+    color: #fff;
+}
+
+dialog .checkbox {
+    line-height: 2.5rem;
+}
+
 .payload-textarea {
   width: 100%;
   resize: none;
@@ -326,6 +345,11 @@ button {
   display: inline-block;
   margin-left: 8px;
   margin-right: 8px;
+}
+
+.btn-group button {
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .box-content {

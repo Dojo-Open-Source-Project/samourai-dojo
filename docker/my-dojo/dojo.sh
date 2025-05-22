@@ -29,6 +29,7 @@ source_file() {
 }
 
 # Source config files
+source_file "$DIR/conf/docker-soroban.conf"
 source_file "$DIR/conf/docker-indexer.conf"
 source_file "$DIR/conf/docker-bitcoind.conf"
 source_file "$DIR/conf/docker-explorer.conf"
@@ -37,7 +38,7 @@ source_file "$DIR/conf/docker-tor.conf"
 source_file "$DIR/.env"
 
 # Export some variables for compose
-export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT
+export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT BITCOIND_BLOCKS_DIR
 
 # Select YAML files
 select_yaml_files() {
@@ -65,6 +66,10 @@ select_yaml_files() {
         yamlFiles="$yamlFiles -f $DIR/overrides/fulcrum.port.expose.yaml"
       fi
     fi
+  fi
+
+  if [ "$SOROBAN_INSTALL" == "on" ]; then
+    yamlFiles="$yamlFiles -f $DIR/overrides/soroban.install.yaml"
   fi
 
   # Return yamlFiles
@@ -371,6 +376,12 @@ onion() {
       echo " "
     fi
   fi
+
+  if [ "$SOROBAN_INSTALL" == "on" ]; then
+    V3_ADDR_SOROBAN=$( docker exec -it tor cat /var/lib/tor/hsv3soroban/hostname )
+    echo "Soroban RPC API = $V3_ADDR_SOROBAN"
+    echo " "
+  fi
 }
 
 # Display the version of this dojo
@@ -403,6 +414,7 @@ logs() {
   source_file "$DIR/conf/docker-bitcoind.conf"
   source_file "$DIR/conf/docker-indexer.conf"
   source_file "$DIR/conf/docker-explorer.conf"
+  source_file "$DIR/conf/docker-soroban.conf"
   source_file "$DIR/conf/docker-common.conf"
 
   case $1 in
@@ -437,6 +449,13 @@ logs() {
         echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the internal block explorer"
       fi
       ;;
+    soroban )
+      if [ "$SOROBAN_INSTALL" == "on" ]; then
+        display_logs $1 $2
+      else
+        echo -e "Command not supported for your setup.\nCause: Your Dojo is not running a Soroban instance"
+      fi
+      ;;
     * )
       services="nginx node tor db"
       if [ "$BITCOIND_INSTALL" == "on" ]; then
@@ -451,6 +470,9 @@ logs() {
         elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
           services="$services fulcrum"
         fi
+      fi
+      if [ "$SOROBAN_INSTALL" == "on" ]; then
+        services="$services soroban"
       fi
       display_logs "$services" $2
       ;;
@@ -489,6 +511,7 @@ help() {
   echo "                                  dojo.sh logs fulcrum        : display the logs of the Fulcrum indexer"
   echo "                                  dojo.sh logs node           : display the logs of NodeJS modules (API, Tracker, PushTx API, Orchestrator)"
   echo "                                  dojo.sh logs explorer       : display the logs of the Explorer"
+  echo "                                  dojo.sh logs soroban        : display the logs of the Soroban instance"
   echo " "
   echo "                                Available options:"
   echo "                                  -n [VALUE]                  : display the last VALUE lines"

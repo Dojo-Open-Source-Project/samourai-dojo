@@ -3,7 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-
 import bitcoin from 'bitcoinjs-lib'
 import zmq from 'zeromq/v5-compat.js'
 
@@ -15,6 +14,8 @@ import addrHelper from '../lib/bitcoin/addresses-helper.js'
 import network from '../lib/bitcoin/network.js'
 import keysFile from '../keys/index.js'
 import status from './status.js'
+import PandoTxEmitter from './pandotx-emitter.js'
+
 
 const keys = keysFile[network.key]
 
@@ -33,8 +34,32 @@ class PushTxProcessor {
     constructor() {
         this.notifSock = null
         this.sources = new Sources()
-        // Initialize the rpc client
+        // Initialize the bitcoind rpc client
         this.rpcClient = createRpcClient()
+        // Initialize the PandoTxEmitter
+        if (keys.pandoTx?.push === 'active') {
+            this.pandoTxEmitter = new PandoTxEmitter(this.rpcClient)
+        }
+    }
+
+    /**
+     * Start the processor
+     * @returns {void}
+     */
+    start() {
+        if (keys.pandoTx?.push === 'active') {
+            this.pandoTxEmitter.start()
+        }
+    }
+
+    /**
+     * Stop the processor
+     * @returns {Promise<void>}
+     */
+    async stop() {
+        if (keys.pandoTx?.push === 'active') {
+            return this.pandoTxEmitter.stop()
+        }
     }
 
     /**
@@ -98,14 +123,17 @@ class PushTxProcessor {
     /**
      * Push transactions to the Bitcoin network
      * @param {string} rawtx - raw bitcoin transaction in hex format
-     * @returns {string} returns the txid of the transaction
+     * @param {boolean} forceLocalPush - force a push through the local bitcoind
+     * @returns {Promise<string>} returns the txid of the transaction
      */
-    async pushTx(rawtx) {
+    async pushTx(rawtx, forceLocalPush = false) {
         let value = 0
+        let txid = null
 
         // Attempt to parse incoming TX hex as a bitcoin Transaction
         try {
             const tx = bitcoin.Transaction.fromHex(rawtx)
+            txid = tx.getId()
             for (let output of tx.outs)
                 value += output.value
             Logger.info(`PushTx : Push for ${(value / 1e8).toFixed(8)} BTC`)
@@ -113,11 +141,38 @@ class PushTxProcessor {
             throw errors.tx.PARSE
         }
 
-        // At this point, the raw hex parses as a legitimate transaction.
-        // Attempt to send via RPC to the bitcoind instance
+        // check if transaction is already in the mempool/blockchain
         try {
-            const txid = await this.rpcClient.sendrawtransaction({ hexstring: rawtx })
-            Logger.info('PushTx : Pushed!')
+            const present = await this.rpcClient.getrawtransaction({ txid: txid, verbose: false })
+            if (present) {
+                Logger.info('PushTx : Transaction already in mempool/blockchain')
+                return txid
+            }
+        } catch {
+            // continue
+        }
+
+        // At this point, the raw hex parses as a legitimate transaction.
+        try {
+            let processLocalPush = true
+            // Attempt to send via PandoTx (Soroban)
+            if ((keys.pandoTx?.push === 'active') && !forceLocalPush) {
+                try {
+                    txid = await this.pandoTxEmitter.emit(rawtx)
+                    Logger.info('PandoTx : Pushed!')
+                    processLocalPush = false
+                } catch (error) {
+                    Logger.error(error.message ?? error, 'PandoTx : ')
+                    if (keys.pandoTx?.fallbackMode === 'secure') {
+                        processLocalPush = false
+                    }
+                }
+            }
+            // Attempt to send via RPC to the bitcoind instance
+            if (processLocalPush) {
+                txid = await this.rpcClient.sendrawtransaction({ hexstring: rawtx })
+                Logger.info('PushTx : Pushed!')
+            }
             // Update the stats
             status.updateStats(value)
             // Notify the tracker

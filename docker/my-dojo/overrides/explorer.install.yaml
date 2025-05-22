@@ -1,6 +1,7 @@
 services:
   explorer:
     image: "samouraiwallet/dojo-explorer:${DOJO_EXPLORER_VERSION_TAG}"
+    pull_policy: never
     container_name: explorer
     build:
       context: ./explorer

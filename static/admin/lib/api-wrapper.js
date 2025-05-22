@@ -58,6 +58,55 @@ const lib_api = {
     },
 
     /**
+     * Get API keys
+     * @returns {Promise<{ apikeyID: number, label: string, apikey: string, active: boolean, createdAt: string, expiresAt: string }[]>}
+     */
+    getApiKeys: () => {
+        let prefix = conf.prefixes.support
+        let uri = `${lib_api.baseUri}/${prefix}/apikeys`
+        return lib_api.sendGetUriEncoded(uri)
+    },
+
+    /**
+     * Create a new API key
+     * @param {object} args
+     * @param {string} args.label
+     * @param {Date} args.expiresAt
+     * @returns {Promise<any | never>}
+     */
+    createApiKey: (args) => {
+        let prefix = conf.prefixes.support
+        let uri = `${lib_api.baseUri}/${prefix}/apikey`
+        return lib_api.sendPostJson(uri, args)
+    },
+
+    /**
+     * Update an API key
+     * @param {string} key
+     * @param {object} args
+     * @param {string} args.label
+     * @param {Date} args.expiresAt
+     * @param {boolean} args.active
+     * @returns {Promise<any | never>}
+     */
+    updateApiKey: (key, args) => {
+        let prefix = conf.prefixes.support
+        let uri = `${lib_api.baseUri}/${prefix}/apikey/${key}`
+        return lib_api.sendPatchJson(uri, args)
+    },
+
+    /**
+     * Delete an API key
+     * @param {string} key
+     * @returns {Promise<any | never>}
+     */
+    deleteApiKey: (key) => {
+        let prefix = conf.prefixes.support
+        let uri = `${lib_api.baseUri}/${prefix}/apikey/${key}`
+        return lib_api.sendDelete(uri)
+    },
+
+    /**
      * PushTx Status
      */
     getPushtxStatus: () => {
@@ -187,7 +236,6 @@ const lib_api = {
     getBlocksRescan: (fromHeight, toHeight) => {
         let prefix = conf.prefixes.support
         let uri = `${lib_api.baseUri}/tracker/${prefix}/rescan`
-        //let uri = 'http://127.0.0.1:8082/' + prefix + '/rescan'
         return lib_api.sendGetUriEncoded(
             uri,
             {
@@ -201,40 +249,75 @@ const lib_api = {
      * HTTP requests methods
      */
     sendGetUriEncoded: async (uri, data = {}) => {
-        data.at = lib_auth.getAccessToken()
+        const accessToken = lib_auth.getAccessToken()
 
         const searchParams = new URLSearchParams(data).toString()
 
-        const response = await fetch(`${uri}?${searchParams}`, { method: 'GET' })
+        const response = await fetch(`${uri}?${searchParams}`, { method: 'GET', headers: { Authorization: `Bearer ${accessToken}` } })
 
         return response.ok ? Promise.resolve(await response.json()) : Promise.reject(await response.json())
     },
 
     sendPostUriEncoded: async (uri, data) => {
-        data.at = lib_auth.getAccessToken()
+        const accessToken = lib_auth.getAccessToken()
 
         const bodyData = new URLSearchParams(data).toString()
 
-        const response = await fetch(uri, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' }, body: bodyData })
+        const response = await fetch(uri, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Authorization: `Bearer ${accessToken}`
+            },
+            body: bodyData
+        })
 
         return response.ok ? Promise.resolve(await response.json()) : Promise.reject(await response.json())
     },
 
-    sendGetJson: async (uri, data) => {
-        data.at = lib_auth.getAccessToken()
+    sendGetJson: async (uri) => {
+        const accessToken = lib_auth.getAccessToken()
 
-        const searchParams = new URLSearchParams(data).toString()
-
-        const response = await fetch(`${uri}?${searchParams}`, { method: 'GET' })
+        const response = await fetch(uri, { method: 'GET', headers: { Authorization: `Bearer ${accessToken}` } })
 
         return response.ok ? Promise.resolve(await response.json()) : Promise.reject(await response.json())
     },
 
 
     sendPostJson: async (uri, data) => {
-        data.at = lib_auth.getAccessToken()
+        const accessToken = lib_auth.getAccessToken()
 
-        const response = await fetch(uri, { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(data) })
+        const response = await fetch(uri, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(data)
+        })
+
+        return response.ok ? Promise.resolve(await response.json()) : Promise.reject(await response.json())
+    },
+
+    sendPatchJson: async (uri, data) => {
+        const accessToken = lib_auth.getAccessToken()
+
+        const response = await fetch(uri, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(data)
+        })
+
+        return response.ok ? Promise.resolve(await response.json()) : Promise.reject(await response.json())
+    },
+
+    sendDelete: async (uri) => {
+        const accessToken = lib_auth.getAccessToken()
+
+        const response = await fetch(uri, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } })
 
         return response.ok ? Promise.resolve(await response.json()) : Promise.reject(await response.json())
     }

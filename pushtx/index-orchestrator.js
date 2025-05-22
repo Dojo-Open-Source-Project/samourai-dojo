@@ -6,6 +6,7 @@
 import Logger from '../lib/logger.js'
 import db from '../lib/db/mysql-db-wrapper.js'
 import { waitForBitcoindRpcApi } from '../lib/bitcoind-rpc/rpc-client.js'
+import sorobanUtil from '../lib/soroban/util.js'
 import network from '../lib/bitcoin/network.js'
 import keysFile from '../keys/index.js'
 import Orchestrator from './orchestrator.js'
@@ -24,6 +25,12 @@ try {
     // being ready to process requests
     await waitForBitcoindRpcApi()
 
+    if (keys.pandoTx?.push === 'active') {
+        // Wait for Soroban RPC API
+        // being ready to process requests
+        await sorobanUtil.waitForSorobanRpcApi()
+    }
+
     // Initialize the db wrapper
     const dbConfig = {
         connectionLimit: keys.db.connectionLimitPushTxOrchestrator,
@@ -40,17 +47,21 @@ try {
     pushTxProcessor.initNotifications({
         uriSocket: `tcp://127.0.0.1:${keys.ports.orchestrator}`
     })
+    pushTxProcessor.start()
 
     // Initialize and start the orchestrator
     const orchestrator = new Orchestrator()
-    orchestrator.start()
+    await orchestrator.start()
 
     // Signal that the process is ready
     process.send('ready')
 
     const exit = async () => {
-        orchestrator.stop()
-        await db.disconnect()
+        await Promise.all([
+            pushTxProcessor.stop(),
+            orchestrator.stop(),
+            db.disconnect()
+        ])
         process.exit(0)
     }
 

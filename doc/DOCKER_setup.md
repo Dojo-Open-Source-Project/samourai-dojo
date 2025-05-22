@@ -83,13 +83,14 @@ MyDojo is a set of Docker containers providing a full Samourai backend composed 
 
 ## Configuration files ##
 
-Each new release of Dojo is packaged with 7 template files stored in the `<dojo_dir>/docker/my-dojo/conf` directory:
+Each new release of Dojo is packaged with 8 template files stored in the `<dojo_dir>/docker/my-dojo/conf` directory:
 - docker-common.conf.tpl
 - docker-bitcoin.conf.tpl
 - docker-explorer.conf.tpl
 - docker-indexer.conf.tpl
 - docker-mysql.conf.tpl
 - docker-node.conf.tpl
+- docker-soroban.conf.tpl
 - docker-tor.conf.tpl
 
 These template files define default values for configuration options of your Dojo.
@@ -109,13 +110,15 @@ Most options provided in the configuration files can be later modified. New valu
 
 ## First-time Setup ##
 
-For Ubuntu 16, see this detailed [installation and upgrade guide](./DOCKER_ubuntu_setup.MD).
+For Ubuntu 16, see this detailed [installation and upgrade guide](./DOCKER_ubuntu_setup.md).
 
 For MacOS, see this detailed [installation guide](./DOCKER_mac_setup.MD).
 
 For Synology, see this detailed [installation guide](./DOCKER_synology_setup.md).
 
-For Raspberry Pi4 and Odroid N2, see the [Ronin Dojo Project](https://wiki.ronindojo.io/en/home)
+For Raspberry Pi4 and Odroid N2, see the [Ronin Dojo Project](https://wiki.ronindojo.io/en/home).
+
+To copy blockchain or Fulcrum data from an existing node, see [Copying data from an existing node](./DOCKER_data_exiting_node.md).
 
 
 This procedure allows to install a new Dojo from scratch.
@@ -156,6 +159,10 @@ This procedure allows to install a new Dojo from scratch.
   * Edit docker-explorer.conf.tpl and provide a new value for the following parameter:
       * If you want to deactivate the block explorer, set the value of `EXPLORER_INSTALL` to `off`.
     See this [section](#explorer) for more details about the block explorer.
+
+  * Edit docker-soroban.conf.tpl and provide a new value for the following parameters:
+      * If you want to deactivate the Soroban instance, set the value of `SOROBAN_INSTALL` to `off`.
+      * If you want to allow others users to access the Soroban network through your Soroban instance (through a dedicated onion address), set the value of `SOROBAN_ANNOUNCE` to `on`.
 
 * Dojo provides a few additional settings for advanced setups:
   * installation of an address indexer used for fast imports and rescans,
@@ -258,6 +265,7 @@ Available commands:
                                   dojo.sh logs indexer        : display the logs of the internal indexer
                                   dojo.sh logs nodejs         : display the logs of NodeJS modules (API, Tracker, PushTx API, Orchestrator)
                                   dojo.sh logs explorer       : display the logs of the Explorer
+                                  dojo.sh logs soroban        : display the logs of the Soroban instance
 
                                 Available options:
                                   -n [VALUE]                  : display the last VALUE lines

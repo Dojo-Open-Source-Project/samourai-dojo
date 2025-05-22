@@ -1,16 +1,18 @@
 # Get Transaction
 
-Request details about a single Bitcoin transaction. Pass `?fees=1` to scan the previous outputs and compute the fees paid in this transaction.
+Request details about a single Bitcoin transaction. Pass `?fees=1` to scan the previous outputs and compute the fees paid in this transaction. Pass `?rawHex=1` to return the raw transaction hex.
 
 
 ```http request
 GET /tx/:txid
 GET /tx/:txid?fees=1
+GET /tx/:txid?rawHex=1
 ```
 
 ## Parameters
 * **txid** - `string` - The transaction ID
 * **fees** - `string` - (optional) Scan previous outputs to compute fees
+* **rawHex** - `string` - (optional) Return the raw transaction hex
 * **at** - `string` (optional) - Access Token (json web token). Required if authentication is activated. Alternatively, the access token can be passed through the `Authorization` HTTP header (with the `Bearer` scheme).
 
 ### Examples
@@ -18,6 +20,7 @@ GET /tx/:txid?fees=1
 ```http request
 GET /tx/abcdef
 GET /tx/abcdef?fees=1
+GET /tx/abcdef?rawHex=1
 ```
 
 #### Success
@@ -29,6 +32,8 @@ Status code 200 with JSON response:
   "vsize": 125,
   "version": 1,
   "locktime": 0,
+  "created": 1400000000,
+  "confirmations": 5,
   "block": {
     "height": 100000,
     "hash": "abcdef",
@@ -115,8 +120,16 @@ Additional fields with `?fees=1`:
 }
 ```
 
+Additional field with `?rawHex=1`:
+```json
+{
+  "hex": "rawTransactionInHexFormat"
+}
+```
+
 **Notes**
 * `block` details will be missing for unconfirmed transactions
+* `created` and `confirmations` will be missing for unconfirmed transactions
 * Input `sig` is the raw hex, not ASM of script signature
 * `feerate` has units of Satoshi/byte
 * `vsize` and `vfeerate` are the virtual size and virtual fee rate and are different than `size` and `feerate` for SegWit transactions

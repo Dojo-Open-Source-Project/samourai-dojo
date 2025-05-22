@@ -24,6 +24,12 @@ else
   source ./conf/docker-indexer.conf.tpl
 fi
 
+if [ -f ./conf/docker-soroban.conf ]; then
+  source ./conf/docker-soroban.conf
+else
+  source ./conf/docker-soroban.conf.tpl
+fi
+
 
 source ./conf/docker-bitcoind.conf
 
@@ -42,15 +48,6 @@ get_confirmation() {
 
 # Update configuration files from templates
 update_config_files() {
-  # Initialize db scripts
-  if [ -f ../../db-scripts/1_db.sql ]; then
-    rm ../../db-scripts/1_db.sql
-    echo "Deleted 1_db.sql"
-  fi
-
-  cp ../../db-scripts/2_update.sql.tpl ../../db-scripts/2_update.sql
-  echo "Initialized 2_update.sql"
-
   # Initialize config files for MyDojo
   update_config_file ./conf/docker-common.conf ./conf/docker-common.conf.tpl
   echo "Initialized docker-common.conf"
@@ -72,6 +69,9 @@ update_config_files() {
 
   update_config_file ./conf/docker-indexer.conf ./conf/docker-indexer.conf.tpl
   echo "Initialized docker-indexer.conf"
+
+  update_config_file ./conf/docker-soroban.conf ./conf/docker-soroban.conf.tpl
+  echo "Initialized docker-soroban.conf"
 
   # Initialize config files for nginx and the maintenance tool
   if [ "$EXPLORER_INSTALL" == "on" ]; then
@@ -128,6 +128,7 @@ update_config_file() {
 
 # Update dojo database
 update_dojo_db() {
+  echo "Updating dojo database..."
   docker exec -d db /update-db.sh
 }
 
@@ -195,7 +196,7 @@ post_start_cleanup() {
 
   # Remove debug.log from bitcoind volume
   if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
-    docker exec -i bitcoind rm /home/bitcoin/.bitcoin/testnet3/debug.log
+    docker exec -i bitcoind rm /home/bitcoin/.bitcoin/testnet4/debug.log
   else
     docker exec -i bitcoind rm /home/bitcoin/.bitcoin/debug.log
   fi

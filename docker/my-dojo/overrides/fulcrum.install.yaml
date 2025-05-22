@@ -1,6 +1,7 @@
 services:
   fulcrum:
     image: "samouraiwallet/dojo-fulcrum:${DOJO_FULCRUM_VERSION_TAG}"
+    pull_policy: never
     container_name: fulcrum
     build:
       context: ./fulcrum
@@ -24,10 +25,13 @@ services:
     stop_grace_period: 1m
     depends_on:
       - tor
-      - node
     networks:
       dojonet:
         ipv4_address: ${NET_DOJO_INDEXER_IPV4}
+
+  node:
+    depends_on:
+      - fulcrum
 
 volumes:
   data-fulcrum:

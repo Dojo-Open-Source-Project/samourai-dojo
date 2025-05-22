@@ -30,6 +30,12 @@ else
   source ./conf/docker-indexer.conf.tpl
 fi
 
+if [ -f ./conf/docker-soroban.conf ]; then
+  source ./conf/docker-soroban.conf
+else
+  source ./conf/docker-soroban.conf.tpl
+fi
+
 
 # Confirm installation
 get_confirmation() {
@@ -58,15 +64,6 @@ get_confirmation_reinstall() {
 
 # Initialize configuration files from templates
 init_config_files() {
-  # Initialize db scripts
-  cp ../../db-scripts/1_db.sql.tpl ../../db-scripts/1_db.sql
-  echo "Initialized 1_db.sql"
-
-  if [ -f ../../db-scripts/2_update.sql ]; then
-    rm ../../db-scripts/2_update.sql
-    echo "Deleted 2_update.sql"
-  fi
-
   # Initialize config files for MyDojo
   cp ./conf/docker-common.conf.tpl ./conf/docker-common.conf
   echo "Initialized docker-common.conf"
@@ -88,6 +85,9 @@ init_config_files() {
 
   cp ./conf/docker-indexer.conf.tpl ./conf/docker-indexer.conf
   echo "Initialized docker-indexer.conf"
+
+  cp ./conf/docker-soroban.conf.tpl ./conf/docker-soroban.conf
+  echo "Initialized docker-soroban.conf"
 
   if [ "$EXPLORER_INSTALL" == "on" ]; then
     cp ./nginx/explorer.conf ./nginx/dojo-explorer.conf

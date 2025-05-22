@@ -33,7 +33,6 @@ bitcoind_options=(
   -txindex=1
   -zmqpubhashblock=tcp://0.0.0.0:9502
   -zmqpubrawtx=tcp://0.0.0.0:9501
-  -mempoolfullrbf=0
 )
 
 if [ "$BITCOIND_PERSIST_MEMPOOL" == "on" ]; then
@@ -42,7 +41,7 @@ fi
 
 if [ "$BITCOIND_LISTEN_MODE" == "on" ]; then
   bitcoind_options+=(-listen=1)
-  bitcoind_options+=(-bind="$NET_DOJO_BITCOIND_IPV4")
+  bitcoind_options+=(-bind="$NET_DOJO_BITCOIND_IPV4:8334=onion")
   bitcoind_options+=(-externalip=$(cat /var/lib/tor/hsv3bitcoind/hostname))
 fi
 
@@ -55,13 +54,24 @@ if [ "$BITCOIND_BLOOM_FILTERS" == "on" ]; then
   bitcoind_options+=(-peerbloomfilters=1)
 fi
 
+if [ -n "$BITCOIND_BLOCKS_DIR" ]; then
+  bitcoind_options+=(-blocksdir="/home/bitcoin/blocks")
+fi
+
 if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
   bitcoind_options+=(-testnet4)
 fi
 
-if [ "$BITCOIND_CRON_JOBS" == "on" ]; then
-  declare -p | grep -E 'NET_DOJO_BITCOIND_IPV4|BITCOIND_RPC_PORT|BITCOIND_RPC_USER|BITCOIND_RPC_PASSWORD' > "$HOME/container.env"
-  service cron start
+if [ "$BITCOIND_BAN_KNOTS" == "on" ]; then
+    echo "Starting ban script background process"
+    (
+      sleep 600; # wait 10 minutes
+      while true; do
+        /ban-knots.sh
+        sleep 600  # Run every 10 minutes
+      done
+    ) &
+
 fi
 
 exec bitcoind "${bitcoind_options[@]}"

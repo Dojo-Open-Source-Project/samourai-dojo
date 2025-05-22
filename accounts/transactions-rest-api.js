@@ -54,6 +54,12 @@ class TransactionsRestApi {
             this.validateArgsGetTransactions.bind(this),
             this.getTransactions.bind(this),
         )
+
+        this.httpServer.app.get(
+            'txout/:txid/:index',
+            authMgr.checkAuthentication.bind(authMgr),
+            this.getTxOut.bind(this),
+        )
     }
 
     /**
@@ -63,7 +69,7 @@ class TransactionsRestApi {
      */
     async getTransaction(req, res) {
         try {
-            const tx = await rpcTxns.getTransaction(req.params.txid, req.query.fees)
+            const tx = await rpcTxns.getTransaction(req.params.txid, {fees: req.query.fees, rawHex: req.query.rawHex})
             const returnValue = JSON.stringify(tx, null, 2)
             HttpServer.sendRawData(res, returnValue)
         } catch (error) {
@@ -128,6 +134,31 @@ class TransactionsRestApi {
         ${req.query.count || ''}`
 
             debugApi && Logger.info(`API : Completed GET /txs ${stringParameters}`)
+        }
+    }
+
+    /**
+     * Retrieve a utxo for a given txid and index
+     * @param {object} req - http request object
+     * @param {object} res - http response object
+     */
+    async getTxOut(req, res) {
+        if (!req.params.txid || !req.params.index) {
+            return HttpServer.sendError(res, errors.params.INVALID)
+        }
+
+        const index = Number.parseInt(req.params.index, 10)
+
+        if (Number.isNaN(index)) {
+            return HttpServer.sendError(res, errors.params.INVALID)
+        }
+
+        try {
+            const txout = await rpcTxns.rpcClient.gettxout({ txid: req.params.txid, n: index })
+
+            HttpServer.sendOkDataOnly(res, txout)
+        } catch {
+            HttpServer.sendError(res, null, 404)
         }
     }
 

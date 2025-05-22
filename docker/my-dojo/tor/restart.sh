@@ -25,7 +25,7 @@ if [ "$BITCOIND_INSTALL" == "on" ]; then
   if [ "$BITCOIND_LISTEN_MODE" == "on" ]; then
     tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3bitcoind)
     tor_options+=(--HiddenServiceVersion 3)
-    tor_options+=(--HiddenServicePort "8333 $NET_DOJO_BITCOIND_IPV4:8333")
+    tor_options+=(--HiddenServicePort "8333 $NET_DOJO_BITCOIND_IPV4:8334")
     tor_options+=(--HiddenServiceDirGroupReadable 1)
   fi
 fi
@@ -62,6 +62,13 @@ if [ "$INDEXER_INSTALL" == "on" ]; then
     tor_options+=(--HiddenServicePort "50001 $NET_DOJO_INDEXER_IPV4:50001")
     tor_options+=(--HiddenServiceDirGroupReadable 1)
   fi
+fi
+
+if [ "$SOROBAN_INSTALL" == "on" ]; then
+  tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3soroban)
+  tor_options+=(--HiddenServiceVersion 3)
+  tor_options+=(--HiddenServicePort "80 $NET_DOJO_SOROBAN_IPV4:$SOROBAN_PORT")
+  tor_options+=(--HiddenServiceDirGroupReadable 1)
 fi
 
 test -d /var/lib/tor/hsv3dojo && chmod 750 /var/lib/tor/hsv3dojo

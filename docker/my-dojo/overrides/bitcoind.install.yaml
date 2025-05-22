@@ -1,6 +1,7 @@
 services:
   bitcoind:
     image: "samouraiwallet/dojo-bitcoind:${DOJO_BITCOIND_VERSION_TAG}"
+    pull_policy: never
     container_name: bitcoind
     build:
       context: ./bitcoin
@@ -23,6 +24,7 @@ services:
     volumes:
       - data-bitcoind:/home/bitcoin/.bitcoin
       - data-tor:/var/lib/tor
+      - ${BITCOIND_BLOCKS_DIR:-/dev/null}:/home/bitcoin/blocks
     logging:
       driver: "json-file"
       options:
