@@ -19,5 +19,3 @@ if [ -f /docker-entrypoint-initdb.d/2_update.sql ]; then
   "$DBCLIENT" -h"db" -u"root" -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < /docker-entrypoint-initdb.d/2_update.sql
   echo "Updated database with 2_update.sql"
 fi
-
-mariadb-upgrade -u"root" -p"$MYSQL_ROOT_PASSWORD"
