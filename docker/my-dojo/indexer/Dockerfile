@@ -1,4 +1,4 @@
-FROM    debian:bullseye-slim AS builder
+FROM    debian:bookworm-slim AS builder
 
 ENV     INDEXER_VERSION       v0.6.0
 ENV     INDEXER_SHASUMS       addrindexrs-${INDEXER_VERSION}-binary-fingerprints.txt
@@ -34,7 +34,7 @@ RUN       set -ex && \
           sha256sum --ignore-missing --check "$INDEXER_SHASUMS" && \
           mv "$INDEXER_FILE" addrindexrs
 
-FROM    debian:bullseye-slim
+FROM    debian:bookworm-slim
 
 ENV     INDEXER_HOME        /home/indexer
 
