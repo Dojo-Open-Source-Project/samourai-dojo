@@ -2,7 +2,7 @@ services:
   db:
     image: "samouraiwallet/dojo-db:${DOJO_DB_VERSION_TAG}"
     pull_policy: never
-    container_name: db
+    container_name: dojo-db
     build:
       context: ./../..
       dockerfile: ./docker/my-dojo/mysql/Dockerfile
@@ -26,7 +26,7 @@ services:
   node:
     image: "samouraiwallet/dojo-nodejs:${DOJO_NODEJS_VERSION_TAG}"
     pull_policy: never
-    container_name: nodejs
+    container_name: dojo-nodejs
     build:
       context: ./../..
       dockerfile: ./docker/my-dojo/node/Dockerfile
@@ -64,7 +64,7 @@ services:
   nginx:
     image: "samouraiwallet/dojo-nginx:${DOJO_NGINX_VERSION_TAG}"
     pull_policy: never
-    container_name: nginx
+    container_name: dojo-nginx
     build:
       context: ./nginx
     env_file:
@@ -91,7 +91,7 @@ services:
   tor:
     image: "samouraiwallet/dojo-tor:${DOJO_TOR_VERSION_TAG}"
     pull_policy: never
-    container_name: tor
+    container_name: dojo-tor
     build:
       context: ./tor
       args:
