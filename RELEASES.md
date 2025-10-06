@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.28.0](#samourai-dojo-v1280)
 - [v1.27.0](#samourai-dojo-v1270)
 - [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
@@ -12,6 +13,26 @@
 - [v1.22.0](#samourai-dojo-v1220)
 - [v1.21.0](#samourai-dojo-v1210)
 - [v1.20.0](#samourai-dojo-v1200)
+
+## Samourai Dojo v1.27.0
+
+### Notable changes
+
+### Fulcrum v2.0.0
+This version updates Fulcrum to v2.0.0. This Fulcrum update brings more stability and better performance.
+After Dojo uograde, Fulcrum needs to migrate its database to a new format which can take a couple of hours. During this time, it won't be possible to perform a rescan or wallet import.
+
+**It is crucial** that this process is not interrupted (no Dojo shutdown/restart) because that would cause Fulcrum DB to end up corrupted.
+
+Observe progress in Fulcrum logs to identify when this process has finished.
+
+### Changelog
+- Updated dependencies [bdda4a4a](bdda4a4a)
+- Bump BTC-RPC Explorer to 3.5.1 [a30a00fa](a30a00fa)
+- Use Node.js v22 [98f3ae8a](98f3ae8a)
+- Updated base docker images to Bookworm [affd6f9a](affd6f9a)
+- Use MARIADB_AUTO_UPGRADE env variable [0d158b32](0d158b32)
+- Bump Fulcrum to v2.0.0 [8c2232ae](8c2232ae)
 
 ## Samourai Dojo v1.27.0
 
