@@ -1,4 +1,6 @@
-FROM    mariadb:11.5.2
+FROM    mariadb:11.8.2
+
+ENV     MARIADB_AUTO_UPGRADE true
 
 # Copy mysql config
 COPY    ./docker/my-dojo/mysql/mysql-dojo.cnf /etc/mysql/conf.d/mysql-dojo.cnf

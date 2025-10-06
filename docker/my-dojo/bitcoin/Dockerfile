@@ -1,4 +1,4 @@
-FROM    debian:bullseye-slim AS builder
+FROM    debian:bookworm-slim AS builder
 
 
 #################################################################
@@ -47,7 +47,7 @@ RUN     set -ex && \
         tar -xzvf "$FILE" -C /usr/local --strip-components=1 --exclude=*-qt && \
         rm -rf /tmp/*
 
-FROM    debian:bullseye-slim
+FROM    debian:bookworm-slim
 
 ENV     BITCOIN_HOME        /home/bitcoin
 
@@ -71,7 +71,7 @@ RUN     addgroup --system -gid ${BITCOIND_LINUX_GID} bitcoin && \
         usermod -a -G tor bitcoin
 
 # Create data directory
-RUN     mkdir "$BITCOIN_HOME/.bitcoin" && \
+RUN     mkdir -p "$BITCOIN_HOME/.bitcoin" && \
         chown -h bitcoin:bitcoin "$BITCOIN_HOME/.bitcoin"
 
 # Copy restart script

@@ -1,10 +1,10 @@
-FROM    node:20-alpine3.20 AS builder
+FROM    node:22-alpine3.22 AS builder
 
 ENV     NODE_ENV             production
 
 ENV     APP_DIR              /home/node/app
 
-ENV     EXPLORER_VERSION     3.4.1+SW
+ENV     EXPLORER_VERSION     3.5.1+SW
 ENV     EXPLORER_URL         https://github.com/Dojo-Open-Source-Project/btc-rpc-explorer/archive/refs/tags/v$EXPLORER_VERSION.tar.gz
 
 # Install netcat
@@ -20,7 +20,7 @@ RUN     set -ex && \
         cd "$APP_DIR" && \
         npm install --omit=dev
 
-FROM    node:20-alpine3.20
+FROM    node:22-alpine3.22
 
 ENV     NODE_ENV        production
 ENV     APP_DIR         /home/node/app

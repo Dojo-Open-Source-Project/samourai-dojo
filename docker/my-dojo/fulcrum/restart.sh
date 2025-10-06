@@ -31,6 +31,7 @@ fulcrum_options=(
   --rpcpassword "$BITCOIND_RPC_PASSWORD"
   --cert "$SSL_CERTFILE"
   --key "$SSL_KEYFILE"
+  --db-upgrade
 )
 
 cd "$INDEXER_FILES"

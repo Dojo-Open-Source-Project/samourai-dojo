@@ -1,6 +1,6 @@
-FROM    debian:bullseye-slim AS builder
+FROM    debian:bookworm-slim AS builder
 
-ENV     INDEXER_VERSION       1.12.0
+ENV     INDEXER_VERSION       2.0.0
 ENV     INDEXER_SHASUMS       Fulcrum-${INDEXER_VERSION}-shasums.txt
 ENV     INDEXER_ASC           ${INDEXER_SHASUMS}.asc
 ENV     INDEXER_URL           https://github.com/cculianu/Fulcrum/releases/download
@@ -34,7 +34,7 @@ RUN     set -ex && \
         sha256sum --ignore-missing -c $INDEXER_SHASUMS && \
         tar -xzvf ${INDEXER_FILE} -C "$INDEXER_FILES" --strip-components 1
 
-FROM    debian:bullseye-slim
+FROM    debian:bookworm-slim
 
 ENV     INDEXER_FILES         /usr/fulcrum
 ENV     INDEXER_HOME          /home/fulcrum

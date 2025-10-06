@@ -1,7 +1,7 @@
 #
 # Build torproject from source
 #
-FROM    alpine:3.20 AS torproject
+FROM    alpine:3.22 AS torproject
 
 ENV     TOR_GIT_URL     https://git.torproject.org/tor.git
 ENV     TOR_VERSION     tor-0.4.8.16
@@ -29,7 +29,7 @@ RUN     cp /stage/etc/tor/torrc.sample /stage/.torrc
 #
 # Final Tor image
 #
-FROM    alpine:3.20 AS soroban-tor
+FROM    alpine:3.22 AS soroban-tor
 
 ARG     SOROBAN_TOR_LINUX_UID
 ARG     SOROBAN_TOR_LINUX_GID
@@ -54,7 +54,7 @@ EXPOSE  9050
 #
 # Build go app
 #
-FROM    golang:1.22.8-alpine3.20 AS gobuild
+FROM    golang:1.23-alpine3.22 AS gobuild
 
 ENV     SOROBAN_VERSION         0.4.1
 ENV     SOROBAN_URL             https://github.com/Dojo-Open-Source-Project/soroban/archive/refs/tags/v$SOROBAN_VERSION.tar.gz
