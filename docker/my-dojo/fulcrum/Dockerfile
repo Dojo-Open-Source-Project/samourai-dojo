@@ -38,8 +38,8 @@ FROM    debian:bookworm-slim
 
 ENV     INDEXER_FILES         /usr/fulcrum
 ENV     INDEXER_HOME          /home/fulcrum
-ENV     SSL_CERTFILE          ${INDEXER_HOME}/fulcrum.crt
-ENV     SSL_KEYFILE           ${INDEXER_HOME}/fulcrum.key
+ENV     SSL_CERTFILE          ${INDEXER_HOME}/.fulcrum/fulcrum.crt
+ENV     SSL_KEYFILE           ${INDEXER_HOME}/.fulcrum/fulcrum.key
 
 ARG     FULCRUM_LINUX_GID
 ARG     FULCRUM_LINUX_UID
