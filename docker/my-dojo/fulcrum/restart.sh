@@ -1,27 +1,56 @@
 #!/bin/bash
 set -e
 
-# Function to check if certificate exists and is valid
+# Constants
+CERT_EXPIRY_DAYS=365
+RSA_KEY_SIZE=4096
+CERT_SUBJECT="/O=Fulcrum/CN=fulcrum-server/C=US"
+
+# Checks if certificate files exist in the filesystem
+cert_files_exist() {
+  [ -e "$SSL_CERTFILE" ] && [ -e "$SSL_KEYFILE" ]
+}
+
+# Validates if the certificate has not expired
+is_cert_not_expired() {
+  openssl x509 -checkend 0 -noout -in "$SSL_CERTFILE" >/dev/null 2>&1
+}
+
+# Removes invalid or expired certificate files
+remove_cert_files() {
+  rm -f "$SSL_CERTFILE" "$SSL_KEYFILE"
+}
+
+# Generates a new self-signed SSL certificate
+generate_new_certificate() {
+  openssl req \
+    -newkey "rsa:$RSA_KEY_SIZE" \
+    -sha256 \
+    -nodes \
+    -x509 \
+    -days "$CERT_EXPIRY_DAYS" \
+    -subj "$CERT_SUBJECT" \
+    -keyout "$SSL_KEYFILE" \
+    -out "$SSL_CERTFILE"
+}
+
+# Checks if certificate exists and is valid
 check_cert_validity() {
-  # Check if files exist
-  if [ ! -e "$SSL_CERTFILE" ] || [ ! -e "$SSL_KEYFILE" ]; then
+  if ! cert_files_exist; then
     return 1
   fi
 
-  # Check if certificate is expired
-  if openssl x509 -checkend 0 -noout -in "$SSL_CERTFILE" > /dev/null 2>&1; then
-    # Certificate is still valid
+  if is_cert_not_expired; then
     return 0
   else
-    # Certificate is expired
-    rm -f "$SSL_CERTFILE" "$SSL_KEYFILE"
+    remove_cert_files
     return 1
   fi
 }
 
-
+# Main execution
 if ! check_cert_validity; then
-  openssl req -newkey rsa:4096 -sha256 -nodes -x509 -days 365 -subj "/O=Fulcrum/CN=fulcrum-server/C=US" -keyout "$SSL_KEYFILE" -out "$SSL_CERTFILE"
+  generate_new_certificate
 fi
 
 fulcrum_options=(
