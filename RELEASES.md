@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.28.1](#samourai-dojo-v1281)
 - [v1.28.0](#samourai-dojo-v1280)
 - [v1.27.0](#samourai-dojo-v1270)
 - [v1.26.1](#samourai-dojo-v1261)
@@ -14,7 +15,12 @@
 - [v1.21.0](#samourai-dojo-v1210)
 - [v1.20.0](#samourai-dojo-v1200)
 
-## Samourai Dojo v1.27.0
+## Samourai Dojo v1.28.1
+
+### Changelog
+- Fixed SSL file handling in Fulcrum container [14c01d70](14c01d70)
+
+## Samourai Dojo v1.28.0
 
 ### Notable changes
 
