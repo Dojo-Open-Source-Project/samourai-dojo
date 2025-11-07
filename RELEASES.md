@@ -3,17 +3,19 @@
 
 ## Releases ##
 
+- [v1.28.2](#samourai-dojo-v1282)
 - [v1.28.1](#samourai-dojo-v1281)
 - [v1.28.0](#samourai-dojo-v1280)
 - [v1.27.0](#samourai-dojo-v1270)
 - [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
-- [v1.24.1](#samourai-dojo-v1241)
-- [v1.23.0](#samourai-dojo-v1230)
-- [v1.22.0](#samourai-dojo-v1220)
-- [v1.21.0](#samourai-dojo-v1210)
-- [v1.20.0](#samourai-dojo-v1200)
+
+## Samourai Dojo v1.28.2
+
+### Changelog
+- Bump Soroban to v0.4.2 (fix bandwidth issue) [177d133d](177d133d)
+- Updated @samouraiwallet/one-dollar-fee-estimator (support for subsat feerates) [94e00118](94e00118)
 
 ## Samourai Dojo v1.28.1
 
