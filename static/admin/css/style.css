@@ -599,6 +599,8 @@ button {
   padding: 10px;
   background-color: #fff;
   margin: auto;
+  border-radius: 4px;
+  border: none;
 }
 
 /* PAGES - BLOCKS RESCAN */
