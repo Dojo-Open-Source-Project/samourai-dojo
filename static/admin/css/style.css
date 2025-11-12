@@ -489,9 +489,9 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 50px;
-  height: 50px;
-  padding: 10px;
+  width: 70px;
+  height: 70px;
+  padding: 12px;
   border-radius: 4px;
   transform: translate(-50%, -50%);
   background-color: #313436;
@@ -499,6 +499,7 @@ button {
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
+  border: none;
 }
 
 #login-page .signin-box {
@@ -528,9 +529,20 @@ button {
 
 /* Mobile responsive styles */
 @media (max-width: 768px) {
+  #login-page {
+    padding: 50px 15px;
+  }
+
+  #login-page #welcome-msg h1 {
+    font-size: 18px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
   #login-page .signin-box {
     flex-direction: column;
-    padding: 0.5rem;
+    padding: 1.5rem;
+    max-width: 100%;
   }
 
   #login-page .signin {
@@ -558,6 +570,13 @@ button {
 
   #login-page #welcome-msg {
     margin-bottom: 30px;
+    padding: 0 15px;
+  }
+
+  #qr-pairing {
+    width: 256px;
+    height: 256px;
+    max-width: 100%;
   }
 
   .col-xs-8 {
