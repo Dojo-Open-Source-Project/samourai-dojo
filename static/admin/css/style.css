@@ -299,7 +299,7 @@ td.table-value {
 /* PAGES - COMMONS */
 body.dmt {
   min-height: 100vh;
-  background-image: url("../icons/samourai-logo.png");
+  background-image: url("../icons/dojo.png");
   background-repeat: no-repeat;
   background-position: center;
 }
@@ -495,7 +495,7 @@ button {
   border-radius: 4px;
   transform: translate(-50%, -50%);
   background-color: #d0011c;
-  background-image: url('../icons/samourai-logo.png');
+  background-image: url('../icons/dojo.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
