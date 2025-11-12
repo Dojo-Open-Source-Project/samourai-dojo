@@ -494,7 +494,7 @@ button {
   padding: 10px;
   border-radius: 4px;
   transform: translate(-50%, -50%);
-  background-color: #d0011c;
+  background-color: #313436;
   background-image: url('../icons/dojo.png');
   background-position: center;
   background-repeat: no-repeat;
@@ -885,4 +885,3 @@ button {
 .spacer80 { height: 80px; width: 100%; font-size: 0; margin: 0; padding: 0; border: 0; display: block; }
 .spacer90 { height: 90px; width: 100%; font-size: 0; margin: 0; padding: 0; border: 0; display: block; }
 .spacer110 { height: 110px; width: 100%; font-size: 0; margin: 0; padding: 0; border: 0; display: block; }
-
