@@ -526,6 +526,51 @@ button {
   padding: 2rem;
 }
 
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  #login-page .signin-box {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+
+  #login-page .signin {
+    padding: 1rem;
+    padding-right: 1rem;
+    width: 100%;
+  }
+
+  #login-page .signin.with-auth47 {
+    padding-right: 1rem;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  #login-page .auth47-box.active {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  #login-page input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  #login-page #welcome-msg {
+    margin-bottom: 30px;
+  }
+
+  .col-xs-8 {
+    width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .col-xs-2 {
+    display: none;
+  }
+}
+
 /* PAGES - STATUS */
 #tor-status-ind,
 #nginx-status-ind,
