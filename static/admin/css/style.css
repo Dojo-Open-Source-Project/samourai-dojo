@@ -609,7 +609,10 @@ button {
 }
 
 #qr-container {
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 #qr-pairing {
