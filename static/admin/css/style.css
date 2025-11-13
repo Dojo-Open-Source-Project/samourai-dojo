@@ -623,6 +623,7 @@ button {
   margin: auto;
   border-radius: 4px;
   border: none;
+  text-align: center;
 }
 
 /* PAGES - BLOCKS RESCAN */
