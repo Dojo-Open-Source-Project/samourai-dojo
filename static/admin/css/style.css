@@ -515,7 +515,7 @@ button {
 @media (max-width: 991px) {
   /* Show hamburger menu button */
   .mobile-menu-btn {
-    display: flex;
+    display: flex !important;
   }
 
   /* Hide background mascot graphics on mobile/tablet */
@@ -560,6 +560,11 @@ button {
 }
 
 @media (max-width: 768px) {
+  /* Ensure hamburger stays visible */
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+
   #header .title h1 {
     font-size: 14px;
   }
@@ -570,7 +575,9 @@ button {
 }
 
 @media (max-width: 480px) {
+  /* Ensure hamburger stays visible */
   .mobile-menu-btn {
+    display: flex !important;
     width: 25px;
     height: 20px;
   }
