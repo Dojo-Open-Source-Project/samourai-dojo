@@ -458,6 +458,137 @@ button {
   vertical-align: middle;
 }
 
+/* MOBILE MENU BUTTON */
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 30px;
+  height: 25px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1001;
+}
+
+.mobile-menu-btn span {
+  width: 30px;
+  height: 3px;
+  background: #e0e0e3;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.mobile-menu-btn.active span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.mobile-menu-btn.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-btn.active span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* MOBILE MENU OVERLAY */
+.mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-menu-overlay.active {
+  opacity: 1;
+}
+
+/* MOBILE RESPONSIVE STYLES */
+@media (max-width: 991px) {
+  /* Show hamburger menu button */
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  /* Hide background mascot graphics on mobile/tablet */
+  body.dmt {
+    background-image: none;
+  }
+
+  /* Mobile menu sidebar */
+  #menu {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 280px;
+    height: 100vh;
+    background: #1a1d1f;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: left 0.3s ease;
+    padding: 20px 15px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  }
+
+  #menu.active {
+    left: 0;
+  }
+
+  /* Adjust main content area */
+  #body #main {
+    width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  /* Adjust header title */
+  #header .title h1 {
+    font-size: 16px;
+  }
+
+  #header .title span {
+    display: inline;
+  }
+}
+
+@media (max-width: 768px) {
+  #header .title h1 {
+    font-size: 14px;
+  }
+
+  #header .title h1 span:first-child {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-menu-btn {
+    width: 25px;
+    height: 20px;
+  }
+
+  .mobile-menu-btn span {
+    width: 25px;
+    height: 2px;
+  }
+
+  #header .title h1 {
+    font-size: 12px;
+  }
+
+  #menu {
+    width: 250px;
+  }
+}
+
 /* PAGES - HOME */
 #login-page {
   padding: 100px 0;
