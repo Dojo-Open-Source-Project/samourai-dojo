@@ -626,6 +626,10 @@ button {
   text-align: center;
 }
 
+#qr-auth47 {
+  text-align: center;
+}
+
 /* PAGES - BLOCKS RESCAN */
 #blocks-rescan-form span {
   display: inline;
