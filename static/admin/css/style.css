@@ -722,9 +722,16 @@ button {
     padding-left: 15px;
     padding-right: 15px;
   }
+}
 
-  .col-xs-2 {
-    display: none;
+@media (max-width: 553px) {
+  
+  .two-columns-left {
+    width: 100%;
+  }
+  
+  .two-columns-right {
+    width: 100%;
   }
 }
 
