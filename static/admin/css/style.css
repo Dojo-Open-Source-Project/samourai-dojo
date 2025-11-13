@@ -489,16 +489,17 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 50px;
-  height: 50px;
-  padding: 10px;
+  width: 70px;
+  height: 70px;
+  padding: 12px;
   border-radius: 4px;
   transform: translate(-50%, -50%);
-  background-color: #d0011c;
+  background-color: #313436;
   background-image: url('../icons/dojo.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
+  border: none;
 }
 
 #login-page .signin-box {
@@ -526,6 +527,69 @@ button {
   padding: 2rem;
 }
 
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  #login-page {
+    padding: 50px 15px;
+  }
+
+  #login-page #welcome-msg h1 {
+    font-size: 18px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  #login-page .signin-box {
+    flex-direction: column;
+    padding: 1.5rem;
+    max-width: 100%;
+  }
+
+  #login-page .signin {
+    padding: 1rem;
+    padding-right: 1rem;
+    width: 100%;
+  }
+
+  #login-page .signin.with-auth47 {
+    padding-right: 1rem;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  #login-page .auth47-box.active {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  #login-page input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  #login-page #welcome-msg {
+    margin-bottom: 30px;
+    padding: 0 15px;
+  }
+
+  #qr-pairing {
+    width: 256px;
+    height: 256px;
+    max-width: 100%;
+  }
+
+  .col-xs-8 {
+    width: 100%;
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .col-xs-2 {
+    display: none;
+  }
+}
+
 /* PAGES - STATUS */
 #tor-status-ind,
 #nginx-status-ind,
@@ -545,7 +609,10 @@ button {
 }
 
 #qr-container {
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 #qr-pairing {
@@ -554,6 +621,13 @@ button {
   padding: 10px;
   background-color: #fff;
   margin: auto;
+  border-radius: 4px;
+  border: none;
+  text-align: center;
+}
+
+#qr-auth47 {
+  text-align: center;
 }
 
 /* PAGES - BLOCKS RESCAN */
@@ -885,4 +959,3 @@ button {
 .spacer80 { height: 80px; width: 100%; font-size: 0; margin: 0; padding: 0; border: 0; display: block; }
 .spacer90 { height: 90px; width: 100%; font-size: 0; margin: 0; padding: 0; border: 0; display: block; }
 .spacer110 { height: 110px; width: 100%; font-size: 0; margin: 0; padding: 0; border: 0; display: block; }
-
