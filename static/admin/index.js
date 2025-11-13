@@ -92,7 +92,7 @@ function initAuth47() {
 
                 // Fallback to dojo logo if PayNym avatar fails to load
                 avatarImg.onerror = function () {
-                    this.style.display = 'none'
+                    avatarImg.style.display = 'none'
                     qrLogoElement.style.backgroundImage = 'url(icons/dojo.png)'
                 }
 
