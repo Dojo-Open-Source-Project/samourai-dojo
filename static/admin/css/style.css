@@ -733,6 +733,26 @@ button {
   .two-columns-right {
     width: 100%;
   }
+
+  .col-xs-2 {
+    width: 16%;
+  }
+
+  .col-xs-7 {
+    width: 68%;
+  }
+
+  .col-xs-3.login-box {
+    width: 16%;
+  }
+  
+}
+
+@media (max-width: 428px) {
+  
+  .title {
+    padding-top: 20px;
+  } 
 }
 
 /* PAGES - STATUS */
