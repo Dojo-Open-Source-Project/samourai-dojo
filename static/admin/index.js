@@ -72,14 +72,42 @@ function auth47Status(nonce) {
 function initAuth47() {
     lib_api.getAuth47Uri()
         .then((response) => {
-            const { nonce, uri } = response.data
+            const { nonce, uri, paymentCode } = response.data
 
             document.querySelector('#qr-auth47').innerHTML = new QRCode({ content: uri, join: true, height: 256, width: 256 }).svg()
             const qrLogoElement = document.createElement('div')
             qrLogoElement.className = 'qr-logo'
+
+            // Use PayNym avatar if payment code is available, otherwise use dojo logo
+            if (paymentCode) {
+                // Generate PayNym avatar URL
+                const paynymAvatarUrl = `http://paynym25chftmsywv4v2r67agbrr62lcxagsf4tymbzpeeucucy2ivad.onion/${paymentCode}/avatar`
+                const avatarImg = document.createElement('img')
+                avatarImg.src = paynymAvatarUrl
+                avatarImg.alt = 'PayNym Avatar'
+                avatarImg.style.width = '100%'
+                avatarImg.style.height = '100%'
+                avatarImg.style.objectFit = 'cover'
+                avatarImg.style.borderRadius = '4px'
+
+                // Fallback to dojo logo if PayNym avatar fails to load
+                avatarImg.onerror = function () {
+                    avatarImg.style.display = 'none'
+                    qrLogoElement.style.backgroundImage = 'url(icons/dojo.png)'
+                }
+
+                // Clear any background image and add the avatar
+                qrLogoElement.style.backgroundImage = 'none'
+                qrLogoElement.appendChild(avatarImg)
+            } else {
+                // Use default dojo logo
+                qrLogoElement.style.backgroundImage = 'url(icons/dojo.png)'
+            }
+
             document.querySelector('#qr-auth47').append(qrLogoElement)
             document.querySelector('#signin').classList.add('with-auth47')
             document.querySelector('#qr-auth47').classList.add('active')
+            
             return nonce
         })
         .then((nonce) => {
