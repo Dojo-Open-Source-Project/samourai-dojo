@@ -17,7 +17,7 @@ ALL_KNOTS=$(bitcoin-cli \
 echo "$ALL_KNOTS" | jq -c '.' | while read -r node; do
   addr=$(echo "$node" | jq -r '.addr')
   id=$(echo "$node" | jq -r '.id')
-  base_addr=$(echo "$addr" | grep -oP '^[^:]+')
+  base_addr=${addr%:*}
 
   if [[ "$addr" == *"$NET_DOJO_TOR_IPV4"* ]]; then
     echo "Disconnecting node with addr: $addr"
