@@ -395,7 +395,7 @@ class BlockchainProcessor {
             }
 
             this.notifSock.send(['block', JSON.stringify({ height: block.header.height, hash: block.header.hash })])
-        }, 500)
+        }, 50)
 
         // cut block range into chunks of 10 items
         const blockRangeChunks = util.splitList(heights, 10)
