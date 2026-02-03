@@ -15,15 +15,11 @@ Copy the directories `blocks`, `indexes` and `chainstate`.
 
 ### Fulcrum
 
-Copy the whole database directory, which contains:
-
-```bash
-blkinfo  headers  meta  rpa  scripthash_history  scripthash_unspent  txhash2txnum  txnum2txhash  undo  utxoset
-```
+Copy the whole database directory, which contains a single directory: `fulc2_db`.
 
 ## 2. Stop Dojo
 
-If you already Dojo have installed and running, stop it with `./dojo.sh stop`. If it's not installed yet, proceed with a normal installation and,
+If you already have Dojo installed and running, stop it with `./dojo.sh stop`. If it's not installed yet, proceed with a normal installation and,
 as soon as you start seeing bitcoind-related output, like headers or blocks being downloaded, exit the log with `Ctrl + C` and then stop dojo.
 
 ## 3. Find Dojo data location
@@ -78,14 +74,10 @@ Just like Bitcoin, except the data is under a hidden `.fulcrum` directory:
 cd /var/lib/docker/volumes/my-dojo_data-fulcrum/_data/.fulcrum/db
 ls -l
 
-drwxr-xr-x 2 1133 1136        4096 Dec 10 18:24 blkinfo
--rw-r--r-- 1 1133 1136    70072652 Dec 22 13:56 headers
-drwxr-xr-x 2 1133 1136        4096 Dec 21 06:08 meta
-drwxr-xr-x 2 1133 1136        4096 Dec 10 18:24 rpa
-(some lines ommited)
+drwxr-xr-x 2 1133 1136 4096 Feb  3 18:58 fulc2_db
 ```
 
-The ids in this case are `1133` and `1136`. Delete everything there with `rm -rf *`.
+The ids in this case are `1133` and `1136`. Delete everything there with `rm -rf fulc2_db`.
 
 ## 5. Copy the data
 
@@ -99,7 +91,9 @@ The following commands assume data is being copied from an external USB HDD moun
 
 Make sure you're inside the bitcoin directory - the one you deleted `blocks`, `indexes` and `chainstate` from - and run:
 
-`rsync -az --progress /mnt/externalusb/bitcoin/{blocks,indexes,chainstate} ./`
+```bash
+rsync -az --progress /mnt/externalusb/bitcoin/{blocks,indexes,chainstate} ./
+```
 
 There will be many lines like:
 
@@ -124,12 +118,12 @@ find {blocks,chainstate,indexes} -type d -print0 | xargs -0 chmod u+x
 
 ### Fulcrum
 
-Go to `.fulcrum/db`, copy the files and adjust permissions and ownership (again, mind the slashes and ids):
+Go to `.fulcrum/db`, copy the `fulc2_db` directory and adjust permissions and ownership (again, mind the slashes and ids):
 
 ```bash
-rsync -az --progress /mnt/externalusb/fulcrum/ ./
-chown -R 1133:1136 .
-chmod -R 644 .
+rsync -az --progress /mnt/externalusb/fulcrum/fulc2_db ./
+chown -R 1133:1136 fulc2_db
+chmod -R 644 fulc2_db
 find . -type d -print0 | xargs -0 chmod 755
 ```
 
