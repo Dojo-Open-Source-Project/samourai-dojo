@@ -118,7 +118,7 @@ For Synology, see this detailed [installation guide](./DOCKER_synology_setup.md)
 
 For Raspberry Pi4 and Odroid N2, see the [Ronin Dojo Project](https://wiki.ronindojo.io/en/home).
 
-To copy blockchain or Fulcrum data from an existing node, see [Copying data from an existing node](./DOCKER_data_exiting_node.md).
+To copy blockchain or Fulcrum data from an existing node, see [Copying data from an existing node](./DOCKER_data_existing_node.md).
 
 
 This procedure allows to install a new Dojo from scratch.
