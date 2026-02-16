@@ -1,4 +1,4 @@
-FROM    node:22-alpine3.22 AS builder
+FROM    node:24-alpine3.23 AS builder
 
 ENV     NODE_ENV    production
 ENV     APP_DIR     /home/node/app
@@ -16,7 +16,7 @@ COPY    . "$APP_DIR"
 RUN     cd "$APP_DIR" && \
         npm install --omit=dev
 
-FROM    node:22-alpine3.22
+FROM    node:24-alpine3.23
 
 ENV     NODE_ENV    production
 ENV     APP_DIR     /home/node/app

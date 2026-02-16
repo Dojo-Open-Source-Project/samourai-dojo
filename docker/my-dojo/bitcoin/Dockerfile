@@ -1,4 +1,4 @@
-FROM    debian:bookworm-slim AS builder
+FROM    debian:trixie-slim AS builder
 
 
 #################################################################
@@ -47,7 +47,7 @@ RUN     set -ex && \
         tar -xzvf "$FILE" -C /usr/local --strip-components=1 --exclude=*-qt && \
         rm -rf /tmp/*
 
-FROM    debian:bookworm-slim
+FROM    debian:trixie-slim
 
 ENV     BITCOIN_HOME        /home/bitcoin
 
@@ -59,7 +59,7 @@ COPY    --from=builder /usr/local/ /usr/local/
 
 RUN     set -ex && \
         apt-get update && \
-        apt-get install -qq --no-install-recommends python3 jq && \
+        apt-get install -qq --no-install-recommends python3 jq adduser && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

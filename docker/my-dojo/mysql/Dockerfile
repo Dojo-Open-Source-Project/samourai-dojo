@@ -1,4 +1,4 @@
-FROM    mariadb:11.8.2
+FROM    mariadb:12.1.2
 
 ENV     MARIADB_AUTO_UPGRADE true
 

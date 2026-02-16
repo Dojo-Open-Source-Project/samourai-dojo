@@ -1,4 +1,4 @@
-FROM    debian:bookworm-slim AS builder
+FROM    debian:trixie-slim AS builder
 
 ENV     INDEXER_VERSION       2.0.0
 ENV     INDEXER_SHASUMS       Fulcrum-${INDEXER_VERSION}-shasums.txt
@@ -34,7 +34,7 @@ RUN     set -ex && \
         sha256sum --ignore-missing -c $INDEXER_SHASUMS && \
         tar -xzvf ${INDEXER_FILE} -C "$INDEXER_FILES" --strip-components 1
 
-FROM    debian:bookworm-slim
+FROM    debian:trixie-slim
 
 ENV     INDEXER_FILES         /usr/fulcrum
 ENV     INDEXER_HOME          /home/fulcrum
@@ -45,7 +45,7 @@ ARG     FULCRUM_LINUX_GID
 ARG     FULCRUM_LINUX_UID
 
 RUN     apt-get update && \
-        apt-get install -y openssl && \
+        apt-get install -y openssl adduser && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
