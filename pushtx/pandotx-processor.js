@@ -3,7 +3,7 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 import QuickLRU from 'quick-lru'
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoin from 'bitcoinjs-lib'
 import { RPC } from 'soroban-client-nodejs'
 import { createRpcClient } from '../lib/bitcoind-rpc/rpc-client.js'
 import network from '../lib/bitcoin/network.js'

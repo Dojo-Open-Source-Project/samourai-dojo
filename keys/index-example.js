@@ -239,9 +239,9 @@ export default {
             // Values: null if no socks5 proxy used, otherwise the url of the socks5 proxy
             socks5Proxy: null,
             // Soroban key used to announce public Soroban API endpoints
-            keyAnnounce: "soroban.cluster.mainnet.nodes",
+            keyAnnounce: 'soroban.cluster.mainnet.nodes',
             // Soroban key used to announce response to auth47 challenge
-            keyAuth47: "soroban.auth47.mainnet.auth"
+            keyAuth47: 'soroban.auth47.mainnet.auth'
         },
         /*
          * PandoTx
@@ -249,17 +249,17 @@ export default {
         pandoTx: {
             // Push transactions through PandoTx
             // Values: active | inactive
-            push: "inactive",
+            push: 'inactive',
             // Process PandoTx transactions
             // Values: active | inactive
-            process: "inactive",
+            process: 'inactive',
             // Soroban key used for pushed transactions
-            keyPush: "pandotx.mainnet.push",
+            keyPush: 'pandotx.mainnet.push',
             // Soroban key used for results of pushes
-            keyResults: "pandotx.mainnet.results",
+            keyResults: 'pandotx.mainnet.results',
             // Fallback mode
             // Values: secure | convenient
-            fallbackMode: "convenient",
+            fallbackMode: 'convenient',
             // Max number of retries after a failed push
             nbRetries: 2
         },
@@ -379,15 +379,15 @@ export default {
             rpc: null,
             externalRpc: null,
             socks5Proxy: null,
-            keyAnnounce: "soroban.cluster.testnet.nodes",
-            keyAuth47: "soroban.auth47.testnet.auth"
+            keyAnnounce: 'soroban.cluster.testnet.nodes',
+            keyAuth47: 'soroban.auth47.testnet.auth'
         },
         pandoTx: {
-            push: "inactive",
-            process: "inactive",
-            keyPush: "pandotx.testnet.push",
-            keyResults: "pandotx.testnet.results",
-            fallbackMode: "convenient",
+            push: 'inactive',
+            process: 'inactive',
+            keyPush: 'pandotx.testnet.push',
+            keyResults: 'pandotx.testnet.results',
+            fallbackMode: 'convenient',
             nbRetries: 2
         },
         tracker: {

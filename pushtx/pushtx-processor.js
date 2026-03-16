@@ -3,7 +3,7 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoin from 'bitcoinjs-lib'
 import zmq from 'zeromq/v5-compat.js'
 
 import Logger from '../lib/logger.js'
@@ -135,7 +135,7 @@ class PushTxProcessor {
             const tx = bitcoin.Transaction.fromHex(rawtx)
             txid = tx.getId()
             for (let output of tx.outs)
-                value += output.value
+                value += Number(output.value)
             Logger.info(`PushTx : Push for ${(value / 1e8).toFixed(8)} BTC`)
         } catch {
             throw errors.tx.PARSE

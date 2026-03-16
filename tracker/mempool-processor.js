@@ -5,7 +5,7 @@
 
 
 import zmq from 'zeromq/v5-compat.js'
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoin from 'bitcoinjs-lib'
 
 import util from '../lib/util.js'
 import Logger from '../lib/logger.js'

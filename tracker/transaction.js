@@ -4,6 +4,7 @@
  */
 
 
+import { toHex } from 'uint8array-tools'
 import util from '../lib/util.js'
 import Logger from '../lib/logger.js'
 import addrHelper from '../lib/bitcoin/addresses-helper.js'
@@ -96,7 +97,7 @@ class Transaction {
         let index = 0
 
         for (let input of this.tx.ins) {
-            const spendTxid = Buffer.from(input.hash).reverse().toString('hex')
+            const spendTxid = toHex(input.hash.reverse())
             spends.push({ txid: spendTxid, index: input.index })
             indexedInputs[`${spendTxid}-${input.index}`] = index
             index++
@@ -176,8 +177,8 @@ class Transaction {
 
                 indexedOutputs[address].push({
                     index,
-                    value: output.value,
-                    script: output.script.toString('hex'),
+                    value: Number(output.value),
+                    script: toHex(output.script),
                 })
             }
             index++

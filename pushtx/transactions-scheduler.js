@@ -4,7 +4,7 @@
  */
 
 
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoin from 'bitcoinjs-lib'
 import Logger from '../lib/logger.js'
 import errors from '../lib/errors.js'
 import db from '../lib/db/mysql-db-wrapper.js'

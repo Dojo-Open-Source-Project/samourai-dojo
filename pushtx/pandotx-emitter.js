@@ -3,7 +3,7 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoin from 'bitcoinjs-lib'
 import { RPC, RPCCallError } from 'soroban-client-nodejs'
 import Logger from '../lib/logger.js'
 import network from '../lib/bitcoin/network.js'

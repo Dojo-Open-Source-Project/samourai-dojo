@@ -76,10 +76,8 @@ if (process.env.SOROBAN_INSTALL === 'on') {
         pandoTxNbRetries = Number.parseInt(process.env.NODE_PANDOTX_NB_RETRIES, 10)
     }
 
-    if (process.env.SOROBAN_ANNOUNCE === 'on') {
-        if (process.env.NODE_PANDOTX_PROCESS === 'on') {
-            pandoTxProcessActive = 'active'
-        }
+    if (process.env.SOROBAN_ANNOUNCE === 'on' && process.env.NODE_PANDOTX_PROCESS === 'on') {
+        pandoTxProcessActive = 'active'
     }
 
     if (bitcoinNetwork === 'bitcoin') {

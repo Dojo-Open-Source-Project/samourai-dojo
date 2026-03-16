@@ -5,7 +5,7 @@
 
 
 import assert from 'assert'
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoin from 'bitcoinjs-lib'
 import network from '../lib/bitcoin/network.js'
 
 network.key = 'testnet'

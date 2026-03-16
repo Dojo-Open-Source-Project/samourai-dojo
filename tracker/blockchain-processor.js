@@ -6,7 +6,8 @@
 
 import zmq from 'zeromq/v5-compat.js'
 import { Sema } from 'async-sema'
-import bitcoin from 'bitcoinjs-lib'
+import { toHex } from 'uint8array-tools'
+import * as bitcoin from 'bitcoinjs-lib'
 
 import util from '../lib/util.js'
 import { FifoQueue } from '../lib/queue.js'
@@ -414,7 +415,7 @@ class BlockchainProcessor {
                         height: height,
                         time: block.timestamp,
                         hash: block.getId(),
-                        previousblockhash: Buffer.from(block.prevHash.reverse()).toString('hex')
+                        previousblockhash: toHex(block.prevHash.reverse())
                     }, block.transactions)
                 } catch (error) {
                     Logger.error(error, 'Tracker : BlockchainProcessor.processBlockRange()')

@@ -4,7 +4,8 @@
  */
 
 
-import bitcoin from 'bitcoinjs-lib'
+import { fromHex } from 'uint8array-tools'
+import * as bitcoin from 'bitcoinjs-lib'
 import validator from 'validator'
 
 import Logger from '../lib/logger.js'
@@ -48,7 +49,7 @@ class ApiHelper {
 
                 } else if (addrHelper.isSupportedPubKey(item) && !returnValue.hasPubKey(item)) {
                     // Derive pubkey as 3 addresses (P1PKH, P2WPKH/P2SH, BECH32)
-                    const bufItem = Buffer.from(item, 'hex')
+                    const bufItem = fromHex(item)
 
                     const funcs = [
                         addrHelper.p2pkhAddress,
