@@ -2,7 +2,7 @@ FROM    debian:trixie-slim AS torbuilder
 
 ENV     TOR_URL             https://dist.torproject.org
 ENV     TOR_MIRROR_URL      https://tor.eff.org/dist
-ENV     TOR_VERSION         0.4.8.22
+ENV     TOR_VERSION         0.4.9.5
 ENV     TOR_GPG_KS_URI      hkps://keyserver.ubuntu.com:443
 ENV     TOR_GPG_KEYS        0xEB5A896A28988BF5 0xC218525819F78451 0x21194EBB165733EA 0x6AFEE6D49E92B601 B74417EDDF22AC9F9E90F49142E86A2A11F48D36 514102454D0A87DB0767A1EBBE6A0531C18A9179
 
@@ -57,7 +57,7 @@ RUN     git clone "$OBFS4_URL" /usr/local/src/obfs4proxy && \
 FROM    golang:1.25.6-trixie AS snowflakebuilder
 
 ENV     SNOWFLAKE_URL       https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git
-ENV     SNOWFLAKE_VERSION   2.11.0
+ENV     SNOWFLAKE_VERSION   2.12.1
 
 RUN     set -ex && \
         apt-get update && \
