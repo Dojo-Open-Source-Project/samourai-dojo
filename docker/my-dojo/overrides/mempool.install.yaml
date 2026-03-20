@@ -1,0 +1,96 @@
+services:
+  mempool_api:
+    container_name: "mempool_api"
+    image: mempool/backend:v${MEMPOOL_API_VERSION_TAG}
+    user: "1000:1000"
+    restart: on-failure
+    stop_grace_period: 15s
+    command: "./wait-for-it.sh mempool_db:3306 --timeout=720 --strict -- ./start.sh"
+    volumes:
+      - data-mempool_api:/backend/cache
+    env_file:
+      - ./.env
+      - ./conf/docker-explorer.conf
+      - ./conf/docker-bitcoind.conf
+      - ./conf/docker-indexer.conf
+    environment:
+      MEMPOOL_BACKEND: "electrum"
+      CORE_RPC_HOST: ${BITCOIND_IP}
+      CORE_RPC_PORT: ${BITCOIND_RPC_PORT}
+      CORE_RPC_USERNAME: ${BITCOIND_RPC_USER}
+      CORE_RPC_PASSWORD: ${BITCOIND_RPC_PASSWORD}
+      ELECTRUM_HOST: ${INDEXER_IP}
+      ELECTRUM_PORT: ${INDEXER_RPC_PORT}
+      ELECTRUM_TLS_ENABLED: "false"
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: ${NET_MEMPOOL_DB_IPV4}
+      DATABASE_PORT: "3306"
+      DATABASE_DATABASE: ${MEMPOOL_MYSQL_DATABASE}
+      DATABASE_USERNAME: ${MEMPOOL_MYSQL_USER}
+      DATABASE_PASSWORD: ${MEMPOOL_MYSQL_PASS}
+      MEMPOOL_HTTP_PORT: "8999"
+      MEMPOOL_CACHE_DIR: "/backend/cache"
+      MEMPOOL_CLEAR_PROTECTION_MINUTES: "20"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "10"
+    depends_on:
+      - bitcoind
+      - mempool_db
+    networks:
+      dojonet:
+        ipv4_address: ${NET_MEMPOOL_API_IPV4}
+
+  mempool_web:
+    container_name: "mempool_web"
+    image: mempool/frontend:v${MEMPOOL_WEB_VERSION_TAG}
+    user: "1000:1000"
+    restart: always
+    stop_grace_period: 15s
+    command: "./wait-for mempool_db:3306 --timeout=720 -- nginx -g 'daemon off;'"
+    env_file:
+      - ./.env
+    environment:
+      FRONTEND_HTTP_PORT: "8080"
+      BACKEND_MAINNET_HTTP_HOST: ${NET_MEMPOOL_API_IPV4}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "10"
+    depends_on:
+      - mempool_db
+    networks:
+      dojonet:
+        ipv4_address: ${NET_MEMPOOL_WEB_IPV4}
+
+  mempool_db:
+    container_name: "mempool_db"
+    image: mariadb:${MEMPOOL_DB_VERSION_TAG}
+    restart: always
+    stop_grace_period: 15s
+    volumes:
+      - data-mempool_db:/var/lib/mysql
+    env_file:
+      - ./.env
+      - ./conf/docker-explorer.conf
+    environment:
+      MYSQL_DATABASE: ${MEMPOOL_MYSQL_DATABASE}
+      MYSQL_USER: ${MEMPOOL_MYSQL_USER}
+      MYSQL_PASSWORD: ${MEMPOOL_MYSQL_PASS}
+      MYSQL_ROOT_PASSWORD: ${MEMPOOL_MYSQL_ROOT_PASSWORD}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "10"
+    networks:
+      dojonet:
+        ipv4_address: ${NET_MEMPOOL_DB_IPV4}
+
+volumes:
+  data-mempool_api:
+  data-mempool_db:
+

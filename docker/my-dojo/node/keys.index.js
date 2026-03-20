@@ -17,7 +17,12 @@ let auth47Hostname = ''
 if (process.env.EXPLORER_INSTALL === 'on') {
     try {
         explorerUrl = `http://${fs.readFileSync('/var/lib/tor/hsv3explorer/hostname', 'utf8').trim()}`
-        explorerActive = 'btc_rpc_explorer'
+        if (process.env.EXPLORER_TYPE === 'btc_rpc_explorer') {
+            explorerActive = 'btc_rpc_explorer'
+        }
+        if (process.env.EXPLORER_TYPE === 'mempool_space') {
+            explorerActive = 'mempool_space'
+        }
     } catch { /* empty */ }
 }
 
@@ -279,7 +284,7 @@ export default {
          */
         explorer: {
             // Active explorer
-            // Values: oxt | btc_rpc_explorer
+            // Values: btc_rpc_explorer | mempool_space
             active: explorerActive,
             // URI of the explorer
             uri: explorerUrl

@@ -191,10 +191,10 @@ export default {
          */
         explorer: {
             // Active explorer
-            // Values: oxt | btc_rpc_explorer
-            active: 'oxt',
+            // Values: btc_rpc_explorer | mempool_space
+            active: 'mempool_space',
             // URI of the explorer
-            uri: 'https://oxt.me'
+            uri: 'https://mempool.space'
         },
         /*
          * Max number of transactions per address
@@ -361,8 +361,8 @@ export default {
             esplora: 'https://blockstream.info/testnet'
         },
         explorer: {
-            active: 'none',
-            uri: ''
+            active: 'mempool_space',
+            uri: 'https://mempool.space/testnet4'
         },
         addrFilterThreshold: 1000,
         addrDerivationPool: {

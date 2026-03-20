@@ -40,6 +40,11 @@ source_file "$DIR/.env"
 # Export some variables for compose
 export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT BITCOIND_BLOCKS_DIR
 
+if [ "$EXPLORER_INSTALL" == "on" ] && [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+  export BITCOIND_IP INDEXER_IP INDEXER_RPC_PORT BITCOIND_RPC_USER BITCOIND_RPC_PASSWORD BITCOIND_RPC_PORT
+  export MEMPOOL_MYSQL_USER MEMPOOL_MYSQL_PASS MEMPOOL_MYSQL_ROOT_PASSWORD MEMPOOL_MYSQL_DATABASE
+fi
+
 # Select YAML files
 select_yaml_files() {
   yamlFiles="-f $DIR/docker-compose.yaml"
@@ -53,7 +58,11 @@ select_yaml_files() {
   fi
 
   if [ "$EXPLORER_INSTALL" == "on" ]; then
-    yamlFiles="$yamlFiles -f $DIR/overrides/explorer.install.yaml"
+    if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/explorer.install.yaml"
+    elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/mempool.install.yaml"
+    fi
   fi
 
   if [ "$INDEXER_INSTALL" == "on" ]; then
@@ -444,7 +453,11 @@ logs() {
       ;;
     explorer )
       if [ "$EXPLORER_INSTALL" == "on" ]; then
-        display_logs $1 $2
+        if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
+          display_logs $1 $2
+        elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+          display_logs "mempool_api mempool_db mempool_web" $2
+        fi
       else
         echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the internal block explorer"
       fi
@@ -462,7 +475,13 @@ logs() {
         services="$services bitcoind"
       fi
       if [ "$EXPLORER_INSTALL" == "on" ]; then
-        services="$services explorer"
+        if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
+          services="$services explorer"
+        elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+          services="$services mempool_api"
+          services="$services mempool_db"
+          services="$services mempool_web"
+        fi
       fi
       if [ "$INDEXER_INSTALL" == "on" ]; then
         if [ "$INDEXER_TYPE" == "addrindexrs" ]; then

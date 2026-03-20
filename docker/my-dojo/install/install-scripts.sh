@@ -89,13 +89,6 @@ init_config_files() {
   cp ./conf/docker-soroban.conf.tpl ./conf/docker-soroban.conf
   echo "Initialized docker-soroban.conf"
 
-  if [ "$EXPLORER_INSTALL" == "on" ]; then
-    cp ./nginx/explorer.conf ./nginx/dojo-explorer.conf
-  else
-    cp /dev/null ./nginx/dojo-explorer.conf
-  fi
-  echo "Initialized dojo-explorer.conf (nginx)"
-
   # Initialize config files for nginx and the maintenance tool
   if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
     cp ./nginx/testnet.conf ./nginx/dojo.conf
