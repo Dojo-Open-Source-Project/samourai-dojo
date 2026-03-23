@@ -83,6 +83,6 @@ COPY    --chown=bitcoin:bitcoin --chmod=754 ./ban-knots.sh /ban-knots.sh
 # Copy rpcauth.py script
 COPY    --chown=bitcoin:bitcoin --chmod=754 ./rpcauth.py /rpcauth.py
 
-EXPOSE  8334 9501 9502 28256
+EXPOSE  8333 8334 9501 9502 28256
 
 USER    bitcoin

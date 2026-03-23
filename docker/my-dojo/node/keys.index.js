@@ -39,9 +39,7 @@ let indexerType = null
 
 if (process.env.INDEXER_INSTALL === 'on') {
     indexerType = process.env.INDEXER_TYPE
-    if (indexerType === 'fulcrum') {
-        indexerUrl = `${process.env.INDEXER_PROTOCOL}://${fs.readFileSync('/var/lib/tor/hsv3fulcrum/hostname', 'utf8').trim()}:50001`
-    }
+    indexerUrl = `${process.env.INDEXER_PROTOCOL}://${fs.readFileSync('/var/lib/tor/hsv3electrum/hostname', 'utf8').trim()}:50001`
 }
 
 
@@ -257,7 +255,7 @@ export default {
             // Local indexer
             localIndexer: {
                 // Name of the installed indexer
-                // Values: null | addrindexrs | fulcrum
+                // Values: null | electrs | fulcrum
                 type: indexerType,
                 // IP address or hostname of the local indexer
                 host: process.env.INDEXER_IP,

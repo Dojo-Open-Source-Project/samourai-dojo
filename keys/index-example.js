@@ -166,18 +166,18 @@ export default {
             // Local indexer
             localIndexer: {
                 // Name of the installed indexer
-                // Values: null | addrindexrs | fulcrum
-                type: null,
+                // Values: null | electrs | fulcrum
+                type: 'electrs',
                 // IP address or hostname
                 host: '127.0.0.1',
                 // Port
                 port: 50001,
                 // Support of batch requests
                 // Values: active | inactive
-                batchRequests: 'inactive',
+                batchRequests: 'active',
                 // Protocol for communication (TCP or TLS)
                 protocol: 'tcp',
-                // External URI (if exposed fullcrum)
+                // External URI
                 externalUri: null
             },
             // Use a SOCKS5 proxy for all communications with external services
@@ -350,10 +350,10 @@ export default {
         indexer: {
             active: 'third_party_explorer',
             localIndexer: {
-                type: null,
+                type: 'electrs',
                 host: '127.0.0.1',
                 port: 50001,
-                batchRequests: 'inactive',
+                batchRequests: 'active',
                 protocol: 'tcp',
                 externalUri: null
             },

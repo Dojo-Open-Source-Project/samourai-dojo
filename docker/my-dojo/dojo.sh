@@ -66,12 +66,16 @@ select_yaml_files() {
   fi
 
   if [ "$INDEXER_INSTALL" == "on" ]; then
-    if [ "$INDEXER_TYPE" == "addrindexrs" ]; then
-      yamlFiles="$yamlFiles -f $DIR/overrides/indexer.install.yaml"
+    if [ "$INDEXER_TYPE" == "electrs" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/electrs.install.yaml"
     elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
       yamlFiles="$yamlFiles -f $DIR/overrides/fulcrum.install.yaml"
+    fi
 
-      if [ "$INDEXER_EXTERNAL" == "on" ]; then
+    if [ "$INDEXER_EXTERNAL" == "on" ]; then
+      if [ "$INDEXER_TYPE" == "electrs" ]; then
+        yamlFiles="$yamlFiles -f $DIR/overrides/electrs.port.expose.yaml"
+      elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
         yamlFiles="$yamlFiles -f $DIR/overrides/fulcrum.port.expose.yaml"
       fi
     fi
@@ -379,11 +383,9 @@ onion() {
   fi
 
   if [ "$INDEXER_INSTALL" == "on" ]; then
-    if [ "$INDEXER_TYPE" == "fulcrum" ]; then
-      V3_ADDR_FULCRUM=$( docker exec -it tor cat /var/lib/tor/hsv3fulcrum/hostname )
-      echo "Fulcrum hidden service address = $V3_ADDR_FULCRUM"
-      echo " "
-    fi
+    V3_ADDR_ELECTRUM=$( docker exec -it tor cat /var/lib/tor/hsv3electrum/hostname )
+    echo "Electrum server hidden service address = $V3_ADDR_ELECTRUM"
+    echo " "
   fi
 
   if [ "$SOROBAN_INSTALL" == "on" ]; then
@@ -438,17 +440,14 @@ logs() {
       fi
       ;;
     indexer )
-      if [ "$INDEXER_INSTALL" == "on" ] && [ "$INDEXER_TYPE" == "addrindexrs" ]; then
-        display_logs $1 $2
+      if [ "$INDEXER_INSTALL" == "on" ]; then
+        if [ "$INDEXER_TYPE" == "electrs" ]; then
+          display_logs "electrs" $2
+        elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
+          display_logs "fulcrum" $2
+        fi
       else
         echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the internal indexer"
-      fi
-      ;;
-    fulcrum )
-      if [ "$INDEXER_INSTALL" == "on" ] && [ "$INDEXER_TYPE" == "fulcrum" ]; then
-        display_logs $1 $2
-      else
-        echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the Fulcrum indexer"
       fi
       ;;
     explorer )
@@ -484,8 +483,8 @@ logs() {
         fi
       fi
       if [ "$INDEXER_INSTALL" == "on" ]; then
-        if [ "$INDEXER_TYPE" == "addrindexrs" ]; then
-          services="$services indexer"
+        if [ "$INDEXER_TYPE" == "electrs" ]; then
+          services="$services electrs"
         elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
           services="$services fulcrum"
         fi
@@ -526,8 +525,7 @@ help() {
   echo "                                  dojo.sh logs db             : display the logs of the MySQL database"
   echo "                                  dojo.sh logs tor            : display the logs of tor"
   echo "                                  dojo.sh logs nginx          : display the logs of nginx"
-  echo "                                  dojo.sh logs indexer        : display the logs of the internal indexer"
-  echo "                                  dojo.sh logs fulcrum        : display the logs of the Fulcrum indexer"
+  echo "                                  dojo.sh logs indexer        : display the logs of the internal electrum server"
   echo "                                  dojo.sh logs node           : display the logs of NodeJS modules (API, Tracker, PushTx API, Orchestrator)"
   echo "                                  dojo.sh logs explorer       : display the logs of the Explorer"
   echo "                                  dojo.sh logs soroban        : display the logs of the Soroban instance"

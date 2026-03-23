@@ -1,13 +1,13 @@
 services:
-  indexer:
-    image: "samouraiwallet/dojo-indexer:${DOJO_INDEXER_VERSION_TAG}"
+  electrs:
+    image: "samouraiwallet/dojo-electrs:${DOJO_ELECTRS_VERSION_TAG}"
     pull_policy: never
-    container_name: indexer
+    container_name: electrs
     build:
-      context: ./indexer
+      context: ./electrs
       args:
-        INDEXER_LINUX_UID: ${INDEXER_LINUX_UID}
-        INDEXER_LINUX_GID: ${INDEXER_LINUX_GID}
+        ELECTRS_LINUX_UID: ${ELECTRS_LINUX_UID}
+        ELECTRS_LINUX_GID: ${ELECTRS_LINUX_GID}
     env_file:
       - ./.env
       - ./conf/docker-common.conf
@@ -15,11 +15,8 @@ services:
       - ./conf/docker-indexer.conf
     restart: always
     command: /restart.sh
-    expose:
-      - "50001"
-      - "8080"
     volumes:
-      - data-indexer:/home/indexer
+      - data-electrs:/home/electrs
     logging:
       driver: "json-file"
       options:
@@ -31,7 +28,7 @@ services:
 
   node:
     depends_on:
-      - indexer
+      - electrs
 
 volumes:
-  data-indexer:
+  data-electrs:

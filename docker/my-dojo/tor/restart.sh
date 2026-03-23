@@ -61,12 +61,10 @@ if [ "$TOR_USE_BRIDGES" == "on" ]; then
 fi
 
 if [ "$INDEXER_INSTALL" == "on" ]; then
-  if [ "$INDEXER_TYPE" == "fulcrum" ]; then
-    tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3fulcrum)
-    tor_options+=(--HiddenServiceVersion 3)
-    tor_options+=(--HiddenServicePort "50001 $NET_DOJO_INDEXER_IPV4:50001")
-    tor_options+=(--HiddenServiceDirGroupReadable 1)
-  fi
+  tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3electrum)
+  tor_options+=(--HiddenServiceVersion 3)
+  tor_options+=(--HiddenServicePort "50001 $NET_DOJO_INDEXER_IPV4:50001")
+  tor_options+=(--HiddenServiceDirGroupReadable 1)
 fi
 
 if [ "$SOROBAN_INSTALL" == "on" ]; then
