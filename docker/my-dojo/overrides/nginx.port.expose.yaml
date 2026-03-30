@@ -1,0 +1,4 @@
+services:
+  nginx:
+    ports:
+      - "${NGINX_EXTERNAL_IP}:${NGINX_EXTERNAL_PORT}:80"

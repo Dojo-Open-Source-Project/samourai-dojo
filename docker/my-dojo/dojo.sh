@@ -35,6 +35,7 @@ source_file "$DIR/conf/docker-bitcoind.conf"
 source_file "$DIR/conf/docker-explorer.conf"
 source_file "$DIR/conf/docker-common.conf"
 source_file "$DIR/conf/docker-tor.conf"
+source_file "$DIR/conf/docker-nginx.conf"
 source_file "$DIR/.env"
 
 # Export some variables for compose
@@ -43,6 +44,10 @@ export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT BITCOIND_BLOC
 if [ "$EXPLORER_INSTALL" == "on" ] && [ "$EXPLORER_TYPE" == "mempool_space" ]; then
   export BITCOIND_IP INDEXER_IP INDEXER_RPC_PORT BITCOIND_RPC_USER BITCOIND_RPC_PASSWORD BITCOIND_RPC_PORT
   export MEMPOOL_MYSQL_USER MEMPOOL_MYSQL_PASS MEMPOOL_MYSQL_ROOT_PASSWORD MEMPOOL_MYSQL_DATABASE
+fi
+
+if [ "$NGINX_EXTERNAL" == "on" ]; then
+  export NGINX_EXTERNAL_IP NGINX_EXTERNAL_PORT
 fi
 
 # Select YAML files
@@ -84,6 +89,10 @@ select_yaml_files() {
   if [ "$SOROBAN_INSTALL" == "on" ]; then
     yamlFiles="$yamlFiles -f $DIR/overrides/soroban.install.yaml"
   fi
+
+  if [ "$NGINX_EXTERNAL" == "on" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/nginx.port.expose.yaml"
+    fi
 
   # Return yamlFiles
   echo "$yamlFiles"

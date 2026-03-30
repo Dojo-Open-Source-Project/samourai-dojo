@@ -36,6 +36,12 @@ else
   source ./conf/docker-soroban.conf.tpl
 fi
 
+if [ -f ./conf/docker-nginx.conf ]; then
+  source ./conf/docker-nginx.conf
+else
+  source ./conf/docker-nginx.conf.tpl
+fi
+
 
 # Confirm installation
 get_confirmation() {
@@ -88,6 +94,9 @@ init_config_files() {
 
   cp ./conf/docker-soroban.conf.tpl ./conf/docker-soroban.conf
   echo "Initialized docker-soroban.conf"
+
+  cp ./conf/docker-nginx.conf.tpl ./conf/docker-nginx.conf
+  echo "Initialized docker-nginx.conf"
 
   # Initialize config files for nginx and the maintenance tool
   if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then

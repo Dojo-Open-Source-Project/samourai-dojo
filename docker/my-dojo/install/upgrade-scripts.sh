@@ -30,6 +30,12 @@ else
   source ./conf/docker-soroban.conf.tpl
 fi
 
+if [ -f ./conf/docker-nginx.conf ]; then
+  source ./conf/docker-nginx.conf
+else
+  source ./conf/docker-nginx.conf.tpl
+fi
+
 
 source ./conf/docker-bitcoind.conf
 
@@ -72,6 +78,9 @@ update_config_files() {
 
   update_config_file ./conf/docker-soroban.conf ./conf/docker-soroban.conf.tpl
   echo "Initialized docker-soroban.conf"
+
+  update_config_file ./conf/docker-nginx.conf ./conf/docker-nginx.conf.tpl
+  echo "Initialized docker-nginx.conf"
 
   if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
     cp ./nginx/testnet.conf ./nginx/dojo.conf
