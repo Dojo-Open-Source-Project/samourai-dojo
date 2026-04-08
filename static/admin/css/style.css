@@ -299,7 +299,7 @@ td.table-value {
 /* PAGES - COMMONS */
 body.dmt {
   min-height: 100vh;
-  background-image: url("../icons/dojo.png");
+  background-image: url("../icons/dojo.svg");
   background-repeat: no-repeat;
   background-position: center;
 }
@@ -633,7 +633,7 @@ button {
   border-radius: 4px;
   transform: translate(-50%, -50%);
   background-color: #313436;
-  background-image: url('../icons/dojo.png');
+  background-image: url('../icons/dojo.svg');
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
@@ -725,11 +725,11 @@ button {
 }
 
 @media (max-width: 553px) {
-  
+
   .two-columns-left {
     width: 100%;
   }
-  
+
   .two-columns-right {
     width: 100%;
   }
@@ -745,14 +745,14 @@ button {
   .col-xs-3.login-box {
     width: 16%;
   }
-  
+
 }
 
 @media (max-width: 428px) {
-  
+
   .title {
     padding-top: 20px;
-  } 
+  }
 }
 
 /* PAGES - STATUS */
@@ -775,6 +775,7 @@ button {
 
 #qr-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   width: 100%;

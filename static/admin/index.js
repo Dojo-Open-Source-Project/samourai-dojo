@@ -93,7 +93,7 @@ function initAuth47() {
                 // Fallback to dojo logo if PayNym avatar fails to load
                 avatarImg.onerror = function () {
                     avatarImg.style.display = 'none'
-                    qrLogoElement.style.backgroundImage = 'url(icons/dojo.png)'
+                    qrLogoElement.style.backgroundImage = 'url(icons/dojo.svg)'
                 }
 
                 // Clear any background image and add the avatar
@@ -101,13 +101,13 @@ function initAuth47() {
                 qrLogoElement.appendChild(avatarImg)
             } else {
                 // Use default dojo logo
-                qrLogoElement.style.backgroundImage = 'url(icons/dojo.png)'
+                qrLogoElement.style.backgroundImage = 'url(icons/dojo.svg)'
             }
 
             document.querySelector('#qr-auth47').append(qrLogoElement)
             document.querySelector('#signin').classList.add('with-auth47')
             document.querySelector('#qr-auth47').classList.add('active')
-            
+
             return nonce
         })
         .then((nonce) => {
