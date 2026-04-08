@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.29.0](#samourai-dojo-v1290)
 - [v1.28.2](#samourai-dojo-v1282)
 - [v1.28.1](#samourai-dojo-v1281)
 - [v1.28.0](#samourai-dojo-v1280)
@@ -10,6 +11,39 @@
 - [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
+
+## Samourai Dojo v1.29.0
+
+### Notable changes
+
+#### Mempool Space block explorer
+This version adds support for Mempool Space block explorer. A user can now choose between Mempool Space and BTC-RPC Explorer as an integrated explorer for their paired wallet.
+
+#### Addrindexrs deprecated, added Electrs support
+Addrindexrs has been deprecated in favor of electrs as an option for users with low-performance devices.
+
+### Changelog
+- Login interface changes and style formatting [cfc0c55](cfc0c55)
+- Fix host extraction for ipv6 [00072d7](00072d7)
+- Lower high watermark for block processing in normal mode [61cf623](61cf623)
+- Update migration instructions for Fulcrum v2 and fix typo in file name [96de815](96de815)
+- Lower default min relay tx fee to 0.1 sat/vbyte [1b67f23](1b67f23)
+- Bump Bitcoin Core to v31.0 [a51d34dd](a51d34dd)
+- Bump docker images [973b6ab](973b6ab)
+- Updated dependencies [42226d0](42226d0)
+- Bump Fulcrum to v2.1.0 [3f48fae](3f48fae)
+- Added Mempool Space block explorer [51a9122](51a9122)
+- Deprecated addrindexrs, added electrs support [8ede6ca](8ede6ca)
+- Allow exposure of nginx (Dojo API) to network [e386fba](e386fba)
+- Updated logo [a20bed2](a20bed2)
+- Updated Tor to v0.4.9.6 and Snowflake to v2.13.1 [d6f7021](d6f7021)
+- Updated pull policy for Soroban [dcdb0374](dcdb0374)
+- Only initialize .conf files if they don't already exist [0c576f8d](0c576f8d)
+
+### Credits
+- DojoCoder
+- ottosch
+- linkinparkrulz
 
 ## Samourai Dojo v1.28.2
 
