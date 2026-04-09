@@ -1,6 +1,7 @@
 services:
   soroban:
     image: "samouraiwallet/dojo-soroban:${DOJO_SOROBAN_VERSION_TAG}"
+    pull_policy: never
     container_name: soroban
     build:
       context: ./soroban
