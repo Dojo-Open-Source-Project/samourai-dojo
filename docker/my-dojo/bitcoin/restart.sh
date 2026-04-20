@@ -31,6 +31,7 @@ bitcoind_options=(
   -rpcauth=$BITCOIND_RPC_AUTH
   -server=1
   -txindex=1
+  -privatebroadcast=1
   -zmqpubhashblock=tcp://0.0.0.0:9502
   -zmqpubrawtx=tcp://0.0.0.0:9501
 )
