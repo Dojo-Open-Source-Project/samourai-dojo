@@ -3,7 +3,7 @@
  * Copyright © 2023 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import QuickLRU from 'quick-lru'
+import QuickLRU from "quick-lru";
 
 /**
  * Cache of txids, for avoiding triple-check behavior.
@@ -14,8 +14,8 @@ import QuickLRU from 'quick-lru'
  * Orphaned transactions are deleted during the routine check
  */
 export const TransactionsCache = new QuickLRU({
-    // Maximum number of txids to store in cache
-    maxSize: 100000,
-    // Maximum age for items in the cache.
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-})
+	// Maximum number of txids to store in cache
+	maxSize: 100000,
+	// Maximum age for items in the cache.
+	maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
