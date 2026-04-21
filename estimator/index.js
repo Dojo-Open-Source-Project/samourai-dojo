@@ -3,7 +3,7 @@
  * Copyright © 2023 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import { FeeEstimator } from '@samouraiwallet/one-dollar-fee-estimator'
+import { FeeEstimator } from '@dojo-tools/next-block-estimator'
 
 import { waitForBitcoindRpcApi } from '../lib/bitcoind-rpc/rpc-client.js'
 import network from '../lib/bitcoin/network.js'

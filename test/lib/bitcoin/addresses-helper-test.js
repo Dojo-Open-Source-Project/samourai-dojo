@@ -6,7 +6,7 @@
 
 import assert from 'assert'
 // eslint-disable-next-line import/no-unresolved
-import {bitcoinMessageFactory} from '@samouraiwallet/bitcoinjs-message'
+import {bitcoinMessageFactory} from '@dojo-tools/bitcoinjs-message'
 import * as ecc from 'tiny-secp256k1'
 
 import network from '../../../lib/bitcoin/network.js'
