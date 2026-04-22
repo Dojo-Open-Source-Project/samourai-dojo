@@ -39,6 +39,9 @@ Addrindexrs has been deprecated in favor of electrs as an option for users with 
 - Updated Tor to v0.4.9.6 and Snowflake to v2.13.1 [d6f7021](d6f7021)
 - Updated pull policy for Soroban [dcdb0374](dcdb0374)
 - Only initialize .conf files if they don't already exist [0c576f8d](0c576f8d)
+- Migrated dependencies from `@samouraiwallet` to `@dojo-tools`, updated node engine requirement to >=24 [263bb484](263bb484)
+- Adopt Biome linting and reformat Node services [21ba4766](21ba4766)
+- Bump Mempool API and Web versions to 3.3.0 [f84b9d78](f84b9d78)
 
 ### Credits
 - DojoCoder
