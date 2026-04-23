@@ -3,9 +3,7 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-
-import crypto from 'crypto'
-
+import crypto from "node:crypto";
 
 /**
  * Script generating a strong random string (256-bits of entropy)
@@ -13,13 +11,11 @@ import crypto from 'crypto'
  */
 
 function run() {
-    const secret = crypto.randomBytes(32).toString('hex')
-    console.log(`Generated secret = ${secret}`)
+	const secret = crypto.randomBytes(32).toString("hex");
+	console.log(`Generated secret = ${secret}`);
 }
-
 
 /**
  * Launch the script
  */
-run()
-
+run();
