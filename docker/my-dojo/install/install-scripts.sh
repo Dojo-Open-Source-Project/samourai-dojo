@@ -36,6 +36,12 @@ else
   source ./conf/docker-soroban.conf.tpl
 fi
 
+if [ -f ./conf/docker-nginx.conf ]; then
+  source ./conf/docker-nginx.conf
+else
+  source ./conf/docker-nginx.conf.tpl
+fi
+
 
 # Confirm installation
 get_confirmation() {
@@ -65,36 +71,50 @@ get_confirmation_reinstall() {
 # Initialize configuration files from templates
 init_config_files() {
   # Initialize config files for MyDojo
-  cp ./conf/docker-common.conf.tpl ./conf/docker-common.conf
-  echo "Initialized docker-common.conf"
-
-  cp ./conf/docker-bitcoind.conf.tpl ./conf/docker-bitcoind.conf
-  echo "Initialized docker-bitcoind.conf"
-
-  cp ./conf/docker-mysql.conf.tpl ./conf/docker-mysql.conf
-  echo "Initialized docker-mysql.conf"
-
-  cp ./conf/docker-node.conf.tpl ./conf/docker-node.conf
-  echo "Initialized docker-node.conf"
-
-  cp ./conf/docker-explorer.conf.tpl ./conf/docker-explorer.conf
-  echo "Initialized docker-explorer.conf"
-
-  cp ./conf/docker-tor.conf.tpl ./conf/docker-tor.conf
-  echo "Initialized docker-tor.conf"
-
-  cp ./conf/docker-indexer.conf.tpl ./conf/docker-indexer.conf
-  echo "Initialized docker-indexer.conf"
-
-  cp ./conf/docker-soroban.conf.tpl ./conf/docker-soroban.conf
-  echo "Initialized docker-soroban.conf"
-
-  if [ "$EXPLORER_INSTALL" == "on" ]; then
-    cp ./nginx/explorer.conf ./nginx/dojo-explorer.conf
-  else
-    cp /dev/null ./nginx/dojo-explorer.conf
+  if [ ! -f ./conf/docker-common.conf ]; then
+    cp ./conf/docker-common.conf.tpl ./conf/docker-common.conf
+    echo "Initialized docker-common.conf"
   fi
-  echo "Initialized dojo-explorer.conf (nginx)"
+
+  if [ ! -f ./conf/docker-bitcoind.conf ]; then
+    cp ./conf/docker-bitcoind.conf.tpl ./conf/docker-bitcoind.conf
+    echo "Initialized docker-bitcoind.conf"
+  fi
+
+  if [ ! -f ./conf/docker-mysql.conf ]; then
+    cp ./conf/docker-mysql.conf.tpl ./conf/docker-mysql.conf
+    echo "Initialized docker-mysql.conf"
+  fi
+
+  if [ ! -f ./conf/docker-node.conf ]; then
+    cp ./conf/docker-node.conf.tpl ./conf/docker-node.conf
+    echo "Initialized docker-node.conf"
+  fi
+
+  if [ ! -f ./conf/docker-explorer.conf ]; then
+    cp ./conf/docker-explorer.conf.tpl ./conf/docker-explorer.conf
+    echo "Initialized docker-explorer.conf"
+  fi
+
+  if [ ! -f ./conf/docker-tor.conf ]; then
+    cp ./conf/docker-tor.conf.tpl ./conf/docker-tor.conf
+    echo "Initialized docker-tor.conf"
+  fi
+
+  if [ ! -f ./conf/docker-indexer.conf ]; then
+    cp ./conf/docker-indexer.conf.tpl ./conf/docker-indexer.conf
+    echo "Initialized docker-indexer.conf"
+  fi
+
+  if [ ! -f ./conf/docker-soroban.conf ]; then
+    cp ./conf/docker-soroban.conf.tpl ./conf/docker-soroban.conf
+    echo "Initialized docker-soroban.conf"
+  fi
+
+  if [ ! -f ./conf/docker-nginx.conf ]; then
+    cp ./conf/docker-nginx.conf.tpl ./conf/docker-nginx.conf
+    echo "Initialized docker-nginx.conf"
+  fi
 
   # Initialize config files for nginx and the maintenance tool
   if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then

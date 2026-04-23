@@ -1,10 +1,10 @@
-FROM    debian:bookworm-slim AS builder
+FROM    debian:trixie-slim AS builder
 
 
 #################################################################
 # INSTALL BITCOIN
 #################################################################
-ENV     BITCOIN_VERSION     29.0
+ENV     BITCOIN_VERSION     31.0
 ENV     BITCOIN_URL         https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}
 ENV     BITCOIN_FILE_AMD64  bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
 ENV     BITCOIN_FILE_ARM64  bitcoin-${BITCOIN_VERSION}-aarch64-linux-gnu.tar.gz
@@ -47,7 +47,7 @@ RUN     set -ex && \
         tar -xzvf "$FILE" -C /usr/local --strip-components=1 --exclude=*-qt && \
         rm -rf /tmp/*
 
-FROM    debian:bookworm-slim
+FROM    debian:trixie-slim
 
 ENV     BITCOIN_HOME        /home/bitcoin
 
@@ -59,7 +59,7 @@ COPY    --from=builder /usr/local/ /usr/local/
 
 RUN     set -ex && \
         apt-get update && \
-        apt-get install -qq --no-install-recommends python3 jq && \
+        apt-get install -qq --no-install-recommends python3 jq adduser && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -83,6 +83,6 @@ COPY    --chown=bitcoin:bitcoin --chmod=754 ./ban-knots.sh /ban-knots.sh
 # Copy rpcauth.py script
 COPY    --chown=bitcoin:bitcoin --chmod=754 ./rpcauth.py /rpcauth.py
 
-EXPOSE  8334 9501 9502 28256
+EXPOSE  8333 8334 9501 9502 28256
 
 USER    bitcoin

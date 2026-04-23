@@ -1,66 +1,66 @@
-const path = require('path')
+const path = require("node:path");
 
 module.exports = {
-    apps: [
-        {
-            name: 'Samourai Dojo - Accounts',
-            namespace: process.env.COMMON_BTC_NETWORK,
-            script: './index.js',
-            cwd: path.join(process.env.APP_DIR, 'accounts'),
-            wait_ready: true,
-            stop_exit_codes: 0,
-            listen_timeout: 5000,
-            kill_timeout: 3000,
-            out_file: '/dev/null',
-            error_file: '/dev/null'
-        },
-        {
-            name: 'Samourai Dojo - PushTX',
-            namespace: process.env.COMMON_BTC_NETWORK,
-            script: './index.js',
-            cwd: path.join(process.env.APP_DIR, 'pushtx'),
-            wait_ready: true,
-            stop_exit_codes: 0,
-            listen_timeout: 5000,
-            kill_timeout: 3000,
-            out_file: '/dev/null',
-            error_file: '/dev/null'
-        },
-        {
-            name: 'Samourai Dojo - PushTX Orhestrator',
-            namespace: process.env.COMMON_BTC_NETWORK,
-            script: './index-orchestrator.js',
-            cwd: path.join(process.env.APP_DIR, 'pushtx'),
-            wait_ready: true,
-            stop_exit_codes: 0,
-            listen_timeout: 5000,
-            kill_timeout: 3000,
-            out_file: '/dev/null',
-            error_file: '/dev/null'
-        },
-        {
-            name: 'Samourai Dojo - Tracker',
-            namespace: process.env.COMMON_BTC_NETWORK,
-            script: './index.js',
-            cwd: path.join(process.env.APP_DIR, 'tracker'),
-            wait_ready: true,
-            stop_exit_codes: 0,
-            listen_timeout: 5000,
-            kill_timeout: 3000,
-            out_file: '/dev/null',
-            error_file: '/dev/null'
-        },
-        {
-            name: `Samourai Dojo - Estimator`,
-            namespace: process.env.COMMON_BTC_NETWORK,
-            script: './index.js',
-            cwd: path.join(process.env.APP_DIR, 'estimator'),
-            wait_ready: true,
-            stop_exit_codes: 0,
-            listen_timeout: 5000,
-            kill_timeout: 3000,
-            out_file: '/dev/null',
-            error_file: '/dev/null'
-        }
-    ]
-}
+	apps: [
+		{
+			name: "Samourai Dojo - Accounts",
+			namespace: process.env.COMMON_BTC_NETWORK,
+			script: "./index.js",
+			cwd: path.join(process.env.APP_DIR, "accounts"),
+			wait_ready: true,
+			stop_exit_codes: 0,
+			listen_timeout: 5000,
+			kill_timeout: 3000,
+			out_file: "/dev/null",
+			error_file: "/dev/null",
+		},
+		{
+			name: "Samourai Dojo - PushTX",
+			namespace: process.env.COMMON_BTC_NETWORK,
+			script: "./index.js",
+			cwd: path.join(process.env.APP_DIR, "pushtx"),
+			wait_ready: true,
+			stop_exit_codes: 0,
+			listen_timeout: 5000,
+			kill_timeout: 3000,
+			out_file: "/dev/null",
+			error_file: "/dev/null",
+		},
+		{
+			name: "Samourai Dojo - PushTX Orhestrator",
+			namespace: process.env.COMMON_BTC_NETWORK,
+			script: "./index-orchestrator.js",
+			cwd: path.join(process.env.APP_DIR, "pushtx"),
+			wait_ready: true,
+			stop_exit_codes: 0,
+			listen_timeout: 5000,
+			kill_timeout: 3000,
+			out_file: "/dev/null",
+			error_file: "/dev/null",
+		},
+		{
+			name: "Samourai Dojo - Tracker",
+			namespace: process.env.COMMON_BTC_NETWORK,
+			script: "./index.js",
+			cwd: path.join(process.env.APP_DIR, "tracker"),
+			wait_ready: true,
+			stop_exit_codes: 0,
+			listen_timeout: 5000,
+			kill_timeout: 3000,
+			out_file: "/dev/null",
+			error_file: "/dev/null",
+		},
+		{
+			name: `Samourai Dojo - Estimator`,
+			namespace: process.env.COMMON_BTC_NETWORK,
+			script: "./index.js",
+			cwd: path.join(process.env.APP_DIR, "estimator"),
+			wait_ready: true,
+			stop_exit_codes: 0,
+			listen_timeout: 5000,
+			kill_timeout: 3000,
+			out_file: "/dev/null",
+			error_file: "/dev/null",
+		},
+	],
+};

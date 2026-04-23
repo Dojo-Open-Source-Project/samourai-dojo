@@ -3,376 +3,394 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
+import * as bitcoin from "bitcoinjs-lib";
+import zmq from "zeromq/v5-compat.js";
+import keysFile from "../keys/index.js";
+import network from "../lib/bitcoin/network.js";
+import { createRpcClient } from "../lib/bitcoind-rpc/rpc-client.js";
+import db from "../lib/db/mysql-db-wrapper.js";
+import Logger from "../lib/logger.js";
+import util from "../lib/util.js";
+import Transaction from "./transaction.js";
+import TransactionsBundle from "./transactions-bundle.js";
+import { TransactionsCache } from "./transactions-cache.js";
 
-import zmq from 'zeromq/v5-compat.js'
-import bitcoin from 'bitcoinjs-lib'
-
-import util from '../lib/util.js'
-import Logger from '../lib/logger.js'
-import db from '../lib/db/mysql-db-wrapper.js'
-import network from '../lib/bitcoin/network.js'
-import { createRpcClient } from '../lib/bitcoind-rpc/rpc-client.js'
-import keysFile from '../keys/index.js'
-import Transaction from './transaction.js'
-import TransactionsBundle from './transactions-bundle.js'
-import { TransactionsCache } from './transactions-cache.js'
-
-const keys = keysFile[network.key]
+const keys = keysFile[network.key];
 
 /**
  * A class managing a buffer for the mempool
  */
 class MempoolProcessor {
+	/**
+	 * Constructor
+	 * @param {object} notifSock - ZMQ socket used for notifications
+	 */
+	constructor(notifSock) {
+		// RPC client
+		this.client = createRpcClient();
+		// ZeroMQ socket for notifications sent to others components
+		this.notifSock = notifSock;
+		// Mempool buffer
+		this.mempoolBuffer = new TransactionsBundle();
+		// ZeroMQ socket for bitcoind Txs messages
+		this.txSock = null;
+		// ZeroMQ socket for pushtx messages
+		this.pushTxSock = null;
+		// ZeroMQ socket for pushtx orchestrator messages
+		this.orchestratorSock = null;
+		// Flag indicating if processor should process the transactions
+		// Processor is deactivated if the tracker is late
+		// (priority is given to the blockchain processor)
+		this.isActive = false;
+		// Flag indicating that processing of unconfirmed transactions is currently running
+		this.processingUnconfirmedTxs = false;
+	}
 
-    /**
-     * Constructor
-     * @param {object} notifSock - ZMQ socket used for notifications
-     */
-    constructor(notifSock) {
-        // RPC client
-        this.client = createRpcClient()
-        // ZeroMQ socket for notifications sent to others components
-        this.notifSock = notifSock
-        // Mempool buffer
-        this.mempoolBuffer = new TransactionsBundle()
-        // ZeroMQ socket for bitcoind Txs messages
-        this.txSock = null
-        // ZeroMQ socket for pushtx messages
-        this.pushTxSock = null
-        // ZeroMQ socket for pushtx orchestrator messages
-        this.orchestratorSock = null
-        // Flag indicating if processor should process the transactions
-        // Processor is deactivated if the tracker is late
-        // (priority is given to the blockchain processor)
-        this.isActive = false
-        // Flag indicating that processing of unconfirmed transactions is currently running
-        this.processingUnconfirmedTxs = false
-    }
+	/**
+	 * Start processing the mempool
+	 * @returns {Promise<void>}
+	 */
+	async start() {
+		this.checkUnconfirmedId = setInterval(
+			() => this.checkUnconfirmed(),
+			keys.tracker.unconfirmedTxsProcessPeriod,
+		);
 
-    /**
-     * Start processing the mempool
-     * @returns {Promise<void>}
-     */
-    async start() {
-        this.checkUnconfirmedId = setInterval(
-            () => this.checkUnconfirmed(),
-            keys.tracker.unconfirmedTxsProcessPeriod
-        )
+		this.processMempoolId = setInterval(
+			() => this.processMempool(),
+			keys.tracker.mempoolProcessPeriod,
+		);
 
-        this.processMempoolId = setInterval(
-            () => this.processMempool(),
-            keys.tracker.mempoolProcessPeriod
-        )
+		this.initSockets();
+		this.syncMempool();
+		this.processMempool();
 
-        this.initSockets()
-        this.syncMempool()
-        this.processMempool()
-
-        /*this.displayStatsId = setInterval(_.bind(this.displayMempoolStats, this), 60000)
+		/*this.displayStatsId = setInterval(_.bind(this.displayMempoolStats, this), 60000)
         await this.displayMempoolStats()*/
-    }
+	}
 
-    /**
-     * Stop processing
-     */
-    stop() {
-        clearInterval(this.checkUnconfirmedId)
-        clearInterval(this.processMempoolId)
-        //clearInterval(this.displayStatsId)
+	/**
+	 * Stop processing
+	 */
+	stop() {
+		clearInterval(this.checkUnconfirmedId);
+		clearInterval(this.processMempoolId);
+		//clearInterval(this.displayStatsId)
 
-        this.txSock && this.txSock.close()
-        this.pushTxSock && this.pushTxSock.close()
-        this.orchestratorSock && this.orchestratorSock.close()
-    }
+		this.txSock?.close();
+		this.pushTxSock?.close();
+		this.orchestratorSock?.close();
+	}
 
-    /**
-     * Initialiaze ZMQ sockets
-     */
-    initSockets() {
-        // Socket listening to pushTx
-        this.pushTxSock = zmq.socket('sub')
-        this.pushTxSock.connect(`tcp://127.0.0.1:${keys.ports.notifpushtx}`)
-        this.pushTxSock.subscribe('pushtx')
+	/**
+	 * Initialiaze ZMQ sockets
+	 */
+	initSockets() {
+		// Socket listening to pushTx
+		this.pushTxSock = zmq.socket("sub");
+		this.pushTxSock.connect(`tcp://127.0.0.1:${keys.ports.notifpushtx}`);
+		this.pushTxSock.subscribe("pushtx");
 
-        this.pushTxSock.on('message', (topic, message) => {
-            switch (topic.toString()) {
-            case 'pushtx':
-                this.onPushTx(message)
-                break
-            default:
-                Logger.info(`Tracker : ${topic.toString()}`)
-            }
-        })
+		this.pushTxSock.on("message", (topic, message) => {
+			switch (topic.toString()) {
+				case "pushtx":
+					this.onPushTx(message);
+					break;
+				default:
+					Logger.info(`Tracker : ${topic.toString()}`);
+			}
+		});
 
-        Logger.info('Tracker : Listening for pushTx')
+		Logger.info("Tracker : Listening for pushTx");
 
-        // Socket listening to pushTx Orchestrator
-        this.orchestratorSock = zmq.socket('sub')
-        this.orchestratorSock.connect(`tcp://127.0.0.1:${keys.ports.orchestrator}`)
-        this.orchestratorSock.subscribe('pushtx')
+		// Socket listening to pushTx Orchestrator
+		this.orchestratorSock = zmq.socket("sub");
+		this.orchestratorSock.connect(`tcp://127.0.0.1:${keys.ports.orchestrator}`);
+		this.orchestratorSock.subscribe("pushtx");
 
-        this.orchestratorSock.on('message', (topic, message) => {
-            switch (topic.toString()) {
-            case 'pushtx':
-                this.onPushTx(message)
-                break
-            default:
-                Logger.info(`Tracker : ${topic.toString()}`)
-            }
-        })
+		this.orchestratorSock.on("message", (topic, message) => {
+			switch (topic.toString()) {
+				case "pushtx":
+					this.onPushTx(message);
+					break;
+				default:
+					Logger.info(`Tracker : ${topic.toString()}`);
+			}
+		});
 
-        Logger.info('Tracker : Listening for pushTx orchestrator')
+		Logger.info("Tracker : Listening for pushTx orchestrator");
 
-        // Socket listening to bitcoind Txs messages
-        this.txSock = zmq.socket('sub')
-        this.txSock.connect(keys.bitcoind.zmqTx)
-        this.txSock.subscribe('rawtx')
+		// Socket listening to bitcoind Txs messages
+		this.txSock = zmq.socket("sub");
+		this.txSock.connect(keys.bitcoind.zmqTx);
+		this.txSock.subscribe("rawtx");
 
-        this.txSock.on('message', (topic, message) => {
-            switch (topic.toString()) {
-            case 'rawtx':
-                this.onTx(message)
-                break
-            default:
-                Logger.info(`Tracker : ${topic.toString()}`)
-            }
-        })
+		this.txSock.on("message", (topic, message) => {
+			switch (topic.toString()) {
+				case "rawtx":
+					this.onTx(message);
+					break;
+				default:
+					Logger.info(`Tracker : ${topic.toString()}`);
+			}
+		});
 
-        Logger.info('Tracker : Listening for mempool transactions')
-    }
+		Logger.info("Tracker : Listening for mempool transactions");
+	}
 
-    /**
-     * Synchronizes the mempool by fetching the transaction IDs currently in the mempool.
-     * @returns {Promise<void>}
-     */
-    async syncMempool() {
-        // pause execution until mempool processing is active
-        while (!this.isActive) {
-            await util.delay(keys.tracker.mempoolProcessPeriod)
-        }
+	/**
+	 * Synchronizes the mempool by fetching the transaction IDs currently in the mempool.
+	 * @returns {Promise<void>}
+	 */
+	async syncMempool() {
+		// pause execution until mempool processing is active
+		while (!this.isActive) {
+			await util.delay(keys.tracker.mempoolProcessPeriod);
+		}
 
-        /**
-         * Holds the transaction IDs currently in the mempool.
-         * @type {string[]}
-         */
-        const mempoolTxIds = await this.client.getrawmempool()
+		/**
+		 * Holds the transaction IDs currently in the mempool.
+		 * @type {string[]}
+		 */
+		const mempoolTxIds = await this.client.getrawmempool();
 
-        const t0 = Date.now()
-        Logger.info(`Tracker : Synchronizing Mempool (${mempoolTxIds.length} transactions)`)
+		const t0 = Date.now();
+		Logger.info(
+			`Tracker : Synchronizing Mempool (${mempoolTxIds.length} transactions)`,
+		);
 
-        const txIdLists = util.splitList(mempoolTxIds, 10)
+		const txIdLists = util.splitList(mempoolTxIds, 10);
 
-        await util.asyncPool(5, txIdLists, async (txids) => {
-            // filter out transactions already in cache and already in the DB
-            const filteredTxIds = txids.filter((txid) => !TransactionsCache.has(txid))
-            const dbTransactions = await db.getTransactionsIds(filteredTxIds)
-            const freshTxIds = filteredTxIds.filter((txid) => !dbTransactions[txid])
+		await util.asyncPool(5, txIdLists, async (txids) => {
+			// filter out transactions already in cache and already in the DB
+			const filteredTxIds = txids.filter(
+				(txid) => !TransactionsCache.has(txid),
+			);
+			const dbTransactions = await db.getTransactionsIds(filteredTxIds);
+			const freshTxIds = filteredTxIds.filter((txid) => !dbTransactions[txid]);
 
-            if (freshTxIds.length === 0) return
+			if (freshTxIds.length === 0) return;
 
-            const rpcRequests = freshTxIds.map((txid) => ({ method: 'getrawtransaction', params: { txid, verbose: false }, id: txid }))
+			const rpcRequests = freshTxIds.map((txid) => ({
+				method: "getrawtransaction",
+				params: { txid, verbose: false },
+				id: txid,
+			}));
 
-            try {
-                const txs = await this.client.batch(rpcRequests)
+			try {
+				const txs = await this.client.batch(rpcRequests);
 
-                for (const rtx of txs) {
-                    if (rtx.error) {
-                        Logger.info(`Tracker : MempoolProcessor.syncMempool() - transaction not in mempool: ${rtx.id}`)
-                    } else {
-                        const tx = bitcoin.Transaction.fromHex(rtx.result)
-                        this.mempoolBuffer.addTransaction(tx)
-                    }
-                }
-            } catch (error) {
-                Logger.error(error, 'Tracker : MempoolProcessor.syncMempool()')
-            }
-        })
+				for (const rtx of txs) {
+					if (rtx.error) {
+						Logger.info(
+							`Tracker : MempoolProcessor.syncMempool() - transaction not in mempool: ${rtx.id}`,
+						);
+					} else {
+						const tx = bitcoin.Transaction.fromHex(rtx.result);
+						this.mempoolBuffer.addTransaction(tx);
+					}
+				}
+			} catch (error) {
+				Logger.error(error, "Tracker : MempoolProcessor.syncMempool()");
+			}
+		});
 
-        const time = util.timePeriod((Date.now() - t0) / 1000, false)
-        Logger.info(`Tracker : Mempool synchronization finished in ${time}`)
-    }
+		const time = util.timePeriod((Date.now() - t0) / 1000, false);
+		Logger.info(`Tracker : Mempool synchronization finished in ${time}`);
+	}
 
-    /**
-     * Process transactions from the mempool buffer
-     * @returns {Promise<void>}
-     */
-    async processMempool() {
-        // Refresh the isActive flag
-        await this._refreshActiveStatus()
+	/**
+	 * Process transactions from the mempool buffer
+	 * @returns {Promise<void>}
+	 */
+	async processMempool() {
+		// Refresh the isActive flag
+		await this._refreshActiveStatus();
 
-        const activeLbl = this.isActive ? 'active' : 'inactive'
-        Logger.info(`Tracker : Processing ${activeLbl} Mempool (${this.mempoolBuffer.size()} transactions)`)
+		const activeLbl = this.isActive ? "active" : "inactive";
+		Logger.info(
+			`Tracker : Processing ${activeLbl} Mempool (${this.mempoolBuffer.size()} transactions)`,
+		);
 
-        const currentMempool = this.mempoolBuffer.toArray()
-        this.mempoolBuffer.clear()
+		const currentMempool = this.mempoolBuffer.toArray();
+		this.mempoolBuffer.clear();
 
-        for (const mempoolTx of currentMempool) {
-            if (!TransactionsCache.has(mempoolTx.txid)) {
-                // Process the transaction
-                const txCheck = await mempoolTx.checkTransaction()
-                // Notify the transaction if needed
-                if (txCheck && mempoolTx.doBroadcast) {
-                    this.notifyTx(mempoolTx.txid)
-                }
-            }
-        }
-    }
+		for (const mempoolTx of currentMempool) {
+			if (!TransactionsCache.has(mempoolTx.txid)) {
+				// Process the transaction
+				const txCheck = await mempoolTx.checkTransaction();
+				// Notify the transaction if needed
+				if (txCheck && mempoolTx.doBroadcast) {
+					this.notifyTx(mempoolTx.txid);
+				}
+			}
+		}
+	}
 
-    /**
-     * On reception of a new transaction from bitcoind mempool
-     * @param {Buffer} buf - transaction
-     * @returns {void}
-     */
-    onTx(buf) {
-        if (this.isActive) {
-            try {
-                let tx = bitcoin.Transaction.fromBuffer(buf)
-                this.mempoolBuffer.addTransaction(tx)
-            } catch (error) {
-                Logger.error(error, 'Tracker : MempoolProcessor.onTx()')
-                throw error
-            }
-        }
-    }
+	/**
+	 * On reception of a new transaction from bitcoind mempool
+	 * @param {Buffer} buf - transaction
+	 * @returns {void}
+	 */
+	onTx(buf) {
+		if (this.isActive) {
+			try {
+				const tx = bitcoin.Transaction.fromBuffer(buf);
+				this.mempoolBuffer.addTransaction(tx);
+			} catch (error) {
+				Logger.error(error, "Tracker : MempoolProcessor.onTx()");
+				throw error;
+			}
+		}
+	}
 
+	/**
+	 * On reception of a new transaction from /pushtx
+	 * @param {Buffer} buf - transaction
+	 * @returns {Promise<void>}
+	 */
+	async onPushTx(buf) {
+		try {
+			const pushedTx = bitcoin.Transaction.fromHex(buf.toString());
+			const txid = pushedTx.getId();
 
-    /**
-     * On reception of a new transaction from /pushtx
-     * @param {Buffer} buf - transaction
-     * @returns {Promise<void>}
-     */
-    async onPushTx(buf) {
-        try {
-            let pushedTx = bitcoin.Transaction.fromHex(buf.toString())
-            const txid = pushedTx.getId()
+			Logger.info(`Tracker : Processing tx for pushtx ${txid}`);
 
-            Logger.info(`Tracker : Processing tx for pushtx ${txid}`)
+			if (!TransactionsCache.has(txid)) {
+				// Process the transaction
+				const tx = new Transaction(pushedTx);
+				const txCheck = await tx.checkTransaction();
+				// Notify the transaction if needed
+				if (txCheck?.broadcast) this.notifyTx(txid);
+			}
+		} catch (error) {
+			Logger.error(error, "Tracker : MempoolProcessor.onPushTx()");
+			throw error;
+		}
+	}
 
-            if (!TransactionsCache.has(txid)) {
-                // Process the transaction
-                const tx = new Transaction(pushedTx)
-                const txCheck = await tx.checkTransaction()
-                // Notify the transaction if needed
-                if (txCheck && txCheck.broadcast)
-                    this.notifyTx(txid)
-            }
-        } catch (error) {
-            Logger.error(error, 'Tracker : MempoolProcessor.onPushTx()')
-            throw error
-        }
-    }
+	/**
+	 * Notify a new transaction
+	 * @param {string} txid - bitcoin transaction ID
+	 */
+	notifyTx(txid) {
+		// Real-time client updates for this transaction.
+		// Any address input or output present in transaction
+		// is a potential client to notify.
+		if (this.notifSock) this.notifSock.send(["transaction", txid]);
+	}
 
-    /**
-     * Notify a new transaction
-     * @param {string} txid - bitcoin transaction ID
-     */
-    notifyTx(txid) {
-        // Real-time client updates for this transaction.
-        // Any address input or output present in transaction
-        // is a potential client to notify.
-        if (this.notifSock)
-            this.notifSock.send(['transaction', txid])
-    }
+	/**
+	 * Notify a new block
+	 * @param {number} height - block height
+	 * @param {string} hash - block hash
+	 */
+	notifyBlock(height, hash) {
+		// Notify clients of the block
+		if (this.notifSock)
+			this.notifSock.send([
+				"block",
+				JSON.stringify({ height: height, hash: hash }),
+			]);
+	}
 
-    /**
-     * Notify a new block
-     * @param {number} height - block height
-     * @param {string} hash - block hash
-     */
-    notifyBlock(height, hash) {
-        // Notify clients of the block
-        if (this.notifSock)
-            this.notifSock.send(['block', JSON.stringify({ height: height, hash: hash })])
-    }
+	/**
+	 * Check unconfirmed transactions
+	 * @returns {Promise<void>}
+	 */
+	async checkUnconfirmed() {
+		// check that processing isn't already running
+		if (this.processingUnconfirmedTxs) return;
 
+		const t0 = Date.now();
 
-    /**
-     * Check unconfirmed transactions
-     * @returns {Promise<void>}
-     */
-    async checkUnconfirmed() {
-        // check that processing isn't already running
-        if (this.processingUnconfirmedTxs) return
+		Logger.info("Tracker : Processing unconfirmed transactions");
 
-        const t0 = Date.now()
+		const unconfirmedTxs = await db.getUnconfirmedTransactions();
 
-        Logger.info('Tracker : Processing unconfirmed transactions')
+		try {
+			if (unconfirmedTxs.length > 0) {
+				this.processingUnconfirmedTxs = true;
 
-        const unconfirmedTxs = await db.getUnconfirmedTransactions()
+				const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10);
 
-        try {
-            if (unconfirmedTxs.length > 0) {
-                this.processingUnconfirmedTxs = true
+				await util.asyncPool(5, unconfirmedTxLists, async (txList) => {
+					const rpcRequests = txList.map((tx) => ({
+						method: "getrawtransaction",
+						params: { txid: tx.txnTxid, verbose: true },
+						id: tx.txnTxid,
+					}));
+					const txs = await this.client.batch(rpcRequests);
 
-                const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10)
+					return await util.parallelCall(txs, async (rtx) => {
+						if (rtx.error) {
+							Logger.info(
+								`Tracker : MempoolProcessor.checkUnconfirmed() - transaction not in mempool: ${rtx.id}`,
+							);
+							// Transaction not in mempool. Update LRU cache and database
+							TransactionsCache.delete(rtx.id);
+							// TODO: Notify clients of orphaned transaction
+							return db.deleteTransaction(rtx.id);
+						} else {
+							if (!rtx.result.blockhash) return null;
+							// Transaction is confirmed
+							const block = await db.getBlockByHash(rtx.result.blockhash);
+							if (block?.blockID) {
+								Logger.info(`Tracker : Marking TXID ${rtx.id} confirmed`);
+								return db.confirmTransactions([rtx.id], block.blockID);
+							}
+						}
+					});
+				});
+			}
+		} catch (error) {
+			Logger.error(error, "Tracker : MempoolProcessor.checkUnconfirmed()");
+		} finally {
+			this.processingUnconfirmedTxs = false;
+		}
 
-                await util.asyncPool(5, unconfirmedTxLists, async (txList) => {
-                    const rpcRequests = txList.map((tx) => ({ method: 'getrawtransaction', params: { txid: tx.txnTxid, verbose: true }, id: tx.txnTxid }))
-                    const txs = await this.client.batch(rpcRequests)
+		// Logs
+		const ntx = unconfirmedTxs.length;
+		const dt = ((Date.now() - t0) / 1000).toFixed(1);
+		const per = ntx === 0 ? 0 : ((Date.now() - t0) / ntx).toFixed(0);
+		Logger.info(
+			`Tracker : Finished processing unconfirmed transactions ${dt}s, ${ntx} tx, ${per}ms/tx`,
+		);
+	}
 
-                    return await util.parallelCall(txs, async (rtx) => {
-                        if (rtx.error) {
-                            Logger.info(`Tracker : MempoolProcessor.checkUnconfirmed() - transaction not in mempool: ${rtx.id}`)
-                            // Transaction not in mempool. Update LRU cache and database
-                            TransactionsCache.delete(rtx.id)
-                            // TODO: Notify clients of orphaned transaction
-                            return db.deleteTransaction(rtx.id)
-                        } else {
-                            if (!rtx.result.blockhash) return null
-                            // Transaction is confirmed
-                            const block = await db.getBlockByHash(rtx.result.blockhash)
-                            if (block && block.blockID) {
-                                Logger.info(`Tracker : Marking TXID ${rtx.id} confirmed`)
-                                return db.confirmTransactions([rtx.id], block.blockID)
-                            }
-                        }
-                    })
-                })
-            }
-        } catch (error) {
-            Logger.error(error, 'Tracker : MempoolProcessor.checkUnconfirmed()')
-        } finally {
-            this.processingUnconfirmedTxs = false
-        }
+	/**
+	 * Sets the isActive flag
+	 * @private
+	 */
+	async _refreshActiveStatus() {
+		// Get highest header in the blockchain
+		// Get highest block processed by the tracker
+		try {
+			const [highestBlock, blockHeight] = await Promise.all([
+				db.getHighestBlock(),
+				this.client.getblockcount(),
+			]);
 
+			if (highestBlock == null || highestBlock.blockHeight === 0) {
+				this.isActive = false;
+				return;
+			}
 
-        // Logs
-        const ntx = unconfirmedTxs.length
-        const dt = ((Date.now() - t0) / 1000).toFixed(1)
-        const per = (ntx === 0) ? 0 : ((Date.now() - t0) / ntx).toFixed(0)
-        Logger.info(`Tracker : Finished processing unconfirmed transactions ${dt}s, ${ntx} tx, ${per}ms/tx`)
-    }
+			// Tolerate a delay of 6 blocks
+			this.isActive =
+				blockHeight >= network.ibdBlockHeight &&
+				blockHeight <= highestBlock.blockHeight + 6;
+		} catch (error) {
+			Logger.error(error, "Tracker : MempoolProcessor._refreshActiveStatus()");
+		}
+	}
 
-    /**
-     * Sets the isActive flag
-     * @private
-     */
-    async _refreshActiveStatus() {
-        // Get highest header in the blockchain
-        // Get highest block processed by the tracker
-        try {
-            const [highestBlock, blockHeight] = await Promise.all([db.getHighestBlock(), this.client.getblockcount()])
-
-            if (highestBlock == null || highestBlock.blockHeight === 0) {
-                this.isActive = false
-                return
-            }
-
-            // Tolerate a delay of 6 blocks
-            this.isActive = (blockHeight >= network.ibdBlockHeight) && (blockHeight <= highestBlock.blockHeight + 6)
-        } catch (error) {
-            Logger.error(error, 'Tracker : MempoolProcessor._refreshActiveStatus()')
-        }
-    }
-
-    /**
-     * Log mempool statistics
-     */
-    displayMempoolStats() {
-        Logger.info(`Tracker : Mempool Size: ${this.mempoolBuffer.size()}`)
-    }
-
+	/**
+	 * Log mempool statistics
+	 */
+	displayMempoolStats() {
+		Logger.info(`Tracker : Mempool Size: ${this.mempoolBuffer.size()}`);
+	}
 }
 
-
-export default MempoolProcessor
+export default MempoolProcessor;

@@ -3,12 +3,10 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-
-import Logger from '../lib/logger.js'
-import util from '../lib/util.js'
-import db from '../lib/db/mysql-db-wrapper.js'
-import { createRpcClient } from '../lib/bitcoind-rpc/rpc-client.js'
-
+import { createRpcClient } from "../lib/bitcoind-rpc/rpc-client.js";
+import db from "../lib/db/mysql-db-wrapper.js";
+import Logger from "../lib/logger.js";
+import util from "../lib/util.js";
 
 /**
  * Script inserting first blocks into the database
@@ -16,52 +14,49 @@ import { createRpcClient } from '../lib/bitcoind-rpc/rpc-client.js'
  */
 
 // RPC Client requests data from bitcoind
-let client = createRpcClient()
+const client = createRpcClient();
 
 // Database id of the previous block
-let prevID = null
-
+let prevID = null;
 
 async function processBlock(height) {
-    Logger.info(`Start processing block ${height}`)
+	Logger.info(`Start processing block ${height}`);
 
-    const blockHash = await client.getblockhash({ height })
+	const blockHash = await client.getblockhash({ height });
 
-    if (blockHash) {
-        const header = await client.getblockheader({ blockhash: blockHash, verbose: true })
+	if (blockHash) {
+		const header = await client.getblockheader({
+			blockhash: blockHash,
+			verbose: true,
+		});
 
-        if (header) {
-            const dbBlock = {
-                blockHeight: header.height,
-                blockHash: header.hash,
-                blockTime: header.time,
-                blockParent: prevID
-            }
+		if (header) {
+			const dbBlock = {
+				blockHeight: header.height,
+				blockHash: header.hash,
+				blockTime: header.time,
+				blockParent: prevID,
+			};
 
-            // eslint-disable-next-line require-atomic-updates
-            prevID = await db.addBlock(dbBlock)
-            Logger.info(`Successfully processed block ${height}`)
+			prevID = await db.addBlock(dbBlock);
+			Logger.info(`Successfully processed block ${height}`);
+		} else {
+			const error = `Unable to retrieve header of block ${height}`;
 
-        } else {
-            const error = `Unable to retrieve header of block ${height}`
+			Logger.error(null, error);
+			throw error;
+		}
+	} else {
+		const error = `Unable to find hash of block ${height}`;
 
-            Logger.error(null, error)
-            throw error
-        }
-
-    } else {
-        const error = `Unable to find hash of block ${height}`
-
-        Logger.error(null, error)
-        throw error
-    }
+		Logger.error(null, error);
+		throw error;
+	}
 }
-
 
 async function run(heights) {
-    return util.seriesCall(heights, processBlock)
+	return util.seriesCall(heights, processBlock);
 }
-
 
 /**
  * Launch the script
@@ -69,18 +64,21 @@ async function run(heights) {
 
 // Retrieves command line arguments
 if (process.argv.length < 3) {
-    Logger.error(null, 'Missing arguments. Command = node create-first-blocks.js <number_of_blocks>')
-    process.exit(1)
+	Logger.error(
+		null,
+		"Missing arguments. Command = node create-first-blocks.js <number_of_blocks>",
+	);
+	process.exit(1);
 }
 
 // Create list of integers from 0 to index passed as parameter (included)
-const n = Number.parseInt(process.argv[2], 10)
-const heights = util.range(0, n)
+const n = Number.parseInt(process.argv[2], 10);
+const heights = util.range(0, n);
 
-Logger.info('Start processing')
+Logger.info("Start processing");
 
 setTimeout(async () => {
-    return run(heights).then(() => {
-        Logger.info('Processing completed')
-    })
-}, 1500)
+	return run(heights).then(() => {
+		Logger.info("Processing completed");
+	});
+}, 1500);

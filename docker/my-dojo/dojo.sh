@@ -35,10 +35,20 @@ source_file "$DIR/conf/docker-bitcoind.conf"
 source_file "$DIR/conf/docker-explorer.conf"
 source_file "$DIR/conf/docker-common.conf"
 source_file "$DIR/conf/docker-tor.conf"
+source_file "$DIR/conf/docker-nginx.conf"
 source_file "$DIR/.env"
 
 # Export some variables for compose
 export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT BITCOIND_BLOCKS_DIR
+
+if [ "$EXPLORER_INSTALL" == "on" ] && [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+  export BITCOIND_IP INDEXER_IP INDEXER_RPC_PORT BITCOIND_RPC_USER BITCOIND_RPC_PASSWORD BITCOIND_RPC_PORT
+  export MEMPOOL_MYSQL_USER MEMPOOL_MYSQL_PASS MEMPOOL_MYSQL_ROOT_PASSWORD MEMPOOL_MYSQL_DATABASE
+fi
+
+if [ "$NGINX_EXTERNAL" == "on" ]; then
+  export NGINX_EXTERNAL_IP NGINX_EXTERNAL_PORT
+fi
 
 # Select YAML files
 select_yaml_files() {
@@ -53,16 +63,24 @@ select_yaml_files() {
   fi
 
   if [ "$EXPLORER_INSTALL" == "on" ]; then
-    yamlFiles="$yamlFiles -f $DIR/overrides/explorer.install.yaml"
+    if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/explorer.install.yaml"
+    elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/mempool.install.yaml"
+    fi
   fi
 
   if [ "$INDEXER_INSTALL" == "on" ]; then
-    if [ "$INDEXER_TYPE" == "addrindexrs" ]; then
-      yamlFiles="$yamlFiles -f $DIR/overrides/indexer.install.yaml"
+    if [ "$INDEXER_TYPE" == "electrs" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/electrs.install.yaml"
     elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
       yamlFiles="$yamlFiles -f $DIR/overrides/fulcrum.install.yaml"
+    fi
 
-      if [ "$INDEXER_EXTERNAL" == "on" ]; then
+    if [ "$INDEXER_EXTERNAL" == "on" ]; then
+      if [ "$INDEXER_TYPE" == "electrs" ]; then
+        yamlFiles="$yamlFiles -f $DIR/overrides/electrs.port.expose.yaml"
+      elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
         yamlFiles="$yamlFiles -f $DIR/overrides/fulcrum.port.expose.yaml"
       fi
     fi
@@ -71,6 +89,10 @@ select_yaml_files() {
   if [ "$SOROBAN_INSTALL" == "on" ]; then
     yamlFiles="$yamlFiles -f $DIR/overrides/soroban.install.yaml"
   fi
+
+  if [ "$NGINX_EXTERNAL" == "on" ]; then
+      yamlFiles="$yamlFiles -f $DIR/overrides/nginx.port.expose.yaml"
+    fi
 
   # Return yamlFiles
   echo "$yamlFiles"
@@ -370,11 +392,9 @@ onion() {
   fi
 
   if [ "$INDEXER_INSTALL" == "on" ]; then
-    if [ "$INDEXER_TYPE" == "fulcrum" ]; then
-      V3_ADDR_FULCRUM=$( docker exec -it tor cat /var/lib/tor/hsv3fulcrum/hostname )
-      echo "Fulcrum hidden service address = $V3_ADDR_FULCRUM"
-      echo " "
-    fi
+    V3_ADDR_ELECTRUM=$( docker exec -it tor cat /var/lib/tor/hsv3electrum/hostname )
+    echo "Electrum server hidden service address = $V3_ADDR_ELECTRUM"
+    echo " "
   fi
 
   if [ "$SOROBAN_INSTALL" == "on" ]; then
@@ -429,22 +449,23 @@ logs() {
       fi
       ;;
     indexer )
-      if [ "$INDEXER_INSTALL" == "on" ] && [ "$INDEXER_TYPE" == "addrindexrs" ]; then
-        display_logs $1 $2
+      if [ "$INDEXER_INSTALL" == "on" ]; then
+        if [ "$INDEXER_TYPE" == "electrs" ]; then
+          display_logs "electrs" $2
+        elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
+          display_logs "fulcrum" $2
+        fi
       else
         echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the internal indexer"
       fi
       ;;
-    fulcrum )
-      if [ "$INDEXER_INSTALL" == "on" ] && [ "$INDEXER_TYPE" == "fulcrum" ]; then
-        display_logs $1 $2
-      else
-        echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the Fulcrum indexer"
-      fi
-      ;;
     explorer )
       if [ "$EXPLORER_INSTALL" == "on" ]; then
-        display_logs $1 $2
+        if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
+          display_logs $1 $2
+        elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+          display_logs "mempool_api mempool_db mempool_web" $2
+        fi
       else
         echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the internal block explorer"
       fi
@@ -462,11 +483,17 @@ logs() {
         services="$services bitcoind"
       fi
       if [ "$EXPLORER_INSTALL" == "on" ]; then
-        services="$services explorer"
+        if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
+          services="$services explorer"
+        elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+          services="$services mempool_api"
+          services="$services mempool_db"
+          services="$services mempool_web"
+        fi
       fi
       if [ "$INDEXER_INSTALL" == "on" ]; then
-        if [ "$INDEXER_TYPE" == "addrindexrs" ]; then
-          services="$services indexer"
+        if [ "$INDEXER_TYPE" == "electrs" ]; then
+          services="$services electrs"
         elif [ "$INDEXER_TYPE" == "fulcrum" ]; then
           services="$services fulcrum"
         fi
@@ -507,8 +534,7 @@ help() {
   echo "                                  dojo.sh logs db             : display the logs of the MySQL database"
   echo "                                  dojo.sh logs tor            : display the logs of tor"
   echo "                                  dojo.sh logs nginx          : display the logs of nginx"
-  echo "                                  dojo.sh logs indexer        : display the logs of the internal indexer"
-  echo "                                  dojo.sh logs fulcrum        : display the logs of the Fulcrum indexer"
+  echo "                                  dojo.sh logs indexer        : display the logs of the internal electrum server"
   echo "                                  dojo.sh logs node           : display the logs of NodeJS modules (API, Tracker, PushTx API, Orchestrator)"
   echo "                                  dojo.sh logs explorer       : display the logs of the Explorer"
   echo "                                  dojo.sh logs soroban        : display the logs of the Soroban instance"

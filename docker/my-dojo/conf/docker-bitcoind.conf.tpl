@@ -37,7 +37,7 @@ BITCOIND_MEMPOOL_EXPIRY=72
 
 # Min relay tx fee in BTC
 # Type: numeric
-BITCOIND_MIN_RELAY_TX_FEE=0.00001
+BITCOIND_MIN_RELAY_TX_FEE=0.000001
 
 # Allow incoming connections
 # This parameter is inactive if BITCOIND_INSTALL is set to 'off'

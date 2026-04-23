@@ -23,7 +23,14 @@
   <div id="top-container" class="container" hidden>
     <!-- HEADER -->
     <div id="header" class="row">
-      <div class="col-xs-9">
+      <div class="col-xs-2">
+        <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Toggle menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+      <div class="col-xs-7">
         <h1 class="title"><span>DOJO // MAINTENANCE TOOL</span> <span id="dojo-version" class="beta"></span></h1>
       </div>
       <div class="col-xs-3 login-box">
@@ -37,6 +44,9 @@
 
     <!-- BODY -->
     <div id="body" class="row">
+      <!-- MOBILE MENU OVERLAY -->
+      <div id="mobile-menu-overlay" class="mobile-menu-overlay"></div>
+      
       <!-- MENU -->
       <div id="menu" class="col-xs-2">
         <div class="title">

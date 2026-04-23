@@ -23,7 +23,3 @@ services:
     networks:
       dojonet:
         ipv4_address: ${NET_DOJO_EXPLORER_IPV4}
-
-  node:
-    depends_on:
-      - explorer

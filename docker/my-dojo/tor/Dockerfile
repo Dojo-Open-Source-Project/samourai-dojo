@@ -1,8 +1,8 @@
-FROM    debian:bookworm-slim AS torbuilder
+FROM    debian:trixie-slim AS torbuilder
 
 ENV     TOR_URL             https://dist.torproject.org
 ENV     TOR_MIRROR_URL      https://tor.eff.org/dist
-ENV     TOR_VERSION         0.4.8.16
+ENV     TOR_VERSION         0.4.9.6
 ENV     TOR_GPG_KS_URI      hkps://keyserver.ubuntu.com:443
 ENV     TOR_GPG_KEYS        0xEB5A896A28988BF5 0xC218525819F78451 0x21194EBB165733EA 0x6AFEE6D49E92B601 B74417EDDF22AC9F9E90F49142E86A2A11F48D36 514102454D0A87DB0767A1EBBE6A0531C18A9179
 
@@ -38,7 +38,7 @@ RUN     set -ex && \
             --disable-unittests && \
         make && make install
 
-FROM    golang:1.23-bookworm AS obfs4builder
+FROM    golang:1.25.6-trixie AS obfs4builder
 
 ENV     OBFS4_URL           https://github.com/Yawning/obfs4.git
 ENV     OBFS4_VERSION       0.0.14
@@ -54,10 +54,10 @@ RUN     git clone "$OBFS4_URL" /usr/local/src/obfs4proxy && \
         go build -o obfs4proxy/obfs4proxy ./obfs4proxy && \
         cp ./obfs4proxy/obfs4proxy /usr/local/bin
 
-FROM    golang:1.23-bookworm AS snowflakebuilder
+FROM    golang:1.25.6-trixie AS snowflakebuilder
 
 ENV     SNOWFLAKE_URL       https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git
-ENV     SNOWFLAKE_VERSION   2.11.0
+ENV     SNOWFLAKE_VERSION   2.13.1
 
 RUN     set -ex && \
         apt-get update && \
@@ -72,7 +72,7 @@ RUN     git clone "$SNOWFLAKE_URL" /usr/local/src/snowflake && \
         go build -o snowflake-client && \
         cp ./snowflake-client /usr/local/bin
 
-FROM    debian:bookworm-slim
+FROM    debian:trixie-slim
 
 ENV     TOR_HOME        /var/lib/tor
 ENV     TOR_BIN         /usr/local/bin/tor
@@ -92,7 +92,7 @@ COPY    --from=snowflakebuilder $SNOWFLAKE_PROXY $SNOWFLAKE_PROXY
 
 RUN     set -ex && \
         apt-get update && \
-        apt-get install -y libevent-dev netcat-openbsd && \
+        apt-get install -y libevent-dev netcat-openbsd adduser && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

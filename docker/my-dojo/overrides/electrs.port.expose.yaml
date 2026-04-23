@@ -1,0 +1,4 @@
+services:
+  electrs:
+    ports:
+      - "${INDEXER_EXTERNAL_IP}:50001:50001"

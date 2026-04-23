@@ -33,8 +33,13 @@ fi
 if [ "$EXPLORER_INSTALL" == "on" ]; then
   tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3explorer)
   tor_options+=(--HiddenServiceVersion 3)
-  tor_options+=(--HiddenServicePort "80 $NET_DMZ_NGINX_IPV4:9080")
   tor_options+=(--HiddenServiceDirGroupReadable 1)
+
+  if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
+    tor_options+=(--HiddenServicePort "80 $NET_DOJO_EXPLORER_IPV4:3002")
+  elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
+    tor_options+=(--HiddenServicePort "80 $NET_MEMPOOL_WEB_IPV4:8080")
+  fi
 fi
 
 if [ "$TOR_USE_BRIDGES" == "on" ]; then
@@ -56,12 +61,10 @@ if [ "$TOR_USE_BRIDGES" == "on" ]; then
 fi
 
 if [ "$INDEXER_INSTALL" == "on" ]; then
-  if [ "$INDEXER_TYPE" == "fulcrum" ]; then
-    tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3fulcrum)
-    tor_options+=(--HiddenServiceVersion 3)
-    tor_options+=(--HiddenServicePort "50001 $NET_DOJO_INDEXER_IPV4:50001")
-    tor_options+=(--HiddenServiceDirGroupReadable 1)
-  fi
+  tor_options+=(--HiddenServiceDir /var/lib/tor/hsv3electrum)
+  tor_options+=(--HiddenServiceVersion 3)
+  tor_options+=(--HiddenServicePort "50001 $NET_DOJO_INDEXER_IPV4:50001")
+  tor_options+=(--HiddenServiceDirGroupReadable 1)
 fi
 
 if [ "$SOROBAN_INSTALL" == "on" ]; then
