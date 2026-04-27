@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.29.1](#samourai-dojo-v1291)
 - [v1.29.0](#samourai-dojo-v1290)
 - [v1.28.2](#samourai-dojo-v1282)
 - [v1.28.1](#samourai-dojo-v1281)
@@ -11,6 +12,15 @@
 - [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
+
+## Samourai Dojo v1.29.1
+
+### Notable changes
+Reverted bitcoinjs updated that cause block sync to stall.
+
+### Changelog
+- Updated lockfile [77ebbeeb](77ebbeeb)
+- Reverted dependency update [d5ae6ad9](d5ae6ad9)
 
 ## Samourai Dojo v1.29.0
 
