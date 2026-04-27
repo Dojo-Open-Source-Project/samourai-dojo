@@ -5,7 +5,6 @@
 
 import { Sema } from "async-sema";
 import * as bitcoin from "bitcoinjs-lib";
-import { toHex } from "uint8array-tools";
 import zmq from "zeromq/v5-compat.js";
 import keysFile from "../keys/index.js";
 import network from "../lib/bitcoin/network.js";
@@ -473,7 +472,7 @@ class BlockchainProcessor {
 								height: height,
 								time: block.timestamp,
 								hash: block.getId(),
-								previousblockhash: toHex(block.prevHash.reverse()),
+								previousblockhash: Buffer.from(block.prevHash.reverse()).toString('hex')
 							},
 							block.transactions,
 						);

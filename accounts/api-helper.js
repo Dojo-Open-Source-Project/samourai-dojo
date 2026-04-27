@@ -4,7 +4,6 @@
  */
 
 import * as bitcoin from "bitcoinjs-lib";
-import { fromHex } from "uint8array-tools";
 import validator from "validator";
 import addrHelper from "../lib/bitcoin/addresses-helper.js";
 import hdaHelper from "../lib/bitcoin/hd-accounts-helper.js";
@@ -45,7 +44,7 @@ class ApiHelper {
 					!returnValue.hasPubKey(item)
 				) {
 					// Derive pubkey as 3 addresses (P1PKH, P2WPKH/P2SH, BECH32)
-					const bufItem = fromHex(item);
+					const bufItem = Buffer.from(item, 'hex')
 
 					const funcs = [
 						addrHelper.p2pkhAddress,
