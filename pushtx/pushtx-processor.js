@@ -131,7 +131,7 @@ class PushTxProcessor {
 		try {
 			const tx = bitcoin.Transaction.fromHex(rawtx);
 			txid = tx.getId();
-			for (const output of tx.outs) value += Number(output.value);
+			for (const output of tx.outs) value += output.value;
 			Logger.info(`PushTx : Push for ${(value / 1e8).toFixed(8)} BTC`);
 		} catch {
 			throw errors.tx.PARSE;

@@ -3,7 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import { toHex } from "uint8array-tools";
 import addrHelper from "../lib/bitcoin/addresses-helper.js";
 import db from "../lib/db/mysql-db-wrapper.js";
 import util from "../lib/util.js";
@@ -191,7 +190,7 @@ class TransactionsBundle {
 
 			for (const index_ in tx.tx.ins) {
 				const spendHash = tx.tx.ins[index_].hash;
-				const spendTxid = toHex(spendHash.reverse());
+				const spendTxid = Buffer.from(spendHash).reverse().toString('hex')
 				const spendIndex = tx.tx.ins[index_].index;
 				inputs.push({ txid: spendTxid, index: spendIndex });
 				const key = `${spendTxid}-${spendIndex}`;
