@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.29.2](#samourai-dojo-v1292)
 - [v1.29.1](#samourai-dojo-v1291)
 - [v1.29.0](#samourai-dojo-v1290)
 - [v1.28.2](#samourai-dojo-v1282)
@@ -12,6 +13,12 @@
 - [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
+
+## Samourai Dojo v1.29.2
+
+### Changelog
+- Remove bitcoind from mempool dependencies [146f0a43](146f0a43)
+- Bump Fulcrum to v2.1.1 [bb4ef189](bb4ef189)
 
 ## Samourai Dojo v1.29.1
 
