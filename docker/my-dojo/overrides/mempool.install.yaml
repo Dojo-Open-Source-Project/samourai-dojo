@@ -37,7 +37,6 @@ services:
         max-size: "20m"
         max-file: "10"
     depends_on:
-      - bitcoind
       - mempool_db
     networks:
       dojonet:
