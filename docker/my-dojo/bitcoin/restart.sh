@@ -50,6 +50,7 @@ fi
 if [ "$BITCOIND_RPC_EXTERNAL" == "on" ]; then
   bitcoind_options+=(-zmqpubhashtx=tcp://0.0.0.0:9500)
   bitcoind_options+=(-zmqpubrawblock=tcp://0.0.0.0:9503)
+  bitcoind_options+=(-zmqpubsequence=tcp://0.0.0.0:9504)
 fi
 
 if [ "$BITCOIND_BLOOM_FILTERS" == "on" ]; then
