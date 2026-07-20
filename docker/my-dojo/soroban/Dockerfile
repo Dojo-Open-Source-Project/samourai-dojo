@@ -4,7 +4,7 @@
 FROM    alpine:3.23.3 AS torproject
 
 ENV     TOR_GIT_URL=https://gitlab.torproject.org/tpo/core/tor.git
-ENV     TOR_VERSION=tor-0.4.9.6
+ENV     TOR_VERSION=tor-0.4.9.11
 
 RUN     apk --update --no-cache add ca-certificates
 RUN     apk --no-cache add alpine-sdk automake autoconf
