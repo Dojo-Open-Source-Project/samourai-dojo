@@ -1,10 +1,10 @@
 FROM    debian:trixie-slim AS torbuilder
 
-ENV     TOR_URL             https://dist.torproject.org
-ENV     TOR_MIRROR_URL      https://tor.eff.org/dist
-ENV     TOR_VERSION         0.4.9.6
-ENV     TOR_GPG_KS_URI      hkps://keyserver.ubuntu.com:443
-ENV     TOR_GPG_KEYS        0xEB5A896A28988BF5 0xC218525819F78451 0x21194EBB165733EA 0x6AFEE6D49E92B601 B74417EDDF22AC9F9E90F49142E86A2A11F48D36 514102454D0A87DB0767A1EBBE6A0531C18A9179
+ENV     TOR_URL=https://dist.torproject.org
+ENV     TOR_MIRROR_URL=https://tor.eff.org/dist
+ENV     TOR_VERSION=0.4.9.6
+ENV     TOR_GPG_KS_URI=hkps://keyserver.ubuntu.com:443
+ENV     TOR_GPG_KEYS="0xEB5A896A28988BF5 0xC218525819F78451 0x21194EBB165733EA 0x6AFEE6D49E92B601 B74417EDDF22AC9F9E90F49142E86A2A11F48D36 514102454D0A87DB0767A1EBBE6A0531C18A9179"
 
 # Install Tor
 RUN     set -ex && \
@@ -40,8 +40,8 @@ RUN     set -ex && \
 
 FROM    golang:1.25.6-trixie AS obfs4builder
 
-ENV     OBFS4_URL           https://github.com/Yawning/obfs4.git
-ENV     OBFS4_VERSION       0.0.14
+ENV     OBFS4_URL=https://github.com/Yawning/obfs4.git
+ENV     OBFS4_VERSION=0.0.14
 
 RUN     set -ex && \
         apt-get update && \
@@ -56,8 +56,8 @@ RUN     git clone "$OBFS4_URL" /usr/local/src/obfs4proxy && \
 
 FROM    golang:1.25.6-trixie AS snowflakebuilder
 
-ENV     SNOWFLAKE_URL       https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git
-ENV     SNOWFLAKE_VERSION   2.13.1
+ENV     SNOWFLAKE_URL=https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git
+ENV     SNOWFLAKE_VERSION=2.13.1
 
 RUN     set -ex && \
         apt-get update && \
@@ -74,12 +74,12 @@ RUN     git clone "$SNOWFLAKE_URL" /usr/local/src/snowflake && \
 
 FROM    debian:trixie-slim
 
-ENV     TOR_HOME        /var/lib/tor
-ENV     TOR_BIN         /usr/local/bin/tor
-ENV     TOR_CONF        /etc/tor
-ENV     TOR_MAN         /usr/local/share/man
-ENV     OBFS_PROXY      /usr/local/bin/obfs4proxy
-ENV     SNOWFLAKE_PROXY /usr/local/bin/snowflake-client
+ENV     TOR_HOME=/var/lib/tor
+ENV     TOR_BIN=/usr/local/bin/tor
+ENV     TOR_CONF=/etc/tor
+ENV     TOR_MAN=/usr/local/share/man
+ENV     OBFS_PROXY=/usr/local/bin/obfs4proxy
+ENV     SNOWFLAKE_PROXY=/usr/local/bin/snowflake-client
 
 ARG     TOR_LINUX_UID
 ARG     TOR_LINUX_GID

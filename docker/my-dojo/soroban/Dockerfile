@@ -3,8 +3,8 @@
 #
 FROM    alpine:3.23.3 AS torproject
 
-ENV     TOR_GIT_URL     https://gitlab.torproject.org/tpo/core/tor.git
-ENV     TOR_VERSION     tor-0.4.9.6
+ENV     TOR_GIT_URL=https://gitlab.torproject.org/tpo/core/tor.git
+ENV     TOR_VERSION=tor-0.4.9.6
 
 RUN     apk --update --no-cache add ca-certificates
 RUN     apk --no-cache add alpine-sdk automake autoconf
@@ -56,8 +56,8 @@ EXPOSE  9050
 #
 FROM    golang:1.25.6-alpine3.23 AS gobuild
 
-ENV     SOROBAN_VERSION         0.4.2
-ENV     SOROBAN_URL             https://github.com/Dojo-Open-Source-Project/soroban/archive/refs/tags/v$SOROBAN_VERSION.tar.gz
+ENV     SOROBAN_VERSION=0.4.2
+ENV     SOROBAN_URL=https://github.com/Dojo-Open-Source-Project/soroban/archive/refs/tags/v$SOROBAN_VERSION.tar.gz
 
 RUN     apk --no-cache --update add ca-certificates
 RUN     apk --no-cache --update add alpine-sdk linux-headers wget
@@ -80,7 +80,7 @@ RUN     go build -a -tags netgo -o /stage/soroban-server ./cmd/server
 #
 FROM    soroban-tor
 
-ENV     SOROBAN_HOME            /home/soroban
+ENV     SOROBAN_HOME=/home/soroban
 ARG     SOROBAN_LINUX_UID
 ARG     SOROBAN_LINUX_GID
 

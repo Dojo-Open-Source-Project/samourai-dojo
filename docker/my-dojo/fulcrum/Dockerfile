@@ -1,12 +1,12 @@
 FROM    debian:trixie-slim AS builder
 
-ENV     INDEXER_VERSION       2.1.1
-ENV     INDEXER_SHASUMS       Fulcrum-${INDEXER_VERSION}-shasums.txt
-ENV     INDEXER_ASC           ${INDEXER_SHASUMS}.asc
-ENV     INDEXER_URL           https://github.com/cculianu/Fulcrum/releases/download
-ENV     INDEXER_BUILD_AMD64   x86_64-linux
-ENV     INDEXER_BUILD_ARM64   arm64-linux
-ENV     INDEXER_FILES         /usr/fulcrum
+ENV     INDEXER_VERSION=2.1.1
+ENV     INDEXER_SHASUMS=Fulcrum-${INDEXER_VERSION}-shasums.txt
+ENV     INDEXER_ASC=${INDEXER_SHASUMS}.asc
+ENV     INDEXER_URL=https://github.com/cculianu/Fulcrum/releases/download
+ENV     INDEXER_BUILD_AMD64=x86_64-linux
+ENV     INDEXER_BUILD_ARM64=arm64-linux
+ENV     INDEXER_FILES=/usr/fulcrum
 
 RUN     apt-get update && \
         apt-get install -y wget curl gpg gpg-agent
@@ -36,10 +36,10 @@ RUN     set -ex && \
 
 FROM    debian:trixie-slim
 
-ENV     INDEXER_FILES         /usr/fulcrum
-ENV     INDEXER_HOME          /home/fulcrum
-ENV     SSL_CERTFILE          ${INDEXER_HOME}/.fulcrum/fulcrum.crt
-ENV     SSL_KEYFILE           ${INDEXER_HOME}/.fulcrum/fulcrum.key
+ENV     INDEXER_FILES=/usr/fulcrum
+ENV     INDEXER_HOME=/home/fulcrum
+ENV     SSL_CERTFILE=${INDEXER_HOME}/.fulcrum/fulcrum.crt
+ENV     SSL_KEYFILE=${INDEXER_HOME}/.fulcrum/fulcrum.key
 
 ARG     FULCRUM_LINUX_GID
 ARG     FULCRUM_LINUX_UID

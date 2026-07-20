@@ -1,11 +1,11 @@
 FROM    node:24-alpine3.23 AS builder
 
-ENV     NODE_ENV             production
+ENV     NODE_ENV=production
 
-ENV     APP_DIR              /home/node/app
+ENV     APP_DIR=/home/node/app
 
-ENV     EXPLORER_VERSION     3.5.1+SW
-ENV     EXPLORER_URL         https://github.com/Dojo-Open-Source-Project/btc-rpc-explorer/archive/refs/tags/v$EXPLORER_VERSION.tar.gz
+ENV     EXPLORER_VERSION=3.5.1+SW
+ENV     EXPLORER_URL=https://github.com/Dojo-Open-Source-Project/btc-rpc-explorer/archive/refs/tags/v$EXPLORER_VERSION.tar.gz
 
 # Install netcat
 RUN     set -ex && \
@@ -22,8 +22,8 @@ RUN     set -ex && \
 
 FROM    node:24-alpine3.23
 
-ENV     NODE_ENV        production
-ENV     APP_DIR         /home/node/app
+ENV     NODE_ENV=production
+ENV     APP_DIR=/home/node/app
 
 RUN     set -ex && \
         apk --no-cache add bash netcat-openbsd

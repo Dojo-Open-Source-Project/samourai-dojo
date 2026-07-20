@@ -4,15 +4,15 @@ FROM    debian:trixie-slim AS builder
 #################################################################
 # INSTALL BITCOIN
 #################################################################
-ENV     BITCOIN_VERSION     31.1
-ENV     BITCOIN_URL         https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}
-ENV     BITCOIN_FILE_AMD64  bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
-ENV     BITCOIN_FILE_ARM64  bitcoin-${BITCOIN_VERSION}-aarch64-linux-gnu.tar.gz
-ENV     BITCOIN_FILE_PPCLE  bitcoin-${BITCOIN_VERSION}-powerpc64le-linux-gnu.tar.gz
-ENV     BITCOIN_SHASUMS     SHA256SUMS
-ENV     BITCOIN_SHASUMS_ASC SHA256SUMS.asc
-ENV     BITCOIN_BUILDERS    https://github.com/bitcoin-core/guix.sigs/archive/refs/heads/main.tar.gz
-ENV     BITCOIN_BUILDERS_FILE builders.tar.gz
+ENV     BITCOIN_VERSION=31.1
+ENV     BITCOIN_URL=https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}
+ENV     BITCOIN_FILE_AMD64=bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
+ENV     BITCOIN_FILE_ARM64=bitcoin-${BITCOIN_VERSION}-aarch64-linux-gnu.tar.gz
+ENV     BITCOIN_FILE_PPCLE=bitcoin-${BITCOIN_VERSION}-powerpc64le-linux-gnu.tar.gz
+ENV     BITCOIN_SHASUMS=SHA256SUMS
+ENV     BITCOIN_SHASUMS_ASC=SHA256SUMS.asc
+ENV     BITCOIN_BUILDERS=https://github.com/bitcoin-core/guix.sigs/archive/refs/heads/main.tar.gz
+ENV     BITCOIN_BUILDERS_FILE=builders.tar.gz
 
 
 RUN     set -ex && \
@@ -49,7 +49,7 @@ RUN     set -ex && \
 
 FROM    debian:trixie-slim
 
-ENV     BITCOIN_HOME        /home/bitcoin
+ENV     BITCOIN_HOME=/home/bitcoin
 
 ARG     BITCOIND_LINUX_UID
 ARG     BITCOIND_LINUX_GID

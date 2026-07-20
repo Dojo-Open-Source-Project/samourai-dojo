@@ -1,9 +1,9 @@
 FROM    debian:trixie-slim AS builder
 
-ENV     ELECTRS_VERSION     v0.11.1
-ENV     ARCHIVE_URL         https://github.com/Dojo-Open-Source-Project/electrs-binaries/archive/refs/heads/master.tar.gz
-ENV     ELECTRS_FILE_AMD64  electrs-x86_64-linux
-ENV     ELECTRS_FILE_ARM64  electrs-arm64-linux
+ENV     ELECTRS_VERSION=v0.11.1
+ENV     ARCHIVE_URL=https://github.com/Dojo-Open-Source-Project/electrs-binaries/archive/refs/heads/master.tar.gz
+ENV     ELECTRS_FILE_AMD64=electrs-x86_64-linux
+ENV     ELECTRS_FILE_ARM64=electrs-arm64-linux
 
 RUN     apt-get update && \
         apt-get install -y wget curl gpg gpg-agent
@@ -33,7 +33,7 @@ RUN     set -ex && \
 
 FROM    debian:trixie-slim
 
-ENV     ELECTRS_HOME        /home/electrs
+ENV     ELECTRS_HOME=/home/electrs
 
 ARG     ELECTRS_LINUX_UID
 ARG     ELECTRS_LINUX_GID

@@ -1,7 +1,7 @@
 FROM    node:24-alpine3.23 AS builder
 
-ENV     NODE_ENV    production
-ENV     APP_DIR     /home/node/app
+ENV     NODE_ENV=production
+ENV     APP_DIR=/home/node/app
 
 RUN     set -ex && \
         apk --no-cache add gcc g++ make python3 curl cmake
@@ -18,8 +18,8 @@ RUN     cd "$APP_DIR" && \
 
 FROM    node:24-alpine3.23
 
-ENV     NODE_ENV    production
-ENV     APP_DIR     /home/node/app
+ENV     NODE_ENV=production
+ENV     APP_DIR=/home/node/app
 
 ARG     TOR_LINUX_GID
 
