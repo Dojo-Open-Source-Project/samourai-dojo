@@ -71,6 +71,21 @@ function initPages() {
     }
 }
 
+function refreshSyncIndicator() {
+    lib_api.getPushtxStatus().then(pushTxStatus => {
+        const data = pushTxStatus && pushTxStatus.data
+        if (!data || !data.bitcoind)
+            throw new Error('no bitcoind status')
+
+        document.querySelector('#sync-indicator').dataset.state = 'ok'
+        document.querySelector('#sync-block-height').textContent = data.bitcoind.blocks
+        document.querySelector('#sync-network').textContent = data.bitcoind.testnet === true ? 'TESTNET' : 'MAINNET'
+    }).catch(() => {
+        document.querySelector('#sync-indicator').dataset.state = 'ko'
+        document.querySelector('#sync-block-height').textContent = '—'
+    })
+}
+
 function _initPages() {
     for (let screen of screens) {
         const screenScript = screenScripts.get(screen)
@@ -111,6 +126,12 @@ function preparePage() {
     // Inits menu and pages
     initTabs()
     initPages()
+
+    // Refresh the header sync indicator
+    refreshSyncIndicator()
+    setInterval(() => {
+        refreshSyncIndicator()
+    }, 60000)
 
     // Set event handlers
     document.querySelector('#btn-logout').addEventListener('click', () => {

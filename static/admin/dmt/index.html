@@ -20,35 +20,24 @@
 </head>
 
 <body class="dmt">
-  <div id="top-container" class="container" hidden>
-    <!-- HEADER -->
-    <div id="header" class="row">
-      <div class="col-xs-2">
-        <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Toggle menu">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-      </div>
-      <div class="col-xs-7">
-        <h1 class="title"><span>DOJO // MAINTENANCE TOOL</span> <span id="dojo-version" class="beta"></span></h1>
-      </div>
-      <div class="col-xs-3 login-box">
-        <a id="btn-logout" style="display: inline;" href="#" title="DISCONNECT">
-          <img src="../icons/ic_power_settings_new_white_24dp_1x.png" class="mini-icon"/>
-        </a>
-      </div>
-    </div>
-
-    <div class="spacer30"></div>
-
+  <div id="top-container" class="container-fluid" hidden>
     <!-- BODY -->
     <div id="body" class="row">
       <!-- MOBILE MENU OVERLAY -->
       <div id="mobile-menu-overlay" class="mobile-menu-overlay"></div>
-      
-      <!-- MENU -->
+
+      <!-- MENU (full height, logo lives at its top) -->
       <div id="menu" class="col-xs-2">
+        <div id="brand" class="brand">
+          <div class="brand-tile">
+            <img src="../icons/dojo.svg" class="brand-tile-icon" alt=""/>
+          </div>
+          <div class="brand-wordmark">
+            <div class="brand-name">DOJO</div>
+            <div class="brand-subtitle">MAINTENANCE TOOL</div>
+            <div id="dojo-version" class="beta"></div>
+          </div>
+        </div>
         <div class="title">
           <h1>MONITORING</h1>
         </div>
@@ -103,9 +92,32 @@
           </li>
         </ul>
       </div>
-      <div class="col-xs-1"></div>
+      <div id="menu-spacer" class="col-xs-1"></div>
+      <!-- CONTENT COLUMN: header sits only above this column, not the sidebar -->
+      <div id="content-col" class="col-xs-9">
+        <!-- HEADER -->
+        <div id="header" class="row">
+          <div class="col-xs-2">
+            <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Toggle menu">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+          </div>
+          <div class="col-xs-10 header-right">
+            <span id="sync-indicator" class="sync-indicator" data-state="idle">
+              <span class="sync-dot"></span>
+              <span>SYNCED &middot; <span id="sync-block-height">&mdash;</span></span>
+            </span>
+            <span id="sync-network" class="sync-network">MAINNET</span>
+            <a id="btn-logout" href="#" title="DISCONNECT">
+              <img src="../icons/ic_power_settings_new_white_24dp_1x.png" class="mini-icon"/>
+            </a>
+          </div>
+        </div>
+
       <!-- MAIN AREA -->
-      <div id="main" class="col-xs-9">
+      <div id="main">
         <!-- WELCOME -->
         <div id="screen-welcome"
           data-include-html="welcome/welcome.html"
@@ -156,6 +168,7 @@
           data-include-html="welcome/welcome.html"
           hidden>
         </div>
+      </div>
       </div>
     </div>
   </div>

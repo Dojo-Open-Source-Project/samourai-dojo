@@ -3,31 +3,27 @@
 
   <div class="box-context">Monitor the transactions pushed through your Dojo.</div>
 
-  <div class="row box-main">
-    <div id="txs-pushed" class="box fullwidth">
-      <div class="box-header">TRANSACTIONS PUSHED</div>
-      <div class="box-body">
-        <table>
-          <tr>
-            <td class="table-label">Uptime</td>
-            <td class="table-value" id="pushed-uptime"></td>
-          </tr>
-          <tr>
-            <td class="table-label">Number of Transactions</td>
-            <td class="table-value" id="pushed-count"></td>
-          </tr>
-          <tr>
-            <td class="table-label">Total Amount</td>
-            <td class="table-value" id="pushed-amount"></td>
-          </tr>
-        </table>
-      </div>
+  <div class="headline-strip">
+    <div class="headline-cell">
+      <div class="headline-label">Uptime</div>
+      <div class="headline-value" id="pushed-uptime">&mdash;</div>
+    </div>
+    <div class="headline-cell">
+      <div class="headline-label">Transactions Pushed</div>
+      <div class="headline-value" id="pushed-count">&mdash;</div>
+    </div>
+    <div class="headline-cell">
+      <div class="headline-label">Total Amount</div>
+      <div class="headline-value" id="pushed-amount">&mdash;</div>
     </div>
   </div>
 
   <div class="row box-main">
     <div id="txs-scheduled" class="box fullwidth">
-      <div class="box-header">TRANSACTIONS SCHEDULED</div>
+      <div class="box-header">
+        <span>SCHEDULED TRANSACTIONS</span>
+        <span id="scheduled-count" class="box-header-count">0</span>
+      </div>
       <div class="box-body">
         <table id="table-scheduled-txs">
           <thead>

@@ -88,6 +88,10 @@ const statusScript = {
         document.querySelector('#node-network').textContent = '-'
         document.querySelector('#node-conn').textContent = '-'
         document.querySelector('#node-relay-fee').textContent = '-'
+        document.querySelector('#headline-block-height').textContent = '-'
+        document.querySelector('#headline-uptime').textContent = '-'
+        document.querySelector('#headline-peers').textContent = '-'
+        document.querySelector('#headline-relay-fee').textContent = '-'
 
         //lib_msg.displayMessage('Loading Tracker status info...');
         lib_api.getPushtxStatus().then(pushTxStatus => {
@@ -96,13 +100,19 @@ const statusScript = {
                 statusScript.setStatusIndicator('#node-status-ind', 'ok')
                 const uptime = lib_cmn.timePeriod(data.uptime)
                 document.querySelector('#node-uptime').textContent = uptime
+                document.querySelector('#headline-uptime').textContent = uptime
                 statusScript.chaintipBitcoind = data.bitcoind.blocks
                 document.querySelector('#node-chaintip').textContent = data.bitcoind.blocks
+                document.querySelector('#headline-block-height').textContent = data.bitcoind.blocks
                 document.querySelector('#node-version').textContent = data.bitcoind.version
                 const network = data.bitcoind.testnet === true ? 'testnet' : 'mainnet'
                 document.querySelector('#node-network').textContent = network
                 document.querySelector('#node-conn').textContent = data.bitcoind.conn
-                document.querySelector('#node-relay-fee').textContent = data.bitcoind.relayfee
+                document.querySelector('#headline-peers').textContent = data.bitcoind.conn
+                // relayfee is reported by bitcoind in BTC/kB; convert to sats/vB
+                const relayFeeSatsPerVb = `${(Number.parseFloat(data.bitcoind.relayfee) * 100000).toFixed(2)} sats/vB`
+                document.querySelector('#node-relay-fee').textContent = relayFeeSatsPerVb
+                document.querySelector('#headline-relay-fee').textContent = relayFeeSatsPerVb
                 statusScript.checkChaintips()
                 //lib_msg.cleanMessagesUi()
             }
@@ -129,14 +139,14 @@ const statusScript = {
     setStatusIndicator: (id, status) => {
         switch (status) {
         case 'ok': {
-            document.querySelector(id).innerHTML = '&#10003;'
-            document.querySelector(id).style.color = '#76d776'
+            document.querySelector(id).innerHTML = 'CONNECTED<span class="status-dot"></span>'
+            document.querySelector(id).style.color = '#4ec98a'
 
             break
         }
         case 'ko': {
-            document.querySelector(id).innerHTML = 'X'
-            document.querySelector(id).style.color = '#f77c7c'
+            document.querySelector(id).innerHTML = 'DISCONNECTED<span class="status-dot"></span>'
+            document.querySelector(id).style.color = '#ff563c'
 
             break
         }
@@ -148,7 +158,7 @@ const statusScript = {
         }
         default: {
             document.querySelector(id).innerHTML = '-'
-            document.querySelector(id).style.color = '#efefef'
+            document.querySelector(id).style.color = '#f3f2f2'
         }
         }
     },

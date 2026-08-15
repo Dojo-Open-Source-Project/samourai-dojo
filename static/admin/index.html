@@ -31,8 +31,10 @@
   <div id="login-page" class="container">
     <!-- WELCOME MESSAGE -->
     <div id="welcome-msg" class="row">
-      <div class="col-xs-12">
-        <img src="icons/dojo.svg" class="medium-icon"/>
+      <div class="col-xs-12 login-brand">
+        <div class="brand-tile">
+          <img src="icons/dojo.svg" class="brand-tile-icon" alt=""/>
+        </div>
         <h1 class="title"><span>DOJO // MAINTENANCE TOOL</span> <span class="beta"></span></h1>
       </div>
     </div>
@@ -42,6 +44,7 @@
       <div class="col-xs-2"></div>
       <div class="col-xs-8 box-content signin-box">
         <form id="signin" class="signin">
+          <p class="signin-subtitle">Authenticate with your Dojo admin key.</p>
           <label for="apikey">ADMIN KEY</label>
           <input type="password" id="apikey" placeholder="ENTER YOUR ADMIN KEY">
           <div class="box-actions">
@@ -49,9 +52,7 @@
                     type="submit">CONNECT</button>
           </div>
         </form>
-        <div id="qr-auth47" class="auth47-box">
-
-        </div>
+        <div id="qr-auth47" class="auth47-box"></div>
       </div>
       <div class="col-xs-2"></div>
     </div>

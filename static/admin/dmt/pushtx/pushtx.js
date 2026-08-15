@@ -48,6 +48,7 @@ const pushtxScript = {
                         pushtxScript.processedSchedTxs.add(tx.schTxid)
                     }
                 }
+                document.querySelector('#scheduled-count').textContent = data.txs.length
                 //lib_msg.cleanMessagesUi()
             }
         }).catch(error => {

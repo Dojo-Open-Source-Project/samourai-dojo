@@ -79,10 +79,16 @@ const screenTxsToolsScript = {
         const firstseen = txInfo.created ? lib_fmt.unixTsToLocaleString(txInfo.created) : '--'
         document.querySelector('#tx-firstseen').textContent = firstseen
 
-        if ('block' in txInfo)
-            document.querySelector('#tx-location').textContent = ` Block ${txInfo.block.height}`
-        else
-            document.querySelector('#tx-location').textContent = ' Mempool'
+        const txLocation = document.querySelector('#tx-location')
+        txLocation.innerHTML = ''
+        const txLocationChip = txLocation.appendChild(document.createElement('span'))
+        if ('block' in txInfo) {
+            txLocationChip.textContent = `BLOCK ${txInfo.block.height}`
+            txLocationChip.classList.add('chip', 'chip-ok')
+        } else {
+            txLocationChip.textContent = 'MEMPOOL'
+            txLocationChip.classList.add('chip', 'chip-ko')
+        }
 
 
         const nbInputs = txInfo.inputs.length

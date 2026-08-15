@@ -3,6 +3,25 @@
 
   <div class="box-context">Monitor the health of some core components of your Dojo.</div>
 
+  <div class="headline-strip">
+    <div class="headline-cell">
+      <div class="headline-label">Block Height</div>
+      <div class="headline-value" id="headline-block-height">&mdash;</div>
+    </div>
+    <div class="headline-cell">
+      <div class="headline-label">Uptime</div>
+      <div class="headline-value" id="headline-uptime">&mdash;</div>
+    </div>
+    <div class="headline-cell">
+      <div class="headline-label">Peers</div>
+      <div class="headline-value" id="headline-peers">&mdash;</div>
+    </div>
+    <div class="headline-cell">
+      <div class="headline-label">Relay Fee</div>
+      <div class="headline-value" id="headline-relay-fee">&mdash;</div>
+    </div>
+  </div>
+
   <div class="row box-main">
     <div id="left-column"  class="two-columns-left">
 
@@ -111,21 +130,21 @@
       </div>
 
       <div id="web-status" class="fullwidth box">
-        <div class="box-header">WEB</div>
+        <div class="box-header">WEB SERVICES</div>
         <div class="spacer10"></div>
         <div class="box-body">
           <table>
             <tr>
               <td class="table-label">Tor status</td>
-              <td class="table-value" id="tor-status-ind">&#10003;</td>
+              <td class="table-value"><span class="web-service-status" id="tor-status-ind">CONNECTED<span class="status-dot"></span></span></td>
             </tr>
             <tr>
               <td class="table-label">Nginx status</td>
-              <td class="table-value" id="nginx-status-ind">&#10003;</td>
+              <td class="table-value"><span class="web-service-status" id="nginx-status-ind">CONNECTED<span class="status-dot"></span></span></td>
             </tr>
             <tr>
               <td class="table-label">Node.js status</td>
-              <td class="table-value" id="nodejs-status-ind">&#10003;</td>
+              <td class="table-value"><span class="web-service-status" id="nodejs-status-ind">CONNECTED<span class="status-dot"></span></span></td>
             </tr>
           </table>
         </div>

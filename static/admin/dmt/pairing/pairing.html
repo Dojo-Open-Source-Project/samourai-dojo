@@ -4,16 +4,22 @@
   <div class="box-context">Pair your wallet to your Dojo and to your Block Explorer with a simple QRCode.</div>
 
   <div class="row box-main">
-    <div id="dojo-pairing" class="fullwidth box">
-      <div class="box-header">DOJO</div>
-      <div class="spacer10"></div>
-      <div class="box-body fullwidth" id="qr-container">
+    <div id="dojo-pairing" class="fullwidth box pairing-box">
+      <div class="pairing-qr-col">
         <div class="center">Scan this QRCode with your wallet</div>
         <div class="spacer10"></div>
-        <div id="qr-pairing"></div>
-        <div class="spacer10"></div>
+        <div id="qr-container">
+          <div id="qr-pairing"></div>
+        </div>
+      </div>
+      <div class="pairing-payload-col">
+        <div class="pairing-payload-label">PAIRING PAYLOAD</div>
         <textarea id="dojo-pairing-payload" class="payload-textarea" rows="10" readonly></textarea>
         <div class="spacer10"></div>
+        <div class="pairing-actions">
+          <button type="button" id="btn-copy-payload" class="btn btn-primary">Copy Payload</button>
+          <button type="button" id="btn-regenerate-payload" class="btn">Regenerate</button>
+        </div>
       </div>
     </div>
   </div>
