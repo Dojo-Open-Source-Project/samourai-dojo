@@ -5,7 +5,7 @@
 
 import cloneDeep from "lodash.clonedeep";
 import QuickLRU from "quick-lru";
-import WebSocket from "websocket";
+import { WebSocket, WebSocketServer } from "ws";
 import authMgr from "../lib/auth/authorizations-manager.js";
 import db from "../lib/db/mysql-db-wrapper.js";
 import Logger from "../lib/logger.js";
@@ -51,13 +51,12 @@ class NotificationsService {
 	 * @param {object} server - listening instance of a http server
 	 */
 	_initWSServer(server) {
-		this.ws = new WebSocket.server({ httpServer: server });
+		this.ws = new WebSocketServer({ server });
 
 		Logger.info("API : Created WebSocket server");
 
-		this.ws.on("request", (request) => {
+		this.ws.on("connection", (conn) => {
 			try {
-				const conn = request.accept(null, request.origin);
 				conn.id = status.sessions++;
 				conn.subs = [];
 
@@ -72,12 +71,12 @@ class NotificationsService {
 						error,
 						`API : NotificationsService : Error on connection ${conn.id}`,
 					);
-					if (conn.connected) this._closeWSConnection(conn, true);
+					if (conn.readyState === WebSocket.OPEN)
+						this._closeWSConnection(conn, true);
 				});
 
-				conn.on("message", (message) => {
-					if (message.type === "utf8")
-						this._handleWSMessage(message.utf8Data, conn);
+				conn.on("message", (message, isBinary) => {
+					if (!isBinary) this._handleWSMessage(message.toString("utf8"), conn);
 					else this._closeWSConnection(conn, true);
 				});
 
@@ -90,7 +89,7 @@ class NotificationsService {
 			} catch (error) {
 				Logger.error(
 					error,
-					"API : NotificationsService._initWSServer() : Error during request accept",
+					"API : NotificationsService._initWSServer() : Error during connection setup",
 				);
 			}
 		});
@@ -116,8 +115,9 @@ class NotificationsService {
 				status.clients = status.clients - 1;
 			}
 
-			// Close initiated by server, drop the connection
-			if (forcedClose && conn.connected) conn.drop(1008, "Get out of here!");
+			// Close initiated by server
+			if (forcedClose && conn.readyState === WebSocket.OPEN)
+				conn.close(1008, "Get out of here!");
 
 			debug && Logger.info(`API : Client ${conn.id} disconnected`);
 		} catch (error) {
@@ -164,7 +164,7 @@ class NotificationsService {
 
 			switch (data.op) {
 				case "ping":
-					conn.sendUTF('{"op": "pong"}');
+					conn.send('{"op": "pong"}');
 					break;
 				case "addr_sub":
 					if (data.addr) {
@@ -257,7 +257,7 @@ class NotificationsService {
 			if (!this.conn[cid]) continue;
 
 			try {
-				this.conn[cid].sendUTF(msg);
+				this.conn[cid].send(msg);
 			} catch (error) {
 				Logger.error(
 					error,
@@ -436,7 +436,7 @@ class NotificationsService {
 				};
 
 				try {
-					this.conn[cid].sendUTF(JSON.stringify(data));
+					this.conn[cid].send(JSON.stringify(data));
 					debug &&
 						Logger.error(
 							null,
@@ -466,7 +466,7 @@ class NotificationsService {
 		};
 
 		try {
-			this.conn[cid].sendUTF(JSON.stringify(data));
+			this.conn[cid].send(JSON.stringify(data));
 			debug &&
 				Logger.error(null, `API : Sent authentication error to client ${cid}`);
 		} catch (error) {
