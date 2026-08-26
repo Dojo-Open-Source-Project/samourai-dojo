@@ -44,7 +44,7 @@ class ApiHelper {
 					!returnValue.hasPubKey(item)
 				) {
 					// Derive pubkey as 3 addresses (P1PKH, P2WPKH/P2SH, BECH32)
-					const bufItem = Buffer.from(item, 'hex')
+					const bufItem = Buffer.from(item, "hex");
 
 					const funcs = [
 						addrHelper.p2pkhAddress,

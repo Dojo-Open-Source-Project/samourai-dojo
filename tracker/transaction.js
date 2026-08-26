@@ -93,7 +93,7 @@ class Transaction {
 		let index = 0;
 
 		for (const input of this.tx.ins) {
-			const spendTxid = Buffer.from(input.hash).reverse().toString('hex')
+			const spendTxid = Buffer.from(input.hash).reverse().toString("hex");
 			spends.push({ txid: spendTxid, index: input.index });
 			indexedInputs[`${spendTxid}-${input.index}`] = index;
 			index++;
@@ -172,8 +172,8 @@ class Transaction {
 
 				indexedOutputs[address].push({
 					index,
-                    value: output.value,
-                    script: output.script.toString('hex'),
+					value: output.value,
+					script: output.script.toString("hex"),
 				});
 			}
 			index++;

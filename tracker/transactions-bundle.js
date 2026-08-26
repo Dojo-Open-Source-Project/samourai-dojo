@@ -190,7 +190,7 @@ class TransactionsBundle {
 
 			for (const index_ in tx.tx.ins) {
 				const spendHash = tx.tx.ins[index_].hash;
-				const spendTxid = Buffer.from(spendHash).reverse().toString('hex')
+				const spendTxid = Buffer.from(spendHash).reverse().toString("hex");
 				const spendIndex = tx.tx.ins[index_].index;
 				inputs.push({ txid: spendTxid, index: spendIndex });
 				const key = `${spendTxid}-${spendIndex}`;

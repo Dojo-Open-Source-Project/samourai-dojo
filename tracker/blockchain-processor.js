@@ -472,7 +472,9 @@ class BlockchainProcessor {
 								height: height,
 								time: block.timestamp,
 								hash: block.getId(),
-								previousblockhash: Buffer.from(block.prevHash.reverse()).toString('hex')
+								previousblockhash: Buffer.from(
+									block.prevHash.reverse(),
+								).toString("hex"),
 							},
 							block.transactions,
 						);
