@@ -1,6 +1,22 @@
 const screenPairingScript = {
 
-    initPage: () => {},
+    initPage: () => {
+        document.querySelector('#btn-copy-payload').addEventListener('click', () => {
+            screenPairingScript.copyPayload()
+        })
+        document.querySelector('#btn-regenerate-payload').addEventListener('click', () => {
+            screenPairingScript.displayQRPairing()
+        })
+    },
+
+    copyPayload: () => {
+        const payload = document.querySelector('#dojo-pairing-payload')
+        navigator.clipboard.writeText(payload.value).then(() => {
+            lib_msg.displayInfo('Pairing payload copied to clipboard')
+        }).catch((error) => {
+            lib_errors.processError(error)
+        })
+    },
 
     preparePage: () => {
         screenPairingScript.displayQRPairing()

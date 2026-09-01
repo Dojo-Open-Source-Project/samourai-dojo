@@ -185,7 +185,7 @@ const screenApiKeysScript = {
                     trHead.appendChild(document.createElement('th')).textContent = 'Label'
                     trHead.appendChild(document.createElement('th')).textContent = 'Created'
                     trHead.appendChild(document.createElement('th')).textContent = 'Expires'
-                    trHead.appendChild(document.createElement('th')).textContent = 'Active'
+                    trHead.appendChild(document.createElement('th')).textContent = 'State'
                     trHead.appendChild(document.createElement('th'))
 
                     for (const apiKey of result) {
@@ -211,9 +211,10 @@ const screenApiKeysScript = {
                             expiresCell.classList.add('text-danger')
                         }
 
-                        const activeCell = tr.appendChild(document.createElement('td')).appendChild(document.createElement('strong'))
-                        activeCell.textContent = apiKey.active ? 'Yes' : 'No'
-                        activeCell.classList.add(apiKey.active ? 'text-success' : 'text-danger')
+                        const isActive = apiKey.active && expiresAt.getTime() >= Date.now()
+                        const stateCell = tr.appendChild(document.createElement('td')).appendChild(document.createElement('span'))
+                        stateCell.textContent = isActive ? 'ACTIVE' : 'EXPIRED'
+                        stateCell.classList.add('chip', isActive ? 'chip-ok' : 'chip-ko')
 
                         const btnGroup = tr.appendChild(document.createElement('td')).appendChild(document.createElement('div'))
                         btnGroup.classList.add('btn-group')
