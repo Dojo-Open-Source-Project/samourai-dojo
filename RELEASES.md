@@ -3,6 +3,7 @@
 
 ## Releases ##
 
+- [v1.29.3](#samourai-dojo-v1293)
 - [v1.29.2](#samourai-dojo-v1292)
 - [v1.29.1](#samourai-dojo-v1291)
 - [v1.29.0](#samourai-dojo-v1290)
@@ -13,6 +14,11 @@
 - [v1.26.1](#samourai-dojo-v1261)
 - [v1.26.0](#samourai-dojo-v1260)
 - [v1.25.0](#samourai-dojo-v1250)
+
+## Samourai Dojo v1.29.3
+
+### Changelog
+- Fixed permissions on mysql docker image files [1e87e6ae](1e87e6ae)
 
 ## Samourai Dojo v1.29.2
 
