@@ -1,10 +1,8 @@
 /* DOJO MAINTENANCE TOOL — restyled theme
    Drop-in replacement for static/admin/css/style.css
-   Dark ground, Archivo, zero radius, 2px rules, green/red state colors.
+   Dark ground, system fonts, zero radius, 2px rules, green/red state colors.
    Every selector from the original file is preserved so the existing
    markup and JS keep working; only the visual layer changed. */
-
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap');
 
 :root {
 	--bg: #1a1918;
@@ -19,11 +17,12 @@
 	--ok: #4ec98a;
 	--ko: #ff563c;
 	--warn: #f0c649;
+	--sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 	--mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 body {
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-size: 14px;
 	line-height: 1.55;
 	color: var(--text);
@@ -31,7 +30,7 @@ body {
 }
 
 h1, h2, h3, h4 {
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	letter-spacing: -0.015em;
 }
@@ -197,7 +196,7 @@ pre.raw-tx {
 
 /* BUTTONS */
 .btn {
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 12px;
 	letter-spacing: 0.1em;
@@ -311,7 +310,7 @@ td.table-value {
 
 .box-header {
 	width: 100%;
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 13px;
 	letter-spacing: 0.1em;
@@ -480,7 +479,7 @@ button {
 
 .brand-name {
 	display: block;
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 17px;
 	letter-spacing: -0.01em;
@@ -531,7 +530,7 @@ button {
 }
 
 .nav-pills > li > a {
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 12px;
 	letter-spacing: 0.06em;
@@ -765,7 +764,7 @@ button {
 
 #login-page #signin label {
 	display: block;
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 11px;
 	letter-spacing: 0.12em;
@@ -922,7 +921,7 @@ button {
 }
 
 .headline-value {
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 30px;
 	letter-spacing: -0.01em;
@@ -1001,7 +1000,7 @@ button {
 }
 
 .pairing-payload-label {
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 13px;
 	letter-spacing: 0.1em;
@@ -1247,7 +1246,7 @@ button {
 
 #welcome .item {
 	margin: 14px 0 0 0;
-	font-family: "Archivo", system-ui, sans-serif;
+	font-family: var(--sans);
 	font-weight: 800;
 	font-size: 16px;
 }
@@ -1285,7 +1284,7 @@ button {
 	vertical-align: middle;
 }
 
-/* Bordered state chip, used by api-keys.js (ACTIVE/EXPIRED) and
+/* Bordered state chip, used by api-keys.js (ACTIVE/DISABLED/EXPIRED) and
    txs-tools.js (#tx-location: block height vs. mempool). */
 .chip {
 	display: inline-block;
@@ -1300,6 +1299,7 @@ button {
 }
 .chip-ok { color: var(--ok); }
 .chip-ko { color: var(--ko); }
+.chip-warn { color: var(--warn); }
 
 /* PAGES - STATUS: web services widget — table rows, matching sibling panels */
 .web-service-status {
