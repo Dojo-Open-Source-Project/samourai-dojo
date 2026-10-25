@@ -1,7 +1,6 @@
 # Copying data from an existing node
 
-It's possible to copy the blockchain and Fulcrum data from an older node to your dojo, significantly speeding up the initial synchronization by taking
-a few hours instead of days.  
+It's possible to copy the blockchain and Fulcrum data from an older node to your Dojo, significantly speeding up the initial synchronization by taking a few hours instead of days.  
 
 Here are the steps:
 
@@ -19,12 +18,11 @@ Copy the whole database directory, which contains a single directory: `fulc2_db`
 
 ## 2. Stop Dojo
 
-If you already have Dojo installed and running, stop it with `./dojo.sh stop`. If it's not installed yet, proceed with a normal installation and,
-as soon as you start seeing bitcoind-related output, like headers or blocks being downloaded, exit the log with `Ctrl + C` and then stop dojo.
+If you already have Dojo installed and running, stop it with `./dojo.sh stop`. If it's not installed yet, proceed with a normal installation and, as soon as you start seeing bitcoind-related output, like headers or blocks being downloaded, exit the log with `Ctrl + C` and then stop Dojo.
 
 ## 3. Find Dojo data location
 
-List docker volumes with `docker volume ls`:
+List Docker volumes with `docker volume ls`:
 
 ```bash
 DRIVER    VOLUME NAME
@@ -44,7 +42,7 @@ Take note of the directory and do the same for the Fulcrum mountpoint.
 
 ## 4. Delete current data
 
-Become root to be able to go inside the directory. Depending on the Linux distro, this could be `sudo -i` or `su`. The prompt will change from `$` to `#`.  
+Become root to be able to go inside the directory. Depending on the Linux distro, this could be `sudo -i` or `su -`. The prompt will change from `$` to `#`.  
 
 ### Bitcoin
 
@@ -59,10 +57,10 @@ drwx------ 2 1105 1108 240K Dec 22 07:50 chainstate
 -rw------- 1 1105 1108  16M Dec 22 13:53 debug.log
 -rw------- 1 1105 1108 243K Dec 22 13:24 fee_estimates.dat
 drwx------ 4 1105 1108 4.0K Jul 11  2022 indexes
-(some lines ommited)
+(some lines omitted)
 ```
 
-Take note of the user id (UID) of the owner `1105` and the group (GID) `1108` if you got different values.  
+Take note of the owner's user ID (UID) `1105` and group ID (GID) `1108`, in case yours differ.  
 
 Delete the blockchain data with `rm -rf blocks indexes chainstate`. The other files can be ignored.
 
@@ -85,14 +83,14 @@ You now have to copy the files any way you want, like using the GUI or the termi
 
 The following commands assume data is being copied from an external USB HDD mounted at `/mnt/externalusb`, which has a `bitcoin` and a `fulcrum` folder with the data you previously copied to it.  
   
-> Note: if using rsync, pay attention to the commands below, specially if you're using TAB completion. In rsync syntax, `blocks` means the directory itself whereas `blocks/` means the directory contents!
+> Note: if using rsync, pay attention to the commands below, especially if you're using TAB completion. In rsync syntax, `blocks` means the directory itself whereas `blocks/` means the directory contents!
 
 ### Bitcoin
 
-Make sure you're inside the bitcoin directory - the one you deleted `blocks`, `indexes` and `chainstate` from - and run:
+Make sure you're inside the bitcoin directory (the one you deleted `blocks`, `indexes` and `chainstate` from) and run:
 
 ```bash
-rsync -az --progress /mnt/externalusb/bitcoin/{blocks,indexes,chainstate} ./
+rsync -a --progress /mnt/externalusb/bitcoin/{blocks,indexes,chainstate} ./
 ```
 
 There will be many lines like:
@@ -107,7 +105,7 @@ blocks/blk00001.dat
 blocks/blk00002.dat
 ```
 
-Indicating it's copying file 7185, then 7184 of 7189. This might take a few hours. If you need to stop with `Ctrl + C`, re-issuing the `rsync` command will resume copying the missing files.  
+This indicates it's copying file 7185, then 7184, of 7189. This might take a few hours. If you need to stop with `Ctrl + C`, re-issuing the `rsync` command will resume copying the missing files.  
 When it's over, adjust ownership and permissions as they were before (change UID and GID if needed):
 
 ```bash
@@ -121,7 +119,7 @@ find {blocks,chainstate,indexes} -type d -print0 | xargs -0 chmod u+x
 Go to `.fulcrum/db`, copy the `fulc2_db` directory and adjust permissions and ownership (again, mind the slashes and ids):
 
 ```bash
-rsync -az --progress /mnt/externalusb/fulcrum/fulc2_db ./
+rsync -a --progress /mnt/externalusb/fulcrum/fulc2_db ./
 chown -R 1133:1136 fulc2_db
 chmod -R 644 fulc2_db
 find . -type d -print0 | xargs -0 chmod 755
@@ -129,6 +127,6 @@ find . -type d -print0 | xargs -0 chmod 755
 
 Then exit the root prompt with `exit` or `Ctrl + D`.
 
-## 6 Restart Dojo
+## 6. Restart Dojo
 
-Restart Dojo with `./dojo.sh start` and check the logs with `./dojo logs`. You should see Bitcoin and Fulcrum logs resuming from the same point the older node was.
+Restart Dojo with `./dojo.sh start` and check the logs with `./dojo.sh logs`. You should see Bitcoin and Fulcrum logs resuming from the same point the older node was.
