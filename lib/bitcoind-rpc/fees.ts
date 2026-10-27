@@ -3,9 +3,9 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
+import { FeeEstimator, type FeeRates } from "@dojo-tools/next-block-estimator";
 import keysFile from "../../keys/index.js";
 import network from "../bitcoin/network.js";
-import { coordinator } from "../coordination/client.js";
 import errors from "../errors.js";
 import Logger from "../logger.js";
 import latestBlock from "./latest-block.js";
@@ -35,6 +35,9 @@ class Fees {
 	declare feeType: string;
 	declare timer: ReturnType<typeof setTimeout> | null;
 	declare rpcClient: DojoRpcClient;
+	private estimator: FeeEstimator | undefined;
+	private estimatorFees: FeeRates | null = null;
+	private closed = false;
 	constructor() {
 		this.block = -1;
 		this.fees = {
@@ -50,9 +53,33 @@ class Fees {
 
 		this.rpcClient = createRpcClient();
 
-		waitForBitcoindRpcApi().then(() => {
-			this.refresh();
-		});
+		void waitForBitcoindRpcApi()
+			.then(() => {
+				if (this.closed) return;
+				void this.refresh();
+				this.estimator = new FeeEstimator({
+					mode: "txs",
+					refresh: 20,
+					useWorker: true,
+					rpcOptions: {
+						protocol: "http",
+						host: keys.bitcoind.rpc.host,
+						port: keys.bitcoind.rpc.port,
+						username: keys.bitcoind.rpc.user,
+						password: keys.bitcoind.rpc.pass,
+					},
+				});
+				this.estimator.on("error", (error: unknown) => {
+					Logger.error(error, "Estimator : Received estimator error");
+				});
+				this.estimator.on("data", (result) => {
+					if (!result.ready) return;
+					this.estimatorFees = result.fees;
+				});
+			})
+			.catch((error: unknown) => {
+				Logger.error(error, "Fees : Failed to start fee estimator");
+			});
 	}
 
 	/**
@@ -70,12 +97,18 @@ class Fees {
 
 	/**
 	 * Get fee rates calculated by $1 Fee Estimator
-	 * @throws {string} - Throw error if estimator has no data or if bitcoind mempool isn't fully loaded
+	 * @throws {string} - Throw error until the first estimate arrives
 	 */
-	async getEstimatorFees() {
-		const snapshot = await coordinator.request("fees.get", {});
-		if (!snapshot) throw errors.estimator.NOT_AVAILABLE;
-		return snapshot.fees;
+	getEstimatorFees() {
+		if (!this.estimatorFees) throw errors.estimator.NOT_AVAILABLE;
+		return this.estimatorFees;
+	}
+
+	close(): void {
+		if (this.closed) return;
+		this.closed = true;
+		if (this.timer != null) clearTimeout(this.timer);
+		this.estimator?.stop();
 	}
 
 	/**
@@ -112,7 +145,7 @@ class Fees {
 		}
 		this.block = latestBlock.height ?? this.block;
 		// Make this method refresh fees at least every minute
-		this.timer = setTimeout(() => this.refresh(), 60000); // 1 MINUTE
+		if (!this.closed) this.timer = setTimeout(() => this.refresh(), 60000); // 1 MINUTE
 	}
 }
 

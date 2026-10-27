@@ -32,7 +32,9 @@ Status code 200 with JSON response:
 
 #### Failure
 
-This API endpoint will respond with HTTP 503 error if fee estimator is not connected, not working or bitcoind mempool is not fully loaded.
+This API endpoint returns HTTP 503 until the first ready estimate is available.
+After that, it returns the latest cached estimates. The cache has no expiry and
+keeps its value while the estimator is temporarily unavailable or not ready.
 
 Status code 503 with JSON response:
 ```json

@@ -3,16 +3,15 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import crypto from "node:crypto";
 import { Auth47Verifier } from "@dojo-tools/auth47";
 import { json, urlencoded } from "milliparsec";
 import { RPC } from "soroban-client-nodejs";
 import * as ecc from "tiny-secp256k1";
 import keysFile from "../../keys/index.js";
 import network from "../bitcoin/network.js";
-import { coordinator } from "../coordination/client.js";
 import HttpServer from "../http-server/http-server.js";
 import Logger from "../logger.js";
+import { Auth47Nonces } from "./auth47-nonces.js";
 import authentMgr from "./authentication-manager.js";
 import authorzMgr from "./authorizations-manager.js";
 
@@ -55,6 +54,7 @@ const verifierSoroban = new Auth47Verifier(
 class AuthRestApi {
 	declare httpServer: HttpServer;
 	declare sorobanRpc: RPC | null;
+	private readonly nonces = new Auth47Nonces();
 	/**
 	 * Constructor
 	 */
@@ -126,14 +126,13 @@ class AuthRestApi {
 	/**
 	 * Get Auth47 URI
 	 */
-	async getAuth47Uri(_req: HttpRequestLike, res: HttpResponseLike) {
+	getAuth47Uri(_req: HttpRequestLike, res: HttpResponseLike) {
 		if (!auth47Enabled || !verifier) {
 			HttpServer.sendError(res, "Auth47 not enabled");
 			return;
 		}
 		try {
-			const nonce = crypto.randomBytes(12).toString("hex");
-			const expiresAt = await coordinator.request("nonce.create", { nonce });
+			const { nonce, expiresAt } = this.nonces.create();
 			const uri = verifier.generateURI({ nonce, expires: new Date(expiresAt) });
 			const paymentCode = adminPaymentCodes[0] ?? null;
 			HttpServer.sendOkData(res, { nonce, uri, paymentCode });
@@ -145,7 +144,7 @@ class AuthRestApi {
 	/**
 	 * Authenticate Auth47 request
 	 */
-	async authenticateAuth47(req: HttpRequestLike, res: HttpResponseLike) {
+	authenticateAuth47(req: HttpRequestLike, res: HttpResponseLike) {
 		if (!auth47Enabled || !verifier) {
 			HttpServer.sendError(res, "Auth47 not enabled");
 			return;
@@ -166,9 +165,7 @@ class AuthRestApi {
 				HttpServer.sendAuthError(res, "invalid resource");
 				return;
 			}
-			const approved = await coordinator.request("nonce.approve", {
-				nonce: challenge.hostname,
-			});
+			const approved = this.nonces.approve(challenge.hostname);
 			if (approved) HttpServer.sendOk(res);
 			else HttpServer.sendAuthError(res, "invalid nonce");
 		} catch (error) {
@@ -227,15 +224,13 @@ class AuthRestApi {
 	/**
 	 * Check status of current Auth47 authentication request
 	 */
-	async checkAuth47Status(req: HttpRequestLike, res: HttpResponseLike) {
+	checkAuth47Status(req: HttpRequestLike, res: HttpResponseLike) {
 		if (!auth47Enabled) {
 			HttpServer.sendError(res, "Auth47 not enabled");
 			return;
 		}
 		try {
-			const status = await coordinator.request("nonce.consume", {
-				nonce: req.params.nonce,
-			});
+			const status = this.nonces.consume(req.params.nonce);
 			if (status === "missing") {
 				HttpServer.sendAuthError(res, "auth request expired");
 				return;

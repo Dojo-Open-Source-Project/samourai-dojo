@@ -3,7 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import { randomUUID } from "node:crypto";
 import keysFile from "../../keys/index.js";
 import hdaHelper from "../bitcoin/hd-accounts-helper.js";
 import network from "../bitcoin/network.js";
@@ -11,8 +10,6 @@ import rpcTxns, {
 	type PreparedInput,
 	type PreparedTransaction,
 } from "../bitcoind-rpc/transactions.js";
-import { CoordinatorError, coordinator } from "../coordination/client.js";
-import type { ImportState } from "../coordination/protocol.js";
 import db from "../db/mysql-db-wrapper.js";
 import errors from "../errors.js";
 import Logger from "../logger.js";
@@ -31,9 +28,12 @@ const SourcesFile =
 
 const Sources = SourcesFile.default as new () => SourcesBase;
 
-export type { ImportState } from "../coordination/protocol.js";
-
-type ImportingState = Record<string, ImportState | true>;
+export interface ImportState {
+	status?: string;
+	txs_ext?: number;
+	txs_int?: number;
+	txs?: number;
+}
 
 interface ImportAddress {
 	address: string;
@@ -53,82 +53,24 @@ interface ScanResult {
 class RemoteImporter {
 	declare STATUS_RESCAN: string;
 	declare STATUS_IMPORT: string;
-	declare importing: ImportingState;
+	private readonly importing = new Map<string, ImportState | true>();
 	declare sources: SourcesBase;
-	private readonly importTokens = new Map<string, string>();
 	constructor() {
 		this.STATUS_RESCAN = "rescan";
 		this.STATUS_IMPORT = "import";
-		// Guard against overlapping imports
-		this.importing = {};
 		this.sources = new Sources();
 	}
 
-	private async claimImport(
-		key: string,
-		state: ImportState | true,
-	): Promise<boolean> {
-		const token = randomUUID();
-		let claimed: boolean;
-		try {
-			claimed = await coordinator.request("import.claim", {
-				key,
-				token,
-				progress: state,
-			});
-		} catch (error) {
-			// A lost reply may hide a successful claim. Roll it back with its token.
-			try {
-				await coordinator.request("import.release", { key, token });
-			} catch (releaseError) {
-				Logger.error(
-					releaseError,
-					"Importer : Cannot resolve import ownership",
-				);
-				// A confirmed process exit lets the coordinator safely reclaim its imports.
-				process.exit(1);
-			}
-			throw error;
-		}
-		if (claimed) {
-			this.importTokens.set(key, token);
-			this.importing[key] = state;
-		}
-		return claimed;
+	private claimImport(key: string, state: ImportState | true): boolean {
+		if (this.importing.has(key)) return false;
+		// All imports run in Accounts; claim before yielding to another request.
+		this.importing.set(key, state);
+		return true;
 	}
 
-	private async publishProgress(key: string): Promise<void> {
-		const token = this.importTokens.get(key);
-		if (
-			!token ||
-			!(await coordinator.request("import.update", {
-				key,
-				token,
-				progress: this.importing[key],
-			}))
-		)
-			throw new CoordinatorError("Import ownership was lost");
-	}
-
-	private async clearGuard(key?: string): Promise<void> {
-		if (key == null) return;
-		const token = this.importTokens.get(key);
-		if (!token) return;
-		try {
-			if (!(await coordinator.request("import.release", { key, token })))
-				throw new CoordinatorError("Import ownership was lost");
-			this.importTokens.delete(key);
-			delete this.importing[key];
-		} catch (error) {
-			Logger.error(error, "Importer : Cannot release import ownership");
-			// Never leave an uncertain claim owned by a live worker indefinitely.
-			process.exit(1);
-		}
-	}
-
-	async importInProgress(xpub?: string): Promise<ImportState | true | null> {
+	importInProgress(xpub?: string): ImportState | true | null {
 		if (xpub == null) return null;
-		return coordinator.request("import.get", { key: xpub });
+		return this.importing.get(xpub) ?? null;
 	}
 
 	/**
@@ -143,11 +85,11 @@ class RemoteImporter {
 		if (!hdaHelper.isValid(xpub)) throw errors.xpub.INVALID;
 
 		if (
-			!(await this.claimImport(xpub, {
+			!this.claimImport(xpub, {
 				status: this.STATUS_RESCAN,
 				txs_ext: 0,
 				txs_int: 0,
-			}))
+			})
 		) {
 			Logger.info(`Importer : Import overlap for ${xpub}`);
 			throw errors.xpub.OVERLAP;
@@ -181,11 +123,10 @@ class RemoteImporter {
 			const addresses = results.flatMap((r) => r.addresses);
 			const aAddresses = addresses.map((a) => a.address);
 
-			this.importing[xpub] = {
+			this.importing.set(xpub, {
 				status: this.STATUS_IMPORT,
 				txs: txns.length,
-			};
-			await this.publishProgress(xpub);
+			});
 
 			// Store the hdaccount and the addresses into the database
 			await db.ensureHDAccountId(xpub, type);
@@ -202,12 +143,11 @@ class RemoteImporter {
 				error,
 				`Importer : RemoteImporter.importHDAccount() : xpub ${xpub}`,
 			);
-			if (error instanceof CoordinatorError) throw error;
 		} finally {
 			Logger.info(
 				`Importer :  xpub import done in ${((Date.now() - t0) / 1000).toFixed(1)}s`,
 			);
-			await this.clearGuard(xpub);
+			this.importing.delete(xpub);
 		}
 
 		return true;
@@ -300,10 +240,9 @@ class RemoteImporter {
 
 			if (gotTransactions) {
 				const keyStatus = c === 0 ? "txs_ext" : "txs_int";
-				const importState = this.importing[xpub];
+				const importState = this.importing.get(xpub);
 				if (typeof importState === "object")
 					importState[keyStatus] = Object.keys(txids).length;
-				await this.publishProgress(xpub);
 				// We must go deeper
 				const result = await this.xpubScan(xpub, c, d, u, G, type, txids);
 				// Accumulate results from further down the rabbit hole
@@ -318,7 +257,6 @@ class RemoteImporter {
 				error,
 				`Importer : RemoteImporter.xpubScan() : xpub ${xpub} ${c} ${d} ${u} ${G}`,
 			);
-			if (error instanceof CoordinatorError) throw error;
 		}
 
 		return returnValue;
@@ -333,7 +271,7 @@ class RemoteImporter {
 		const addresses: string[] = [];
 		try {
 			for (const address of new Set(candidates)) {
-				if (await this.claimImport(address, true)) addresses.push(address);
+				if (this.claimImport(address, true)) addresses.push(address);
 				else Logger.info(`Importer : Import overlap for ${address}. Skipping`);
 			}
 			if (addresses.length === 0) return true;
@@ -362,7 +300,6 @@ class RemoteImporter {
 				error,
 				`Importer : RemoteImporter.importAddresses() : ${candidates.join(",")}`,
 			);
-			if (error instanceof CoordinatorError) throw error;
 		} finally {
 			const dt = Date.now() - t0;
 			const ts = (dt / 1000).toFixed(1);
@@ -373,7 +310,7 @@ class RemoteImporter {
 					`Importer : Imported ${N} addresses in ${ts}s (${(dt / N).toFixed(0)} ms/addr)`,
 				);
 
-			for (const address of addresses) await this.clearGuard(address);
+			for (const address of addresses) this.importing.delete(address);
 		}
 
 		return true;

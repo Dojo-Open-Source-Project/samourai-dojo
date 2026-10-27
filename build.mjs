@@ -12,7 +12,6 @@ const dockerBuild = process.env.DOJO_DOCKER_BUILD === "1";
 
 const serverDirectories = [
 	"accounts",
-	"estimator",
 	"lib",
 	"pushtx",
 	"scripts",
