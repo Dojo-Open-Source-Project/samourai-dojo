@@ -7,7 +7,7 @@
 	"scripts": {
 		"build": "node build.mjs",
 		"typecheck": "npm run typecheck:server && npm run typecheck:admin",
-		"test": "npm run build && mocha --recursive --reporter spec \"dist/test/**/*.js\"",
+		"test": "vitest run",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write --unsafe .",
 		"admin:dev": "cd admin-app && ../node_modules/.bin/vite dev",
@@ -56,7 +56,6 @@
 		"@tanstack/react-start": "^1.168.60",
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/lodash.clonedeep": "^4.5.9",
-		"@types/mocha": "^10.0.10",
 		"@types/node": "^26.3.0",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
@@ -64,12 +63,12 @@
 		"@types/ws": "^8.18.1",
 		"@vitejs/plugin-react": "^6.1.1",
 		"esbuild": "^0.28.2",
-		"mocha": "^11.8.0",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0",
 		"react-qr-code": "^2.2.0",
 		"typescript": "^7.0.2",
-		"vite": "^8.3.1"
+		"vite": "^8.3.1",
+		"vitest": "^5.0.5"
 	},
 	"devEngines": {
 		"runtime": {

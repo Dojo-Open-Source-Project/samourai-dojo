@@ -1,4 +1,5 @@
 import assert from "node:assert";
+import { describe, it } from "vitest";
 
 import util from "../../lib/util.js";
 

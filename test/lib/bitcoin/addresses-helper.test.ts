@@ -6,6 +6,7 @@
 import assert from "node:assert";
 import { bitcoinMessageFactory } from "@dojo-tools/bitcoinjs-message";
 import * as ecc from "tiny-secp256k1";
+import { describe, it } from "vitest";
 import addrHelper from "../../../lib/bitcoin/addresses-helper.js";
 import network from "../../../lib/bitcoin/network.js";
 

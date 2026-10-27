@@ -1,65 +1,35 @@
 import assert from "node:assert/strict";
-import { registerHooks } from "node:module";
+import { FeeEstimator } from "@dojo-tools/next-block-estimator";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import errors from "../../../lib/errors.js";
 
-const asModule = (source: string) =>
-	`data:text/javascript,${encodeURIComponent(source)}`;
-
-const estimatorModule = asModule(`
-import { EventEmitter } from 'node:events';
-export class FeeEstimator extends EventEmitter {
-  static instances = [];
-  stopCalls = 0;
-  constructor(options) {
-    super();
-    this.options = options;
-    FeeEstimator.instances.push(this);
-  }
-  stop() { this.stopCalls++; }
-}
-`);
+vi.mock("@dojo-tools/next-block-estimator", async () => {
+	const { EventEmitter } = await import("node:events");
+	return {
+		FeeEstimator: vi.fn(
+			class extends EventEmitter {
+				stop = vi.fn();
+			},
+		),
+	};
+});
+vi.mock("../../../lib/bitcoind-rpc/latest-block.js", () => ({ default: {} }));
+vi.mock("../../../lib/bitcoind-rpc/rpc-client.js", () => ({
+	createRpcClient: () => ({ batch: async (): Promise<never[]> => [] }),
+	waitForBitcoindRpcApi: async () => {},
+}));
 
 describe("Accounts fee estimator", () => {
 	let fees: typeof import("../../../lib/bitcoind-rpc/fees.js").default;
 
-	before(async () => {
-		const base = new URL("../../../lib/bitcoind-rpc/", import.meta.url);
-		const stubs = new Map([
-			[new URL("latest-block.js", base).href, asModule("export default {}")],
-			[
-				new URL("rpc-client.js", base).href,
-				asModule(`
-export const createRpcClient = () => ({ batch: async () => [] });
-export const waitForBitcoindRpcApi = async () => {};
-`),
-			],
-		]);
-		const hooks = registerHooks({
-			resolve(specifier, context, nextResolve) {
-				if (specifier === "@dojo-tools/next-block-estimator")
-					return { url: estimatorModule, shortCircuit: true };
-				const resolved = nextResolve(specifier, context);
-				const stub = stubs.get(resolved.url);
-				return stub === undefined
-					? resolved
-					: { url: stub, shortCircuit: true };
-			},
-		});
-		try {
-			fees = (await import("../../../lib/bitcoind-rpc/fees.js")).default;
-		} finally {
-			hooks.deregister();
-		}
-	});
-
-	after(() => fees?.close());
+	afterAll(() => fees?.close());
 
 	it("owns one worker, shares ready estimates, retains cached fees, and stops the worker on shutdown", async () => {
-		const { FeeEstimator } = await import(estimatorModule);
-		assert.equal(FeeEstimator.instances.length, 1);
-		const estimator = FeeEstimator.instances[0];
-		assert.equal(estimator.options.useWorker, true);
-		assert.equal(estimator.options.refresh, 20);
+		fees = (await import("../../../lib/bitcoind-rpc/fees.js")).default;
+		expect(FeeEstimator).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ useWorker: true, refresh: 20 }),
+		);
+		const estimator = vi.mocked(FeeEstimator).mock.instances[0];
 		assert.throws(
 			() => fees.getEstimatorFees(),
 			(error: unknown) => error === errors.estimator.NOT_AVAILABLE,
@@ -82,6 +52,6 @@ export const waitForBitcoindRpcApi = async () => {};
 		assert.strictEqual(fees.getEstimatorFees(), second);
 		fees.close();
 		fees.close();
-		assert.equal(estimator.stopCalls, 1);
+		expect(estimator.stop).toHaveBeenCalledTimes(1);
 	});
 });

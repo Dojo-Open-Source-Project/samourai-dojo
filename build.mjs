@@ -15,7 +15,6 @@ const serverDirectories = [
 	"lib",
 	"pushtx",
 	"scripts",
-	"test",
 	"tracker",
 	...(dockerBuild ? [] : ["keys"]),
 ];

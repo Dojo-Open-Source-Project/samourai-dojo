@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { describe, it } from "vitest";
 import { Auth47Nonces, NONCE_TTL_MS } from "../../../lib/auth/auth47-nonces.js";
 
 function fixture() {

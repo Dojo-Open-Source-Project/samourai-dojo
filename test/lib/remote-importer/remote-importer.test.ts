@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
-import { registerHooks } from "node:module";
+import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import hdaHelper from "../../../lib/bitcoin/hd-accounts-helper.js";
 import db from "../../../lib/db/mysql-db-wrapper.js";
 import errors from "../../../lib/errors.js";
 import Logger from "../../../lib/logger.js";
+import importer from "../../../lib/remote-importer/remote-importer.js";
+
+// Stub external connections while exercising the real importer entry points.
+vi.mock("../../../lib/bitcoind-rpc/latest-block.js", () => ({ default: {} }));
+vi.mock("../../../lib/remote-importer/sources-testnet.js", () => ({
+	default: class {},
+}));
+vi.mock("../../../lib/remote-importer/sources-mainnet.js", () => ({
+	default: class {},
+}));
 
 const XPUB =
 	"tpubDDDAe7GgFT4fzEzKwWVA4BWo8fiJXQeGEYDTexzo2w6CK1iDoLPYkpEisXo623ieF79GQ3xpcEVN1vcQhX2sysyL8o1XqzBmQb9JReTxQ7w";
@@ -17,43 +27,7 @@ function deferred() {
 }
 
 describe("Local remote imports", () => {
-	let importer: typeof import("../../../lib/remote-importer/remote-importer.js").default;
 	let restore: () => void;
-
-	before(async () => {
-		// Stub external connections while exercising the real importer entry points.
-		const base = new URL("../../../lib/", import.meta.url);
-		const stubs = new Map([
-			[new URL("bitcoind-rpc/latest-block.js", base).href, "export default {}"],
-			[
-				new URL("remote-importer/sources-testnet.js", base).href,
-				"export default class {}",
-			],
-			[
-				new URL("remote-importer/sources-mainnet.js", base).href,
-				"export default class {}",
-			],
-		]);
-		const hooks = registerHooks({
-			resolve(specifier, context, nextResolve) {
-				const resolved = nextResolve(specifier, context);
-				const stub = stubs.get(resolved.url);
-				return stub === undefined
-					? resolved
-					: {
-							url: `data:text/javascript,${encodeURIComponent(stub)}`,
-							shortCircuit: true,
-						};
-			},
-		});
-		try {
-			importer = (
-				await import("../../../lib/remote-importer/remote-importer.js")
-			).default;
-		} finally {
-			hooks.deregister();
-		}
-	});
 
 	beforeEach(() => {
 		const scan = importer.xpubScan;

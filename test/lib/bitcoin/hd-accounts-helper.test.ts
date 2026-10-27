@@ -4,6 +4,7 @@
  */
 
 import assert from "node:assert";
+import { describe, it } from "vitest";
 import hdaHelper from "../../../lib/bitcoin/hd-accounts-helper.js";
 import errors from "../../../lib/errors.js";
 
