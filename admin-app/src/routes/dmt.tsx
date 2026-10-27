@@ -1,13 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { api } from "../api";
-import {
-	authenticated,
-	clearTokens,
-	refreshNeeded,
-	saveAccessToken,
-} from "../auth";
+import { api, refreshAccessToken } from "../api";
+import { authenticated, clearTokens, refreshNeeded } from "../auth";
 import { queryClient } from "../query";
 import {
 	BlocksRescanScreen,
@@ -100,31 +95,19 @@ function Dashboard() {
 			window.removeEventListener("dojo:unauthorized", onUnauthorized);
 	}, [navigate]);
 	useEffect(() => {
-		let running = false;
 		async function refresh() {
-			if (running) return;
-			const token = refreshNeeded();
-			if (token === "expired") {
-				clearTokens();
-				queryClient.clear();
-				void navigate({ to: "/" });
-				return;
-			}
-			if (!token) return;
-			running = true;
+			if (!refreshNeeded()) return;
 			try {
-				const response = await api.refresh(token);
-				saveAccessToken(response.authorizations.access_token);
+				await refreshAccessToken();
 			} catch {
-				/* The next interval can retry while the refresh token is valid. */
-			} finally {
-				running = false;
+				/* Authentication failures dispatch dojo:unauthorized. Other failures
+				   can be retried by the next request or interval. */
 			}
 		}
 		void refresh();
 		const timer = window.setInterval(refresh, 300_000);
 		return () => window.clearInterval(timer);
-	}, [navigate]);
+	}, []);
 	useEffect(() => {
 		document.body.style.overflow = menuOpen ? "hidden" : "";
 		return () => {

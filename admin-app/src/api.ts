@@ -1,4 +1,9 @@
-import { accessToken, clearTokens } from "./auth";
+import {
+	accessToken,
+	clearTokens,
+	refreshToken,
+	saveAccessToken,
+} from "./auth";
 
 declare const __DOJO_ADMIN_API_BASE__: string;
 const apiBase = __DOJO_ADMIN_API_BASE__;
@@ -118,39 +123,110 @@ function params(values: Record<string, string | number | boolean | undefined>) {
 	const result = search.toString();
 	return result ? `?${result}` : "";
 }
-async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+type RequestOptions = { auth?: boolean; retry?: boolean };
+
+function isUnauthorized(error: ApiError) {
+	return (
+		error.status === 401 ||
+		error.message === "Invalid JSON Web Token" ||
+		error.message === "Missing JSON Web Token"
+	);
+}
+
+function expireSession(token: string) {
+	if (accessToken() !== token) return;
+	clearTokens();
+	window.dispatchEvent(new Event("dojo:unauthorized"));
+}
+
+let pendingRefresh: { token: string; promise: Promise<void> } | undefined;
+
+export function refreshAccessToken(): Promise<void> {
+	const access = accessToken();
+	const refresh = refreshToken();
+	if (!access || !refresh) {
+		if (access) expireSession(access);
+		return Promise.reject(new ApiError("Session expired", 401));
+	}
+	if (pendingRefresh?.token === refresh) return pendingRefresh.promise;
+
+	const promise = request<{ authorizations: { access_token: string } }>(
+		path("/auth/refresh"),
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: params({ rt: refresh }).slice(1),
+		},
+		{ auth: false },
+	)
+		.then((response) => {
+			const token = response.authorizations?.access_token;
+			if (typeof token !== "string" || !token)
+				throw new Error("Invalid token refresh response");
+			// A completed refresh must not restore a logged-out or replaced session.
+			if (accessToken() === access && refreshToken() === refresh)
+				saveAccessToken(token);
+		})
+		.catch((error: unknown) => {
+			if (error instanceof ApiError && isUnauthorized(error))
+				expireSession(access);
+			throw error;
+		})
+		.finally(() => {
+			if (pendingRefresh?.promise === promise) pendingRefresh = undefined;
+		});
+	pendingRefresh = { token: refresh, promise };
+	return promise;
+}
+
+async function request<T>(
+	url: string,
+	init: RequestInit = {},
+	{ auth = true, retry = true }: RequestOptions = {},
+): Promise<T> {
 	const headers = new Headers(init.headers);
-	const token = accessToken();
+	const token = auth ? accessToken() : null;
 	if (token) headers.set("Authorization", `Bearer ${token}`);
 	const response = await fetch(url, { ...init, headers });
 	const body: unknown = await response.json().catch(() => ({}));
 	if (!response.ok) {
-		const error =
+		const message =
 			body && typeof body === "object" && "error" in body
 				? String(body.error)
 				: response.statusText;
-		if (
-			token &&
-			(response.status === 401 ||
-				error === "Invalid JSON Web Token" ||
-				error === "Missing JSON Web Token")
-		) {
-			clearTokens();
-			window.dispatchEvent(new Event("dojo:unauthorized"));
+		const error = new ApiError(
+			message || `HTTP ${response.status}`,
+			response.status,
+		);
+		if (token && isUnauthorized(error)) {
+			if (retry) {
+				init.signal?.throwIfAborted();
+				// A delayed failure may belong to a token that was already refreshed.
+				if (accessToken() === token) await refreshAccessToken();
+				init.signal?.throwIfAborted();
+				if (accessToken()) return request<T>(url, init, { auth, retry: false });
+			} else {
+				expireSession(token);
+			}
 		}
-		throw new ApiError(error || `HTTP ${response.status}`, response.status);
+		throw error;
 	}
 	return body as T;
 }
 function postForm<T>(
 	url: string,
 	data: Record<string, string | number | boolean | undefined>,
+	options?: RequestOptions,
 ) {
-	return request<T>(url, {
-		method: "POST",
-		headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		body: params(data).slice(1),
-	});
+	return request<T>(
+		url,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: params(data).slice(1),
+		},
+		options,
+	);
 }
 function json<T>(url: string, method: "POST" | "PATCH", data: unknown) {
 	return request<T>(url, {
@@ -161,18 +237,22 @@ function json<T>(url: string, method: "POST" | "PATCH", data: unknown) {
 }
 export const api = {
 	login: (key: string) =>
-		postForm<AuthResponse>(path("/auth/login"), { apikey: key }),
-	refresh: (token: string) =>
-		postForm<AuthResponse>(path("/auth/refresh"), { rt: token }),
+		postForm<AuthResponse>(
+			path("/auth/login"),
+			{ apikey: key },
+			{ auth: false },
+		),
 	auth47Uri: (signal?: AbortSignal) =>
 		request<{ data: { nonce: string; uri: string; paymentCode?: string } }>(
 			path("/auth/auth47/uri"),
 			{ signal },
+			{ auth: false },
 		),
 	auth47Status: (nonce: string, signal?: AbortSignal) =>
 		request<Partial<AuthResponse>>(
 			path(`/auth/auth47/status/${encoded(nonce)}`),
 			{ signal },
+			{ auth: false },
 		),
 	status: (signal?: AbortSignal) =>
 		request<Status>(path("/status"), { signal }),

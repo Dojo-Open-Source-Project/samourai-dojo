@@ -6,6 +6,9 @@ const refreshTimeKey = "refresh_token_ts";
 export function accessToken() {
 	return sessionStorage.getItem(accessKey);
 }
+export function refreshToken() {
+	return sessionStorage.getItem(refreshKey);
+}
 export function authenticated() {
 	const token = accessToken();
 	return Boolean(token && token !== "null");
@@ -42,12 +45,7 @@ export function refreshNeeded() {
 	if (!authenticated()) return null;
 	if (Date.now() - Number(sessionStorage.getItem(accessTimeKey) ?? 0) < 300_000)
 		return null;
-	if (
-		Date.now() - Number(sessionStorage.getItem(refreshTimeKey) ?? 0) >
-		7_140_000
-	)
-		return "expired";
-	return sessionStorage.getItem(refreshKey);
+	return refreshToken();
 }
 export function saveAccessToken(token: string) {
 	sessionStorage.setItem(accessKey, token);
