@@ -30,7 +30,7 @@ afterEach(() => {
 function payload(type = "access-token") {
 	const now = Math.floor(Date.now() / 1000);
 	return {
-		iss: "Samourai Wallet backend",
+		iss: "Samourai Dojo",
 		type,
 		prf: "admin",
 		iat: now,
@@ -83,7 +83,7 @@ describe("Hono JWT compatibility", () => {
 			};
 			expect(header).toEqual({ alg: "HS256", typ: "JWT" });
 			expect(claims).toEqual({
-				iss: "Samourai Wallet backend",
+				iss: "Samourai Dojo",
 				type: "access-token",
 				prf: "admin",
 				iat: 1793131200,

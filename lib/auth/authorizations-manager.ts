@@ -56,7 +56,7 @@ function lifetimeSeconds(expires: string | number): number {
 
 class AuthorizationsManager {
 	readonly JWT_ALGO = "HS256";
-	readonly ISS = "Samourai Wallet backend";
+	readonly ISS = "Samourai Dojo";
 	readonly TOKEN_TYPE_ACCESS = "access-token";
 	readonly TOKEN_TYPE_REFRESH = "refresh-token";
 	readonly TOKEN_PROFILE_API = "api";
