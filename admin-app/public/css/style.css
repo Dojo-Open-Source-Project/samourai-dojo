@@ -956,6 +956,29 @@ button {
 	margin: 0;
 }
 
+#table-scheduled-txs { table-layout: fixed; }
+
+#table-scheduled-txs .table-label { width: 160px; }
+#table-scheduled-txs .table-value { overflow-wrap: anywhere; }
+
+#table-scheduled-txs tbody tr:first-child td { padding-top: 20px; }
+
+#table-scheduled-txs tbody + tbody tr:first-child td {
+	border-top: 2px solid var(--line);
+	padding-top: 24px;
+}
+
+#table-scheduled-txs tbody tr:last-child td {
+	border-bottom: 0;
+	padding-bottom: 24px;
+}
+
+#table-scheduled-txs tbody:last-child tr:last-child td { padding-bottom: 9px; }
+
+@media (max-width: 600px) {
+	#table-scheduled-txs .table-label { width: 35%; }
+}
+
 .box-header-count {
 	font-family: var(--mono);
 	font-weight: 600;

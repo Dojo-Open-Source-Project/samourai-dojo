@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { type FormEvent, Fragment, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { date, errorMessage, period, Rows, Section, useNotice } from "../ui";
 
@@ -269,39 +269,30 @@ export function PushTxScreen() {
 					</div>
 					<div className="box-body">
 						<table id="table-scheduled-txs">
-							<tbody>
-								{txs.map((tx) => (
-									<Fragment key={tx.schID}>
-										<tr>
-											<td colSpan={2}>&nbsp;</td>
-										</tr>
-										<tr>
-											<td className="table-label">TXID</td>
-											<td className="table-value">{tx.schTxid}</td>
-										</tr>
-										<tr>
-											<td className="table-label">Schedule Id</td>
-											<td className="table-value">{tx.schID}</td>
-										</tr>
-										<tr>
-											<td className="table-label">Scheduled for block</td>
-											<td className="table-value">{tx.schTrigger}</td>
-										</tr>
-										<tr>
-											<td className="table-label">Created on</td>
-											<td className="table-value">{date(tx.schCreated)}</td>
-										</tr>
-										<tr>
-											<td className="table-label">Parent TXID</td>
-											<td className="table-value">{tx.schParentTxid}</td>
-										</tr>
-										<tr>
-											<td className="table-label">Raw TX</td>
-											<td className="table-value">{tx.schRaw}</td>
-										</tr>
-									</Fragment>
-								))}
-							</tbody>
+							{txs.map((tx) => (
+								<tbody key={tx.schID}>
+									<tr>
+										<td className="table-label">TXID</td>
+										<td className="table-value">{tx.schTxid}</td>
+									</tr>
+									<tr>
+										<td className="table-label">Schedule Id</td>
+										<td className="table-value">{tx.schID}</td>
+									</tr>
+									<tr>
+										<td className="table-label">Scheduled for block</td>
+										<td className="table-value">{tx.schTrigger}</td>
+									</tr>
+									<tr>
+										<td className="table-label">Created on</td>
+										<td className="table-value">{date(tx.schCreated)}</td>
+									</tr>
+									<tr>
+										<td className="table-label">Parent TXID</td>
+										<td className="table-value">{tx.schParentTxid}</td>
+									</tr>
+								</tbody>
+							))}
 						</table>
 					</div>
 				</div>
