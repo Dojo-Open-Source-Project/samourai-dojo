@@ -32,6 +32,7 @@ services:
       dockerfile: ./docker/my-dojo/node/Dockerfile
       args:
         TOR_LINUX_GID: ${TOR_LINUX_GID}
+        COMMON_BTC_NETWORK: ${COMMON_BTC_NETWORK:-mainnet}
     env_file:
       - ./.env
       - ./conf/docker-common.conf

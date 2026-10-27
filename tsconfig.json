@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"target": "ES2024",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"lib": ["ES2024", "DOM"],
+		"types": ["node", "mocha"],
+		"strict": false,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+		"moduleDetection": "force",
+		"noImplicitAny": true,
+		"noEmit": true
+	},
+	"include": ["**/*.ts", "**/*.d.ts"],
+	"exclude": ["node_modules", "dist", "admin-app"]
+}

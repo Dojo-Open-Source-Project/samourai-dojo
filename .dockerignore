@@ -2,3 +2,8 @@ node_modules
 .git
 private-tests
 docker/my-dojo/conf
+keys/
+static/admin/
+admin-app/dist
+admin-app/.output
+admin-app/.tanstack

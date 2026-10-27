@@ -48,7 +48,7 @@ Dojo is composed of 3 modules:
 * PushTx (/pushtx): web server providing a REST API used to push transactions on the Bitcoin P2P network.
 * Tracker (/tracker): process listening to the bitcoind node and indexing transactions of interest.
 
-API and PushTx modules are able to operate behind a web server (e.g. nginx) or as frontend http servers (not recommended). Both support HTTP or HTTPS (if SSL has been properly configured in /keys/index.js). These modules can also operate as a Tor hidden service (recommended).
+API and PushTx modules are able to operate behind a web server (e.g. nginx) or as frontend http servers (not recommended). Both support HTTP or HTTPS (if SSL has been properly configured in /keys/index.ts). These modules can also operate as a Tor hidden service (recommended).
 
 Authentication is enforced by an API key and Json Web Tokens.
 
@@ -73,13 +73,13 @@ Authentication is enforced by an API key and Json Web Tokens.
 * Using the local bitcoind (default option) or the local indexer makes you 100% independent of Samourai Wallet's infrastructure and is recommended for better privacy.
 
 * Activation of bitcoind as the data source:
-  * Edit /keys/index.js and set "indexer.active" to "local_bitcoind". OXT API will be ignored.
+  * Edit /keys/index.ts and set "indexer.active" to "local_bitcoind". OXT API will be ignored.
 
 * Activation of the local indexer as the data source:
-  * Edit /keys/index.js and set "indexer.active" to "local_indexer". OXT API will be ignored.
+  * Edit /keys/index.ts and set "indexer.active" to "local_indexer". OXT API will be ignored.
 
 * Activation of OXT as the data source (through socks5):
-  * Edit /keys/index.js and set "indexer.active" to "third_party_explorer".
+  * Edit /keys/index.ts and set "indexer.active" to "third_party_explorer".
 
 * Main drawbacks of using your local bitcoind for these imports:
   * This option is considered as experimental.

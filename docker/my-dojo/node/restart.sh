@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec pm2-runtime --raw "$APP_DIR/pm2.config.cjs"
+exec node "$APP_DIR/dist/lib/coordination/supervisor.js" "$APP_DIR/pm2.config.cjs"

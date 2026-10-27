@@ -85,13 +85,9 @@ update_config_files() {
   if [ "$COMMON_BTC_NETWORK" == "testnet" ]; then
     cp ./nginx/testnet.conf ./nginx/dojo.conf
     echo "Initialized dojo.conf (nginx)"
-    cp ../../static/admin/conf/index-testnet.js ../../static/admin/conf/index.js
-    echo "Initialized index.js (admin module)"
   else
     cp ./nginx/mainnet.conf ./nginx/dojo.conf
     echo "Initialized dojo.conf (nginx)"
-    cp ../../static/admin/conf/index-mainnet.js ../../static/admin/conf/index.js
-    echo "Initialized index.js (admin module)"
   fi
 
   # Initialize config files for mysql

@@ -2,12 +2,15 @@ docker/my-dojo/conf/*.conf
 docker/my-dojo/conf/*.conf.save
 docker/my-dojo/nginx/*.conf
 docker/my-dojo/mysql/*.cnf
-keys/index.js
+keys/index.ts
 keys/sslcert/
 node_modules/
 private-tests/
-static/admin/conf/index.js
 static/admin-legacy
 static/admin-legacy/
 *.log
 /pm2.config.cjs
+dist/
+admin-app/.output/
+admin-app/dist/
+admin-app/.tanstack/

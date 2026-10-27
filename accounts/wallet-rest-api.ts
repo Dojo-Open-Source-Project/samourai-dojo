@@ -1,0 +1,130 @@
+/*!
+ * accounts/wallet-rest-api.js
+ * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
+ */
+
+import { urlencoded } from "milliparsec";
+import authMgr from "../lib/auth/authorizations-manager.js";
+import hdaService from "../lib/bitcoin/hd-accounts-service.js";
+import errors from "../lib/errors.js";
+import HttpServer from "../lib/http-server/http-server.js";
+import Logger from "../lib/logger.js";
+import walletService from "../lib/wallet/wallet-service.js";
+import apiHelper from "./api-helper.js";
+
+const debugApi = process.argv.includes("api-debug");
+
+/**
+ * Wallet API endpoints
+ */
+class WalletRestApi {
+	[key: string]: unknown;
+	declare httpServer: HttpServer;
+	/**
+	 * Constructor
+	 */
+	constructor(httpServer: HttpServer) {
+		this.httpServer = httpServer;
+
+		// Establish routes
+		const urlencodedParser = urlencoded();
+
+		this.httpServer.app.get(
+			"/wallet",
+			authMgr.checkAuthentication.bind(authMgr),
+			apiHelper.validateEntitiesParams.bind(apiHelper),
+			this.getWallet.bind(this),
+		);
+
+		this.httpServer.app.post(
+			"/wallet",
+			urlencodedParser,
+			authMgr.checkAuthentication.bind(authMgr),
+			apiHelper.validateEntitiesParams.bind(apiHelper),
+			this.postWallet.bind(this),
+		);
+	}
+
+	/**
+	 * Handle wallet GET request
+	 */
+	async getWallet(req: HttpRequestLike, res: HttpResponseLike) {
+		try {
+			// Check request params
+			if (!apiHelper.checkEntitiesParams(req.query))
+				return HttpServer.sendError(res, errors.multiaddr.NOACT);
+
+			// Parse params
+			const entities = apiHelper.parseEntitiesParams(req.query);
+
+			if (req.query.importPostmixLikeTypeChange) {
+				await hdaService.importPostmixLikeTypeChange(entities.active.xpubs);
+			}
+
+			const result = await walletService.getFullWalletInfo(
+				entities.active,
+				entities.legacy,
+				entities.bip49,
+				entities.bip84,
+				entities.pubkey,
+			);
+
+			const returnValue = JSON.stringify(result, null, 2);
+			HttpServer.sendRawData(res, returnValue);
+		} catch (error) {
+			HttpServer.sendError(res, error);
+		} finally {
+			if (debugApi) {
+				const stringParameters = `${req.query.active || ""} \
+                     ${req.query.new || ""} \
+                     ${req.query.pubkey || ""} \
+                     ${req.query.bip49 || ""} \
+                     ${req.query.bip84 || ""}`;
+
+				Logger.info(`API : Completed GET /wallet ${stringParameters}`);
+			}
+		}
+	}
+
+	/**
+	 * Handle wallet POST request
+	 */
+	async postWallet(req: HttpRequestLike, res: HttpResponseLike) {
+		try {
+			// Check request params
+			if (!apiHelper.checkEntitiesParams(req.body))
+				return HttpServer.sendError(res, errors.multiaddr.NOACT);
+
+			// Parse params
+			const entities = apiHelper.parseEntitiesParams(req.body);
+
+			if (req.body.importPostmixLikeTypeChange) {
+				await hdaService.importPostmixLikeTypeChange(entities.active.xpubs);
+			}
+
+			const result = await walletService.getFullWalletInfo(
+				entities.active,
+				entities.legacy,
+				entities.bip49,
+				entities.bip84,
+				entities.pubkey,
+			);
+
+			HttpServer.sendOkDataOnly(res, result);
+		} catch (error) {
+			HttpServer.sendError(res, error);
+		} finally {
+			if (debugApi) {
+				const stringParameters = `${req.body.active || ""} \
+                     ${req.body.new || ""} \
+                     ${req.body.pubkey || ""} \
+                     ${req.body.bip49 || ""} \
+                     ${req.body.bip84 || ""}`;
+
+				Logger.info(`API : Completed POST /wallet ${stringParameters}`);
+			}
+		}
+	}
+}
+
+export default WalletRestApi;
