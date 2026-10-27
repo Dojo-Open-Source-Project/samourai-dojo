@@ -649,6 +649,97 @@ class MySqlDbWrapper {
 		Logger.error(null, `Db Wrapper : ${query}`);
 	}
 
+	/** Consume SELECT rows without retaining an intermediate result array. */
+	private async _queryReduce<T>(
+		query: string,
+		values: DbQueryValues,
+		createResult: () => T,
+		consumeRow: (result: T, row: DbRow) => void,
+		retries = 5,
+	): Promise<T> {
+		const sql = format(query, values as SqlFormatValues);
+		queryDebug && Logger.info(`Db Wrapper : ${sql}`);
+		if (this.pool == null) throw new Error("Database pool is not initialized");
+		try {
+			const connection = await this.pool.getConnection();
+			try {
+				// Each attempt owns its accumulator so a retry discards partial results.
+				const result = createResult();
+				const stream = connection.queryStream({
+					sql,
+					namedPlaceholders: false,
+				}) as ReturnType<typeof connection.queryStream> & { close(): void };
+				try {
+					await new Promise<void>((resolve, reject) => {
+						let failed = false;
+						stream.on("data", (row: DbRow) => {
+							if (failed) return;
+							try {
+								consumeRow(result, row);
+								queryDebug &&
+									Logger.info(`Db Wrapper : ${JSON.stringify(row)}`);
+							} catch (error) {
+								failed = true;
+								reject(error);
+							}
+						});
+						stream.once("error", (error: unknown) => {
+							failed = true;
+							reject(error);
+						});
+						stream.once("end", resolve);
+					});
+					return result;
+				} finally {
+					// MariaDB's close() resumes a paused socket and drains unread rows.
+					stream.close();
+				}
+			} finally {
+				await connection.release();
+			}
+		} catch (error) {
+			if (
+				hasMysqlCode(error) &&
+				[
+					"ER_LOCK_DEADLOCK",
+					"ER_LOCK_TIMEOUT",
+					"ER_LOCK_WAIT_TIMEOUT",
+				].includes(error.code) &&
+				retries > 0
+			) {
+				this.queryError(
+					new Error("Lock detected. Retry request in a few ms"),
+					sql,
+				);
+				await util.delay(Math.floor(Math.random() * 100 + 1));
+				return this._queryReduce(
+					query,
+					values,
+					createResult,
+					consumeRow,
+					retries - 1,
+				);
+			}
+			this.queryError(error, sql);
+			throw error;
+		}
+	}
+
+	/** Bind a collection in one atomic INSERT, preserving IDs and warnings. */
+	private _insertMany(query: string, rows: DbScalar[][]) {
+		// Keep oversized collections as a single statement without exceeding the
+		// protocol's 16-bit parameter count or partially committing separate batches.
+		if (rows.length * rows[0].length > 65535) {
+			return this._query(query, [rows]);
+		}
+		const tuple = `(${rows[0].map(() => "?").join(",")})`;
+		const sql = query.replace(
+			"VALUES ?",
+			`VALUES ${rows.map(() => tuple).join(",")}`,
+		);
+		return this._query(sql, rows.flat(), true);
+	}
+
 	/**
 	 * Get the ID of an address
 	 */
@@ -680,17 +771,18 @@ class MySqlDbWrapper {
 	 * Get the IDs of an array of Addresses
 	 */
 	async getAddressesIds(addresses: string[] = []) {
-		const returnValue: Record<string, number> = {};
-
-		if (addresses.length === 0) return returnValue;
+		if (addresses.length === 0) return {} as Record<string, number>;
 
 		const sqlQuery = "SELECT * FROM `addresses` WHERE `addrAddress` IN (?)";
 		const parameters = [addresses];
-		const result = await this._query(sqlQuery, parameters);
-
-		for (const r of result) returnValue[r.addrAddress] = r.addrID;
-
-		return returnValue;
+		return this._queryReduce(
+			sqlQuery,
+			parameters,
+			(): Record<string, number> => ({}),
+			(result, row) => {
+				result[row.addrAddress] = row.addrID;
+			},
+		);
 	}
 
 	/**
@@ -702,8 +794,8 @@ class MySqlDbWrapper {
 		if (addresses.length === 0) return [] as DbRows;
 
 		const sqlQuery = "INSERT IGNORE INTO `addresses` (addrAddress) VALUES ?";
-		const parameters = [addresses.map((address): DbScalar[] => [address])];
-		return await this._query(sqlQuery, parameters);
+		const rows = addresses.map((address): DbScalar[] => [address]);
+		return this._insertMany(sqlQuery, rows);
 	}
 
 	/**
@@ -925,9 +1017,7 @@ class MySqlDbWrapper {
 		const sqlQuery =
 			"INSERT IGNORE INTO `hd_addresses` \
       (hdID, addrID, hdAddrChain, hdAddrIndex) VALUES ?";
-		const parameters = [data];
-
-		return await this._query(sqlQuery, parameters);
+		return this._insertMany(sqlQuery, data);
 	}
 
 	/**
@@ -964,7 +1054,7 @@ class MySqlDbWrapper {
 	 * theyare returned in the `loose` category
 	 */
 	async getHDAccountsByAddresses(addresses: string[] = []) {
-		const returnValue: {
+		const createResult = (): {
 			hd: Record<
 				string,
 				{
@@ -979,12 +1069,12 @@ class MySqlDbWrapper {
 				}
 			>;
 			loose: Array<{ addrID: number; addrAddress: string }>;
-		} = {
+		} => ({
 			hd: {},
 			loose: [],
-		};
+		});
 
-		if (addresses.length === 0) return returnValue;
+		if (addresses.length === 0) return createResult();
 
 		const sqlQuery =
 			"SELECT \
@@ -1002,33 +1092,34 @@ class MySqlDbWrapper {
       AND `addresses`.`addrAddress` NOT IN (SELECT addrAddress FROM banned_addresses)";
 
 		const parameters = [addresses];
-		const results = await this._query(sqlQuery, parameters);
+		return this._queryReduce(
+			sqlQuery,
+			parameters,
+			createResult,
+			(returnValue, r) => {
+				if (r.hdXpub == null) {
+					returnValue.loose.push({
+						addrID: r.addrID,
+						addrAddress: r.addrAddress,
+					});
+				} else {
+					if (!returnValue.hd[r.hdXpub]) {
+						returnValue.hd[r.hdXpub] = {
+							hdID: r.hdID,
+							hdType: r.hdType,
+							addresses: [],
+						};
+					}
 
-		for (const r of results) {
-			if (r.hdXpub == null) {
-				returnValue.loose.push({
-					addrID: r.addrID,
-					addrAddress: r.addrAddress,
-				});
-			} else {
-				if (!returnValue.hd[r.hdXpub]) {
-					returnValue.hd[r.hdXpub] = {
-						hdID: r.hdID,
-						hdType: r.hdType,
-						addresses: [],
-					};
+					returnValue.hd[r.hdXpub].addresses.push({
+						addrID: r.addrID,
+						addrAddress: r.addrAddress,
+						hdAddrChain: r.hdAddrChain,
+						hdAddrIndex: r.hdAddrIndex,
+					});
 				}
-
-				returnValue.hd[r.hdXpub].addresses.push({
-					addrID: r.addrID,
-					addrAddress: r.addrAddress,
-					hdAddrChain: r.hdAddrChain,
-					hdAddrIndex: r.hdAddrIndex,
-				});
-			}
-		}
-
-		return returnValue;
+			},
+		);
 	}
 
 	/**
@@ -1306,9 +1397,13 @@ class MySqlDbWrapper {
 			") AS `utxos` \
       ORDER BY `utxos`.`outIndex` ASC, `utxos`.`inIndex` ASC";
 
-		const utxos = await this._query(sqlQuery2);
-
-		return this.assembleTransactions(txs, utxos);
+		const assembler = await this._queryReduce(
+			sqlQuery2,
+			undefined,
+			() => this._transactionAssembler(txs),
+			(result, row) => result.addRow(row),
+		);
+		return assembler.finish();
 	}
 
 	/**
@@ -1379,13 +1474,19 @@ class MySqlDbWrapper {
 	 * Take query results for txs and utxos and combine into transaction data
 	 */
 	assembleTransactions(txs: DbRows = [], utxos: DbRows = []) {
+		const assembler = this._transactionAssembler(txs);
+		for (const row of utxos) assembler.addRow(row);
+		return assembler.finish();
+	}
+
+	private _transactionAssembler(txs: DbRows) {
 		const txns: Record<number, ApiTransaction> = {};
 
 		for (const tx of txs) {
 			if (!txns[tx.txnID]) txns[tx.txnID] = this._transactionStub(tx);
 		}
 
-		for (const u of utxos) {
+		const addRow = (u: DbRow) => {
 			if (u.txnID != null && txns[u.txnID]) {
 				if (u.inIndex != null) {
 					const txn = txns[u.txnID];
@@ -1397,12 +1498,15 @@ class MySqlDbWrapper {
 					txn.out.push(this._outputStub(u));
 				}
 			}
-		}
+		};
 
 		// Return transactions in descending time order, most recent first
-		const returnValue = Object.keys(txns).map((key) => txns[Number(key)]);
-		returnValue.sort((a, b) => b.time - a.time);
-		return returnValue;
+		const finish = () => {
+			const result = Object.keys(txns).map((key) => txns[Number(key)]);
+			result.sort((a, b) => b.time - a.time);
+			return result;
+		};
+		return { addRow, finish };
 	}
 
 	/**
@@ -1438,9 +1542,7 @@ class MySqlDbWrapper {
 	 * Get addresses that belong to a given hd account
 	 */
 	async getXpubByAddresses(addresses: string[] = []) {
-		const returnValue: Record<string, string> = {};
-
-		if (addresses.length === 0) return returnValue;
+		if (addresses.length === 0) return {} as Record<string, string>;
 
 		const sqlQuery =
 			"SELECT `hd`.`hdXpub`, `addresses`.`addrAddress` \
@@ -1450,11 +1552,14 @@ class MySqlDbWrapper {
       WHERE `addresses`.`addrAddress` IN (?)";
 
 		const parameters = [addresses];
-		const results = await this._query(sqlQuery, parameters);
-
-		for (const r of results) returnValue[r.addrAddress] = r.hdXpub;
-
-		return returnValue;
+		return this._queryReduce(
+			sqlQuery,
+			parameters,
+			(): Record<string, string> => ({}),
+			(result, row) => {
+				result[row.addrAddress] = row.hdXpub;
+			},
+		);
 	}
 
 	/**
@@ -1498,11 +1603,14 @@ class MySqlDbWrapper {
 		const sqlQuery =
 			"SELECT `txnID`, `txnTxid` FROM `transactions` WHERE `txnTxid` IN (?)";
 		const parameters = [txids];
-		const results = await this._query(sqlQuery, parameters);
-
-		const returnValue: Record<string, number> = {};
-		for (const r of results) returnValue[r.txnTxid] = r.txnID;
-		return returnValue;
+		return this._queryReduce(
+			sqlQuery,
+			parameters,
+			(): Record<string, number> => ({}),
+			(result, row) => {
+				result[row.txnTxid] = row.txnID;
+			},
+		);
 	}
 
 	/**
@@ -1543,28 +1651,21 @@ class MySqlDbWrapper {
       (txnTxid, txnCreated, txnVersion, txnLocktime) VALUES ? \
       ON DUPLICATE KEY UPDATE txnVersion = VALUES(txnVersion)";
 
-		const parameters = [
-			txs.map((tx): DbScalar[] => [
-				tx.txid,
-				tx.created || util.unix(),
-				tx.version,
-				tx.locktime,
-			]),
-		];
+		const rows = txs.map((tx): DbScalar[] => [
+			tx.txid,
+			tx.created || util.unix(),
+			tx.version,
+			tx.locktime,
+		]);
 
-		return await this._query(sqlQuery, parameters);
+		return this._insertMany(sqlQuery, rows);
 	}
 
 	/**
 	 * Get a transaction for a given txid
 	 */
 	async getTransaction(txid?: string) {
-		const results = await Promise.all([
-			this._query(SUBQUERY_GET_TX_OUTS, [txid], true),
-			this._query(SUBQUERY_GET_TX_INS, [txid], true),
-		]);
-
-		const tx: ApiTransaction = {
+		const createTransaction = (): ApiTransaction => ({
 			hash: txid,
 			time: Number.POSITIVE_INFINITY,
 			version: 0,
@@ -1572,73 +1673,88 @@ class MySqlDbWrapper {
 			inputs: [],
 			out: [],
 			block_height: null,
-		};
+		});
 
-		// Process the outputs
-		for (const output of results[0]) {
-			tx.version = output.txnVersion;
-			tx.locktime = output.txnLocktime;
+		const [tx, inputTx] = await Promise.all([
+			this._queryReduce(
+				SUBQUERY_GET_TX_OUTS,
+				[txid],
+				createTransaction,
+				(tx, output) => {
+					tx.version = output.txnVersion;
+					tx.locktime = output.txnLocktime;
 
-			if (output.blockTime != null)
-				tx.time = Math.min(tx.time, output.blockTime);
+					if (output.blockTime != null)
+						tx.time = Math.min(tx.time, output.blockTime);
 
-			tx.time = Math.min(tx.time, output.txnCreated);
+					tx.time = Math.min(tx.time, output.txnCreated);
 
-			if (output.blockHeight != null) tx.block_height = output.blockHeight;
+					if (output.blockHeight != null) tx.block_height = output.blockHeight;
 
-			const fmt: ApiOutput = {
-				n: output.outIndex,
-				value: output.outAmount,
-				addr: output.addrAddress,
-				script: output.outScript,
-			};
+					const fmt: ApiOutput = {
+						n: output.outIndex,
+						value: output.outAmount,
+						addr: output.addrAddress,
+						script: output.outScript,
+					};
 
-			if (output.hdXpub) {
-				fmt.xpub = {
-					m: output.hdXpub,
-					path: ["M", output.hdAddrChain, output.hdAddrIndex].join("/"),
-				};
-			}
+					if (output.hdXpub) {
+						fmt.xpub = {
+							m: output.hdXpub,
+							path: ["M", output.hdAddrChain, output.hdAddrIndex].join("/"),
+						};
+					}
 
-			tx.out.push(fmt);
-		}
-
-		// Process the inputs
-		for (const input of results[1]) {
-			tx.version = input.txnVersion;
-			tx.locktime = input.txnLocktime;
-
-			if (input.blockTime != null) tx.time = Math.min(tx.time, input.blockTime);
-
-			tx.time = Math.min(tx.time, input.txnCreated);
-
-			if (input.blockHeight != null) tx.block_height = input.blockHeight;
-
-			const fmt: ApiInput = {
-				vin: input.inIndex,
-				prev_out: {
-					txid: input.prevOutTxid,
-					vout: input.outIndex,
-					value: input.outAmount,
-					addr: input.addrAddress,
-					script: input.outScript,
+					tx.out.push(fmt);
 				},
-				sequence: input.inSequence,
-			};
+			),
+			this._queryReduce(
+				SUBQUERY_GET_TX_INS,
+				[txid],
+				createTransaction,
+				(tx, input) => {
+					tx.version = input.txnVersion;
+					tx.locktime = input.txnLocktime;
 
-			if (input.hdXpub) {
-				fmt.prev_out.xpub = {
-					m: input.hdXpub,
-					path: ["M", input.hdAddrChain, input.hdAddrIndex].join("/"),
-				};
-			}
+					if (input.blockTime != null)
+						tx.time = Math.min(tx.time, input.blockTime);
 
-			tx.inputs.push(fmt);
+					tx.time = Math.min(tx.time, input.txnCreated);
+
+					if (input.blockHeight != null) tx.block_height = input.blockHeight;
+
+					const fmt: ApiInput = {
+						vin: input.inIndex,
+						prev_out: {
+							txid: input.prevOutTxid,
+							vout: input.outIndex,
+							value: input.outAmount,
+							addr: input.addrAddress,
+							script: input.outScript,
+						},
+						sequence: input.inSequence,
+					};
+
+					if (input.hdXpub) {
+						fmt.prev_out.xpub = {
+							m: input.hdXpub,
+							path: ["M", input.hdAddrChain, input.hdAddrIndex].join("/"),
+						};
+					}
+
+					tx.inputs.push(fmt);
+				},
+			),
+		]);
+
+		tx.inputs = inputTx.inputs;
+		tx.time = Math.min(tx.time, inputTx.time);
+		if (inputTx.inputs.length > 0) {
+			tx.version = inputTx.version;
+			tx.locktime = inputTx.locktime;
 		}
-
-		// Remove block height if null
+		if (inputTx.block_height != null) tx.block_height = inputTx.block_height;
 		if (tx.block_height == null) delete tx.block_height;
-
 		return tx;
 	}
 
@@ -1745,16 +1861,14 @@ class MySqlDbWrapper {
 			"INSERT IGNORE INTO `outputs` \
       (txnID, addrID, outIndex, outAmount, outScript) VALUES ?";
 
-		const parameters = [
-			outputs.map((o): DbScalar[] => [
-				o.txnID,
-				o.addrID,
-				o.outIndex,
-				o.outAmount,
-				o.outScript,
-			]),
-		];
-		return await this._query(sqlQuery, parameters);
+		const rows = outputs.map((o): DbScalar[] => [
+			o.txnID,
+			o.addrID,
+			o.outIndex,
+			o.outAmount,
+			o.outScript,
+		]);
+		return this._insertMany(sqlQuery, rows);
 	}
 
 	/**
@@ -1864,15 +1978,13 @@ class MySqlDbWrapper {
       (txnID, outID, inIndex, inSequence) VALUES ? \
       ON DUPLICATE KEY UPDATE outID = VALUES(outID)";
 
-		const parameters = [
-			inputs.map((input): DbScalar[] => [
-				input.txnID,
-				input.outID,
-				input.inIndex,
-				input.inSequence,
-			]),
-		];
-		return await this._query(sqlQuery, parameters);
+		const rows = inputs.map((input): DbScalar[] => [
+			input.txnID,
+			input.outID,
+			input.inIndex,
+			input.inSequence,
+		]);
+		return this._insertMany(sqlQuery, rows);
 	}
 
 	/**

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import mariadb, { type Connection } from "mariadb";
 import { afterAll, beforeAll, describe, it, vi } from "vitest";
+import hdaHelper from "../../../lib/bitcoin/hd-accounts-helper.js";
 import db from "../../../lib/db/mysql-db-wrapper.js";
 
 // Opt in with DOJO_TEST_DB_PORT pointing to a disposable local MariaDB server
@@ -15,6 +16,65 @@ const connectionConfig = {
 	user: "root",
 	password: "",
 };
+
+async function responseTransactions(tag: "single" | "page") {
+	const parentTxid = (tag === "single" ? "1" : "4").repeat(64);
+	const txid = (tag === "single" ? "2" : "5").repeat(64);
+	const blockHash = (tag === "single" ? "3" : "6").repeat(64);
+	const xpub = `response-${tag}-xpub`;
+	const incoming = `${tag}-incoming`;
+	const outgoing = `${tag}-outgoing`;
+	const loose = `${tag}-loose`;
+	await db.ensureHDAccountId(xpub, hdaHelper.BIP44);
+	await db.addAddressesToHDAccount(xpub, [
+		{ address: incoming, chain: 0, index: 1 },
+		{ address: outgoing, chain: 1, index: 2 },
+	]);
+	const incomingID = await db.getAddressId(incoming);
+	const outgoingID = await db.getAddressId(outgoing);
+	const looseID = await db.ensureAddressId(loose);
+	await db.addTransactions([
+		{ txid: parentTxid, created: 1000, version: 1, locktime: 0 },
+		{ txid, created: 3000, version: 2, locktime: 17 },
+	]);
+	const parentID = await db.getTransactionId(parentTxid);
+	const txnID = await db.getTransactionId(txid);
+	await db.addOutputs([
+		{
+			txnID: parentID,
+			addrID: incomingID,
+			outIndex: 0,
+			outAmount: 100,
+			outScript: "parent-script",
+		},
+		{
+			txnID,
+			addrID: looseID,
+			outIndex: 1,
+			outAmount: 60,
+			outScript: "loose-script",
+		},
+		{
+			txnID,
+			addrID: outgoingID,
+			outIndex: 0,
+			outAmount: 35,
+			outScript: "owned-script",
+		},
+	]);
+	const outputs = await db.getOutputIds([{ txid: parentTxid, vout: 0 }]);
+	await db.addInputs([
+		{ txnID, outID: outputs[0].outID, inIndex: 0, inSequence: 0xfffffffe },
+	]);
+	const blockID = await db.addBlock({
+		blockHash,
+		blockParent: null,
+		blockHeight: 20,
+		blockTime: 2000,
+	});
+	await db.confirmTransactions([txid], blockID);
+	return { parentTxid, txid, xpub, incoming, outgoing, loose };
+}
 
 describe.skipIf(!port)("Database driver integration", () => {
 	let admin: Connection;
@@ -192,6 +252,377 @@ describe.skipIf(!port)("Database driver integration", () => {
 		keys = await db.getApiKeys();
 		assert.equal(keys[0].active, false);
 		assert.equal((await db.getActiveApiKeys()).length, 0);
+	});
+
+	it("maps address and transaction IDs without including missing or duplicate lookups", async () => {
+		const first = await db.ensureAddressId("map-first");
+		const quoted = await db.ensureAddressId("map-'\\second");
+		assert.deepEqual(
+			await db.getAddressesIds([
+				"map-first",
+				"missing",
+				"map-'\\second",
+				"map-first",
+			]),
+			{
+				"map-first": first,
+				"map-'\\second": quoted,
+			},
+		);
+		const txid = "e".repeat(64);
+		const txnID = await db.ensureTransactionId(txid);
+		assert.deepEqual(await db.getTransactionsIds([txid, "missing", txid]), {
+			[txid]: txnID,
+		});
+		assert.deepEqual(await db.getAddressesIds([]), {});
+		assert.deepEqual(await db.getTransactionsIds([]), {});
+	});
+
+	it("groups shared HD addresses, retains loose addresses, and excludes banned addresses", async () => {
+		const hdID = await db.ensureHDAccountId("stream-xpub-a", hdaHelper.BIP44);
+		const secondID = await db.ensureHDAccountId(
+			"stream-xpub-b",
+			hdaHelper.BIP44,
+		);
+		await db.addAddressesToHDAccount("stream-xpub-a", [
+			{ address: "stream-owned", chain: 0, index: 3 },
+			{ address: "stream-banned", chain: 1, index: 4 },
+		]);
+		await db.addAddressesToHDAccount("stream-xpub-b", [
+			{ address: "stream-owned", chain: 1, index: 8 },
+		]);
+		const ownedID = await db.getAddressId("stream-owned");
+		const looseID = await db.ensureAddressId("stream-loose");
+		await db._query("INSERT INTO `banned_addresses` (addrAddress) VALUES (?)", [
+			"stream-banned",
+		]);
+		assert.deepEqual(
+			await db.getHDAccountsByAddresses([
+				"stream-owned",
+				"stream-loose",
+				"stream-banned",
+				"missing",
+			]),
+			{
+				hd: {
+					"stream-xpub-a": {
+						hdID,
+						hdType: hdaHelper.BIP44,
+						addresses: [
+							{
+								addrID: ownedID,
+								addrAddress: "stream-owned",
+								hdAddrChain: 0,
+								hdAddrIndex: 3,
+							},
+						],
+					},
+					"stream-xpub-b": {
+						hdID: secondID,
+						hdType: hdaHelper.BIP44,
+						addresses: [
+							{
+								addrID: ownedID,
+								addrAddress: "stream-owned",
+								hdAddrChain: 1,
+								hdAddrIndex: 8,
+							},
+						],
+					},
+				},
+				loose: [{ addrID: looseID, addrAddress: "stream-loose" }],
+			},
+		);
+		assert.deepEqual(await db.getHDAccountsByAddresses([]), {
+			hd: {},
+			loose: [],
+		});
+		assert.deepEqual(
+			await db.getXpubByAddresses(["stream-banned", "stream-loose", "missing"]),
+			{ "stream-banned": "stream-xpub-a" },
+		);
+		assert.deepEqual(await db.getXpubByAddresses([]), {});
+	});
+
+	it("preserves transaction input/output order, scripts, HD paths, confirmations, and missing transactions", async () => {
+		const { parentTxid, txid, xpub, incoming, outgoing, loose } =
+			await responseTransactions("single");
+		assert.deepEqual(await db.getTransaction(txid), {
+			hash: txid,
+			time: 2000,
+			version: 2,
+			locktime: 17,
+			block_height: 20,
+			inputs: [
+				{
+					vin: 0,
+					sequence: 0xfffffffe,
+					prev_out: {
+						txid: parentTxid,
+						vout: 0,
+						value: 100,
+						addr: incoming,
+						script: "parent-script",
+						xpub: { m: xpub, path: "M/0/1" },
+					},
+				},
+			],
+			out: [
+				{
+					n: 0,
+					value: 35,
+					addr: outgoing,
+					script: "owned-script",
+					xpub: { m: xpub, path: "M/1/2" },
+				},
+				{ n: 1, value: 60, addr: loose, script: "loose-script" },
+			],
+		});
+		assert.deepEqual(await db.getTransaction("missing"), {
+			hash: "missing",
+			time: Infinity,
+			version: 0,
+			locktime: 0,
+			inputs: [],
+			out: [],
+		});
+	});
+
+	it("preserves transaction paging, deduplication, wallet totals, and unconfirmed rows", async () => {
+		const { parentTxid, txid, xpub, incoming, outgoing, loose } =
+			await responseTransactions("page");
+		const rows = await db.getTxsByAddrAndXpubs([loose], [xpub], 0, 10);
+		assert.deepEqual(rows, [
+			{
+				hash: txid,
+				time: 2000,
+				version: 2,
+				locktime: 17,
+				block_height: 20,
+				result: -5,
+				inputs: [
+					{
+						vin: 0,
+						sequence: 0xfffffffe,
+						prev_out: {
+							txid: parentTxid,
+							vout: 0,
+							value: 100,
+							addr: incoming,
+							xpub: { m: xpub, path: "M/0/1" },
+						},
+					},
+				],
+				out: [
+					{ n: 0, value: 35, addr: outgoing, xpub: { m: xpub, path: "M/1/2" } },
+					{ n: 1, value: 60, addr: loose },
+				],
+			},
+			{
+				hash: parentTxid,
+				time: 1000,
+				version: 1,
+				locktime: 0,
+				result: 100,
+				inputs: [],
+				out: [
+					{
+						n: 0,
+						value: 100,
+						addr: incoming,
+						xpub: { m: xpub, path: "M/0/1" },
+					},
+				],
+			},
+		]);
+		assert.deepEqual(await db.getTxsByAddrAndXpubs([loose], [xpub], 1, 1), [
+			rows[1],
+		]);
+		assert.deepEqual(await db.getTxsByAddrAndXpubs([loose], [xpub], 2, 1), []);
+		assert.deepEqual(await db.getTxsByAddrAndXpubs([], []), []);
+	});
+
+	it("preserves bulk address insert IDs, duplicate warnings, and empty results", async () => {
+		await db.ensureAddressId("batch-existing");
+		const result = await db.addAddresses([
+			"batch-existing",
+			"batch-new-a",
+			"batch-new-b",
+			"batch-new-a",
+		]);
+		assert.ok(
+			"insertId" in result &&
+				"affectedRows" in result &&
+				"warningStatus" in result,
+		);
+		assert.equal(result.insertId, await db.getAddressId("batch-new-a"));
+		assert.equal(result.affectedRows, 2);
+		assert.equal(result.warningStatus, 2);
+		const repeated = await db.addAddresses(["batch-existing", "batch-new-a"]);
+		assert.ok(
+			"insertId" in repeated &&
+				"affectedRows" in repeated &&
+				"warningStatus" in repeated,
+		);
+		assert.equal(repeated.insertId, 0);
+		assert.equal(repeated.affectedRows, 0);
+		assert.equal(repeated.warningStatus, 2);
+		assert.deepEqual(await db.addAddresses([]), []);
+	});
+
+	it("preserves transaction batch upserts, aggregate IDs, and all-or-nothing failures", async () => {
+		await db.addTransactions([
+			{ txid: "batch-first-tx", version: 1, locktime: 11, created: 100 },
+			{ txid: "batch-last-tx", version: 1, locktime: 12, created: 200 },
+		]);
+		const updated = await db.addTransactions([
+			{ txid: "batch-first-tx", version: 2, locktime: 99, created: 999 },
+			{ txid: "batch-new-tx", version: 3, locktime: 13, created: 300 },
+			{ txid: "batch-last-tx", version: 4, locktime: 99, created: 999 },
+		]);
+		assert.equal(updated.affectedRows, 5);
+		assert.equal(updated.insertId, await db.getTransactionId("batch-new-tx"));
+		assert.equal(updated.warningStatus, 0);
+		const firstID = await db.getTransactionId("batch-first-tx");
+		const first = (await db.getTransactionsById([firstID]))[0];
+		assert.deepEqual(
+			{
+				version: first.txnVersion,
+				locktime: first.txnLocktime,
+				created: first.txnCreated,
+			},
+			{ version: 2, locktime: 11, created: 100 },
+		);
+		await assert.rejects(
+			db.addTransactions([
+				{ txid: "batch-must-rollback", version: 1, locktime: 0, created: 100 },
+				{ txid: "batch-invalid", version: null, locktime: 0, created: 100 },
+			]),
+			{ code: "ER_BAD_NULL_ERROR" },
+		);
+		assert.equal(await db.getTransactionId("batch-must-rollback"), null);
+		assert.equal(await db.getTransactionId("batch-invalid"), null);
+		assert.equal(await db.addTransactions([]), undefined);
+	});
+
+	it("preserves bulk outputs, input upserts, and foreign-key failure atomicity", async () => {
+		const txnID = await db.ensureTransactionId("batch-output-tx");
+		const spender = await db.ensureTransactionId("batch-spender-tx");
+		const addrID = await db.ensureAddressId("batch-output-address");
+		const firstOutput = {
+			txnID,
+			addrID,
+			outIndex: 0,
+			outAmount: 5000000000,
+			outScript: "quote'\\?script",
+		};
+		await db.addOutputs([firstOutput]);
+		const result = await db.addOutputs([
+			{ ...firstOutput, outAmount: 99, outScript: "unchanged" },
+			{ txnID, addrID, outIndex: 1, outAmount: 10, outScript: "second" },
+		]);
+		assert.equal(result.affectedRows, 1);
+		assert.equal(result.warningStatus, 1);
+		const outputs = await db.getOutputIds([
+			{ txid: "batch-output-tx", vout: 0 },
+			{ txid: "batch-output-tx", vout: 1 },
+		]);
+		const firstID = outputs.find((row) => row.outIndex === 0).outID;
+		const secondID = outputs.find((row) => row.outIndex === 1).outID;
+		assert.equal(result.insertId, secondID);
+		assert.equal(
+			(await db.getUnspentOutputs(["batch-output-address"])).find(
+				(row) => row.outIndex === 0,
+			).outScript,
+			"quote'\\?script",
+		);
+		await db.addInputs([
+			{ txnID: spender, outID: firstID, inIndex: 0, inSequence: 7 },
+		]);
+		const updated = await db.addInputs([
+			{ txnID: spender, outID: secondID, inIndex: 0, inSequence: 8 },
+			{ txnID: spender, outID: firstID, inIndex: 1, inSequence: 9 },
+		]);
+		const inputs = await db.getTxInputs(spender);
+		assert.equal(updated.affectedRows, 3);
+		assert.equal(
+			updated.insertId,
+			inputs.find((row) => row.inIndex === 1).inID,
+		);
+		assert.deepEqual(
+			inputs
+				.map((row) => ({
+					index: row.inIndex,
+					output: row.outID,
+					sequence: row.inSequence,
+				}))
+				.sort((a, b) => a.index - b.index),
+			[
+				{ index: 0, output: secondID, sequence: 7 },
+				{ index: 1, output: firstID, sequence: 9 },
+			],
+		);
+		await assert.rejects(
+			db.addInputs([
+				{ txnID: spender, outID: firstID, inIndex: 2, inSequence: 1 },
+				{ txnID: spender, outID: 0, inIndex: 3, inSequence: 1 },
+			]),
+			{ code: "ER_NO_REFERENCED_ROW_2" },
+		);
+		assert.equal((await db.getTxInputs(spender)).length, 2);
+		assert.equal(await db.addOutputs([]), undefined);
+		assert.equal(await db.addInputs([]), undefined);
+	});
+
+	it("preserves duplicate HD links and their warning counts in bulk inserts", async () => {
+		const xpub = "batch-hd-xpub";
+		await db.ensureHDAccountId(xpub, hdaHelper.BIP44);
+		await db.addAddressesToHDAccount(xpub, [
+			{ address: "batch-hd-existing", chain: 0, index: 1 },
+		]);
+		const result = await db.addAddressesToHDAccount(xpub, [
+			{ address: "batch-hd-existing", chain: 1, index: 99 },
+			{ address: "batch-hd-new", chain: 1, index: 2 },
+		]);
+		assert.equal(result.affectedRows, 1);
+		assert.equal(result.warningStatus, 1);
+		assert.equal(typeof result.insertId, "number");
+		const grouped = await db.getHDAccountsByAddresses([
+			"batch-hd-existing",
+			"batch-hd-new",
+		]);
+		assert.deepEqual(
+			grouped.hd[xpub].addresses
+				.map((row) => ({
+					address: row.addrAddress,
+					chain: row.hdAddrChain,
+					index: row.hdAddrIndex,
+				}))
+				.sort((a, b) => a.address.localeCompare(b.address)),
+			[
+				{ address: "batch-hd-existing", chain: 0, index: 1 },
+				{ address: "batch-hd-new", chain: 1, index: 2 },
+			],
+		);
+		assert.equal(await db.addAddressesToHDAccount(xpub, []), undefined);
+	});
+
+	it("serves concurrent streaming reads with a single pooled connection", async () => {
+		db.connect({ ...connectionConfig, database, connectionLimit: 1 });
+		await vi.waitFor(() => assert.equal(db.lockReconnect, false));
+		const [ids, ownership, grouped, transaction, page] = await Promise.all([
+			db.getAddressesIds(["single-incoming"]),
+			db.getXpubByAddresses(["single-incoming"]),
+			db.getHDAccountsByAddresses(["single-incoming"]),
+			db.getTransaction("2".repeat(64)),
+			db.getTxsByAddrAndXpubs([], ["response-single-xpub"], 0, 10),
+		]);
+		assert.equal(typeof ids["single-incoming"], "number");
+		assert.deepEqual(ownership, { "single-incoming": "response-single-xpub" });
+		assert.equal(grouped.hd["response-single-xpub"].addresses.length, 1);
+		assert.equal(transaction.out.length, 2);
+		assert.equal(page.length, 2);
+		assert.equal(db.pool.activeConnections(), 0);
 	});
 
 	it("can query after reconnecting and waits for disconnect to finish", async () => {

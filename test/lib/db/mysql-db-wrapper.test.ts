@@ -69,11 +69,6 @@ describe("Database wrapper", () => {
 			pool.query.mock.lastCall[0],
 			"SELECT * FROM `addresses` WHERE `addrAddress` IN ('first', 'quote\\'\\\\value')",
 		);
-		await db.addAddresses(["first", "second"]);
-		assert.equal(
-			pool.query.mock.lastCall[0],
-			"INSERT IGNORE INTO `addresses` (addrAddress) VALUES ('first'), ('second')",
-		);
 		pool.query.mockResolvedValue([{ insertId: 7 }, []]);
 		assert.equal(
 			await db.addBlock({
@@ -109,7 +104,7 @@ describe("Database wrapper", () => {
 		pool.query.mockResolvedValue([rows, [{ name: "addrID" }]]);
 		assert.equal(await db.getAddresses(["address"]), rows);
 		const write = { insertId: 4, affectedRows: 2 };
-		pool.query.mockResolvedValue([write, []]);
+		pool.execute.mockResolvedValue([write, []]);
 		assert.equal(await db.addAddresses(["one", "two"]), write);
 	});
 
