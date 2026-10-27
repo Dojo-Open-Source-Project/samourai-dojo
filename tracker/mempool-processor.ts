@@ -320,7 +320,7 @@ class MempoolProcessor {
 
 		Logger.info("Tracker : Processing unconfirmed transactions");
 
-		const unconfirmedTxs = await db.getUnconfirmedTransactions();
+		const unconfirmedTxs = await db.getUnconfirmedTransactionIds();
 
 		try {
 			if (unconfirmedTxs.length > 0) {
@@ -329,10 +329,10 @@ class MempoolProcessor {
 				const unconfirmedTxLists = util.splitList(unconfirmedTxs, 10);
 
 				await util.asyncPool(5, unconfirmedTxLists, async (txList) => {
-					const rpcRequests = txList.map((tx) => ({
+					const rpcRequests = txList.map((txid) => ({
 						method: "getrawtransaction",
-						params: { txid: tx.txnTxid, verbose: true },
-						id: tx.txnTxid,
+						params: { txid, verbose: true },
+						id: txid,
 					}));
 					const txs = await this.client.batch(rpcRequests);
 

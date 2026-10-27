@@ -4,6 +4,10 @@
  */
 
 import hdaHelper from "../../lib/bitcoin/hd-accounts-helper.js";
+import type {
+	DbWriteResult,
+	HdAccountRow,
+} from "../../lib/db/mysql-db-types.js";
 import db from "../../lib/db/mysql-db-wrapper.js";
 
 /**
@@ -11,7 +15,7 @@ import db from "../../lib/db/mysql-db-wrapper.js";
  */
 async function getHdAccounts() {
 	const query = "SELECT `hdID`, `hdXpub`, `hdType`  FROM `hd`";
-	return db._query(query);
+	return db._query<Pick<HdAccountRow, "hdID" | "hdXpub" | "hdType">[]>(query);
 }
 
 /**
@@ -20,7 +24,7 @@ async function getHdAccounts() {
 async function updateHdAccount(hdId?: number, xpub?: string) {
 	const query = "UPDATE `hd` SET `hdXpub` = ? WHERE `hdID` = ?";
 	const parameters = [xpub, hdId];
-	return db._query(query, parameters);
+	return db._query<DbWriteResult>(query, parameters);
 }
 
 /**

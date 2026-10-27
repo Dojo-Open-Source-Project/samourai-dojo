@@ -36,9 +36,6 @@ class AuthenticationManager {
 
 		const _adminKey = keys.auth.strategies.localApiKey.adminKey;
 		const _apiKeys = keys.auth.strategies.localApiKey.apiKeys;
-		const activeDbApiKeys = await db
-			.getActiveApiKeys()
-			.then((keys) => keys.map((key) => key.apikey));
 
 		if (req.user == null) {
 			req.user = {};
@@ -51,7 +48,7 @@ class AuthenticationManager {
 			req.user.profile = authorzMgr.TOKEN_PROFILE_ADMIN;
 
 			next();
-		} else if (_apiKeys.includes(apiKey) || activeDbApiKeys.includes(apiKey)) {
+		} else if (_apiKeys.includes(apiKey) || (await db.isApiKeyActive(apiKey))) {
 			// Check if received key is a valid api key
 			Logger.info("Auth : Successful authentication with an api key");
 			req.user.authenticated = true;

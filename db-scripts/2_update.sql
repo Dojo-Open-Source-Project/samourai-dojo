@@ -19,3 +19,7 @@ CREATE TABLE IF NOT EXISTS `api_keys` (
     `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `expiresAt` TIMESTAMP NOT NULL
 );
+
+-- Outpoint lookups constrain txnID and outIndex without constraining addrID.
+CREATE INDEX IF NOT EXISTS `outputs_txn_out_index`
+ON `outputs` (`txnID`, `outIndex`);

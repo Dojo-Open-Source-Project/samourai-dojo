@@ -76,6 +76,23 @@ async function responseTransactions(tag: "single" | "page") {
 	return { parentTxid, txid, xpub, incoming, outgoing, loose };
 }
 
+async function withSmallPackets(run: () => Promise<void>, foundRows = true) {
+	db.connect({
+		...connectionConfig,
+		database,
+		connectionLimit: 1,
+		maxAllowedPacket: 4096,
+		foundRows,
+	});
+	await vi.waitFor(() => assert.equal(db.lockReconnect, false));
+	try {
+		await run();
+	} finally {
+		db.connect({ ...connectionConfig, database, connectionLimit: 2 });
+		await vi.waitFor(() => assert.equal(db.lockReconnect, false));
+	}
+}
+
 describe.skipIf(!port)("Database driver integration", () => {
 	let admin: Connection;
 
@@ -113,7 +130,9 @@ describe.skipIf(!port)("Database driver integration", () => {
 	it.each([false, true])(
 		"keeps numeric results and plain row arrays with usePrepare=%s",
 		async (usePrepare) => {
-			const rows = await db._query(
+			const rows = await db._query<
+				{ amount: number; balance: number; missing: null }[]
+			>(
 				"SELECT CAST(? AS UNSIGNED) AS amount, CAST(? AS DECIMAL(20,8)) AS balance, NULL AS missing",
 				[2100000000000000, "12.34567890"],
 				usePrepare,
@@ -126,13 +145,17 @@ describe.skipIf(!port)("Database driver integration", () => {
 	);
 
 	it("supports named prepared parameters alongside positional arrays", async () => {
-		const named = await db._query(
+		const named = await db._query<{ amount: number }[]>(
 			"SELECT :value AS amount",
 			{ value: 42 },
 			true,
 		);
 		assert.equal(named[0].amount, 42);
-		const positional = await db._query("SELECT ? AS amount", [43], true);
+		const positional = await db._query<{ amount: number }[]>(
+			"SELECT ? AS amount",
+			[43],
+			true,
+		);
 		assert.equal(positional[0].amount, 43);
 	});
 
@@ -605,6 +628,280 @@ describe.skipIf(!port)("Database driver integration", () => {
 			],
 		);
 		assert.equal(await db.addAddressesToHDAccount(xpub, []), undefined);
+	});
+
+	it("checks one API key with exact matching and current active/expiry state", async () => {
+		const expiresAt = new Date("2040-01-02T03:04:05Z");
+		const created = await db.createApiKey(
+			"point lookup",
+			"CaseSensitive-Key",
+			expiresAt,
+		);
+		assert.equal(await db.isApiKeyActive("CaseSensitive-Key"), true);
+		assert.equal(await db.isApiKeyActive("casesensitive-key"), false);
+		assert.equal(await db.isApiKeyActive("CaseSensitive-Key "), false);
+		assert.equal(await db.isApiKeyActive("missing"), false);
+		assert.equal(await db.isApiKeyActive(undefined), false);
+		assert.equal(await db.isApiKeyActive(["CaseSensitive-Key"]), false);
+		await db.updateApiKey(created.insertId, "disabled", false, expiresAt);
+		assert.equal(await db.isApiKeyActive("CaseSensitive-Key"), false);
+		await db.updateApiKey(
+			created.insertId,
+			"expired",
+			true,
+			new Date("2000-01-01T00:00:00Z"),
+		);
+		assert.equal(await db.isApiKeyActive("CaseSensitive-Key"), false);
+	});
+
+	it("keeps duplicate outpoint requests from multiplying outputs or spends", async () => {
+		const txid = "a".repeat(64);
+		const expected = await db.getOutputIds([{ txid, vout: 0 }]);
+		assert.equal(expected.length, 1);
+		assert.deepEqual(
+			await db.getOutputIds([
+				{ txid, vout: 0 },
+				{ txid: txid.toUpperCase(), vout: 0 },
+				{ txid: "missing", vout: 0 },
+			]),
+			expected,
+		);
+		const spends = await db.getOutputSpends([{ txid, index: 0 }]);
+		assert.equal(spends.length, 1);
+		assert.deepEqual(
+			await db.getOutputSpends([
+				{ txid, index: 0 },
+				{ txid: txid.toUpperCase(), index: 0 },
+				{ txid: "quote'\\?", index: 0 },
+			]),
+			spends,
+		);
+		assert.deepEqual(await db.getOutputIds([{ txid }]), []);
+	});
+
+	it("reads only transaction IDs for mempool and reorg processing", async () => {
+		const confirmed = await db.ensureTransactionId("reader-confirmed");
+		await db.ensureTransactionId("reader-unconfirmed");
+		const blockID = await db.addBlock({
+			blockHash: "ab".repeat(32),
+			blockHeight: 50,
+			blockTime: 1000,
+			blockParent: null,
+		});
+		await db.confirmTransactions(["reader-confirmed"], blockID);
+		const unconfirmed = await db.getUnconfirmedTransactionIds();
+		assert.ok(unconfirmed.includes("reader-unconfirmed"));
+		assert.ok(!unconfirmed.includes("reader-confirmed"));
+		assert.deepEqual(await db.getTransactionIdsConfirmedAfterHeight(49), [
+			"reader-confirmed",
+		]);
+		assert.deepEqual(await db.getTransactionIdsConfirmedAfterHeight(50), []);
+		assert.equal(
+			(await db.getTransactionsById([confirmed]))[0].blockID,
+			blockID,
+		);
+	});
+
+	it("counts each transaction once across inputs, outputs, and overlapping ownership", async () => {
+		assert.equal(await db.getAddressNbTransactions("page-incoming"), 2);
+		assert.equal(await db.getHDAccountNbTransactions("response-page-xpub"), 2);
+		assert.equal(
+			await db.getAddrAndXpubsNbTransactions(
+				["page-incoming", "page-loose", "page-incoming"],
+				["response-page-xpub"],
+			),
+			2,
+		);
+		assert.equal(await db.getAddressNbTransactions("missing"), 0);
+		assert.equal(await db.getHDAccountNbTransactions("missing"), 0);
+		assert.equal(await db.getAddressNbTransactions(undefined), null);
+		assert.deepEqual(await db.getAddrAndXpubsNbTransactions([], []), []);
+		const placeholder = await db.ensureTransactionId(undefined);
+		const addrID = await db.ensureAddressId("nullable-hash-count");
+		await db.addOutputs([
+			{
+				txnID: placeholder,
+				addrID,
+				outIndex: 0,
+				outAmount: 1,
+				outScript: "00",
+			},
+		]);
+		assert.equal(await db.getAddressNbTransactions("nullable-hash-count"), 0);
+	});
+
+	it("aggregates ignored-row warnings and first inserted IDs across packet-sized chunks", async () => {
+		await withSmallPackets(async () => {
+			const addresses = Array.from({ length: 80 }, (_, index) =>
+				`chunk-address-${index}`.padEnd(60, "x"),
+			);
+			await db.addAddresses(addresses.slice(0, 40));
+			const result = await db.addAddresses(addresses);
+			assert.ok(
+				"insertId" in result &&
+					"affectedRows" in result &&
+					"warningStatus" in result,
+			);
+			assert.equal(result.affectedRows, 40);
+			assert.equal(result.warningStatus, 40);
+			assert.equal(result.insertId, await db.getAddressId(addresses[40]));
+			const repeated = await db.addAddresses(addresses);
+			assert.ok(
+				"insertId" in repeated &&
+					"affectedRows" in repeated &&
+					"warningStatus" in repeated,
+			);
+			assert.equal(repeated.affectedRows, 0);
+			assert.equal(repeated.insertId, 0);
+			assert.equal(repeated.warningStatus, 80);
+		});
+	});
+
+	it("preserves mixed-upsert and unchanged-row insert IDs across chunks", async () => {
+		await withSmallPackets(async () => {
+			const transactions = Array.from({ length: 60 }, (_, index) => ({
+				txid: `chunk-transaction-${index}`,
+				version: 2,
+				locktime: 0,
+				created: 100,
+			}));
+			await db.addTransactions(
+				transactions.slice(0, 40).map((tx) => ({ ...tx, version: 1 })),
+			);
+			const result = await db.addTransactions(transactions);
+			assert.equal(result.affectedRows, 100);
+			assert.equal(result.warningStatus, 0);
+			assert.equal(
+				result.insertId,
+				await db.getTransactionId(transactions[40].txid),
+			);
+			const noop = await db.addTransactions(transactions);
+			assert.equal(noop.affectedRows, 60);
+			assert.equal(noop.insertId, 0);
+			const update = await db.addTransactions(
+				transactions.map((tx, index) =>
+					index === 0 ? { ...tx, version: 3 } : tx,
+				),
+			);
+			assert.equal(update.affectedRows, 61);
+			assert.equal(
+				update.insertId,
+				await db.getTransactionId(transactions[59].txid),
+			);
+		});
+	});
+
+	it("rolls back every chunk when a later input violates a foreign key", async () => {
+		await withSmallPackets(async () => {
+			const parent = await db.ensureTransactionId("chunk-funding");
+			const spender = await db.ensureTransactionId("chunk-spender");
+			const addrID = await db.ensureAddressId("chunk-funded-address");
+			await db.addOutputs([
+				{
+					txnID: parent,
+					addrID,
+					outIndex: 0,
+					outAmount: 100,
+					outScript: "a".repeat(2000),
+				},
+			]);
+			const outID = (
+				await db.getOutputIds([{ txid: "chunk-funding", vout: 0 }])
+			)[0].outID;
+			await assert.rejects(
+				db.addInputs(
+					Array.from({ length: 100 }, (_, index) => ({
+						txnID: spender,
+						outID: index === 99 ? 0 : outID,
+						inIndex: index,
+						inSequence: 1,
+					})),
+				),
+				{ code: "ER_NO_REFERENCED_ROW_2" },
+			);
+			assert.deepEqual(await db.getTxInputs(spender), []);
+			assert.equal(db.pool.activeConnections(), 0);
+		});
+	});
+
+	it("preserves chunked upsert metadata when found-row reporting is disabled", async () => {
+		await withSmallPackets(async () => {
+			const transactions = Array.from({ length: 60 }, (_, index) => ({
+				txid: `found-rows-off-${index}`,
+				version: 1,
+				locktime: 0,
+				created: 100,
+			}));
+			await db.addTransactions(transactions);
+			const noop = await db.addTransactions(transactions);
+			assert.equal(noop.affectedRows, 0);
+			assert.equal(noop.insertId, 0);
+			const updated = await db.addTransactions(
+				transactions.map((tx, index) =>
+					index === 0 ? { ...tx, version: 2 } : tx,
+				),
+			);
+			assert.equal(updated.affectedRows, 2);
+			assert.equal(
+				updated.insertId,
+				await db.getTransactionId(transactions[59].txid),
+			);
+		}, false);
+	});
+
+	it("applies the index migration repeatedly without changing stored outpoints", async () => {
+		const requested = [{ txid: "a".repeat(64), vout: 0 }];
+		const before = await db.getOutputIds(requested);
+		await admin.query(
+			await readFile(
+				new URL("../../../db-scripts/2_update.sql", import.meta.url),
+				"utf8",
+			),
+		);
+		const indexes = await admin.query<{ Column_name: string }[]>(
+			"SHOW INDEX FROM outputs WHERE Key_name = 'outputs_txn_out_index'",
+		);
+		assert.deepEqual(
+			indexes.map((index) => index.Column_name),
+			["txnID", "outIndex"],
+		);
+		assert.deepEqual(await db.getOutputIds(requested), before);
+	});
+
+	it("orders transactions with equal times consistently across pages", async () => {
+		const addrID = await db.ensureAddressId("equal-time-address");
+		for (const txid of ["tie-first", "tie-second", "tie-third"]) {
+			await db.addTransaction({
+				txid,
+				created: 12345,
+				version: 1,
+				locktime: 0,
+			});
+			const txnID = await db.getTransactionId(txid);
+			await db.addOutputs([
+				{ txnID, addrID, outIndex: 0, outAmount: 1, outScript: "00" },
+			]);
+		}
+		const first = await db.getTxsByAddrAndXpubs(
+			["equal-time-address"],
+			[],
+			0,
+			2,
+		);
+		const second = await db.getTxsByAddrAndXpubs(
+			["equal-time-address"],
+			[],
+			1,
+			2,
+		);
+		assert.deepEqual(
+			first.map((tx) => tx.hash),
+			["tie-third", "tie-second"],
+		);
+		assert.deepEqual(
+			second.map((tx) => tx.hash),
+			["tie-first"],
+		);
 	});
 
 	it("serves concurrent streaming reads with a single pooled connection", async () => {

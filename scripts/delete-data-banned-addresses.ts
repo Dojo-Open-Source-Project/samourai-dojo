@@ -3,7 +3,12 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import db, { type DbRow } from "../lib/db/mysql-db-wrapper.js";
+import type {
+	AddressRow,
+	DbWriteResult,
+	TransactionRow,
+} from "../lib/db/mysql-db-types.js";
+import db from "../lib/db/mysql-db-wrapper.js";
 import Logger from "../lib/logger.js";
 import util from "../lib/util.js";
 
@@ -13,15 +18,15 @@ import util from "../lib/util.js";
 
 async function getBannedAddresses() {
 	const query = "SELECT `addrAddress` FROM `banned_addresses`";
-	return db._query(query);
+	return db._query<Pick<AddressRow, "addrAddress">[]>(query);
 }
 
-async function deleteAddress(address: DbRow) {
+async function deleteAddress(address: Pick<AddressRow, "addrAddress">) {
 	const addr = address.addrAddress;
 	Logger.info(`Start deletion of address ${addr}`);
 	const query =
 		"DELETE `addresses`.* FROM `addresses` WHERE `addresses`.`addrAddress` = ?";
-	const ret = await db._query(query, [addr]);
+	const ret = await db._query<DbWriteResult>(query, [addr]);
 	Logger.info(`Completed deletion of address ${addr}`);
 	return ret;
 }
@@ -33,10 +38,10 @@ async function getUnlinkedTransactions() {
          WHERE `transactions`.`txnID` NOT IN (SELECT `outputs`.`txnID` FROM `outputs`) \
          AND `transactions`.`txnID` NOT IN (SELECT `inputs`.`txnID` FROM `inputs`)";
 
-	return db._query(query);
+	return db._query<Pick<TransactionRow, "txnTxid">[]>(query);
 }
 
-async function deleteTransaction(tx: DbRow) {
+async function deleteTransaction(tx: Pick<TransactionRow, "txnTxid">) {
 	const txid = tx.txnTxid;
 	Logger.info(`Start deletion of transaction ${txid}`);
 	await db.deleteTransaction(txid);

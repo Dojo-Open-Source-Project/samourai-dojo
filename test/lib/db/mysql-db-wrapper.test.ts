@@ -40,6 +40,39 @@ describe("Database wrapper", () => {
 		vi.resetAllMocks();
 	});
 
+	it("returns the scheduled transaction ID, or null for a missing transaction", async () => {
+		pool.execute.mockResolvedValueOnce([[{ schID: 7 }], []]);
+		assert.equal(await db.getScheduledTransactionId("scheduled"), 7);
+		assert.equal(await db.getScheduledTransactionId("missing"), null);
+	});
+
+	it("distinguishes an empty blockchain from a failed database read", async () => {
+		assert.deepEqual(await db.getHighestBlock(), {
+			blockID: null,
+			blockHeight: 0,
+		});
+		const highest = { blockID: 9, blockHeight: 42 };
+		pool.query.mockResolvedValueOnce([[highest], []]);
+		assert.equal(await db.getHighestBlock(), highest);
+		const error = new Error("database unavailable");
+		pool.query.mockRejectedValueOnce(error);
+		await assert.rejects(db.getHighestBlock(), (e) => e === error);
+	});
+
+	it("looks up outpoints by joining a bound request set", async () => {
+		const rows = [{ outID: 4, txnTxid: "txid", outIndex: 2 }];
+		pool.execute.mockResolvedValueOnce([rows, []]);
+		assert.equal(
+			await db.getOutputIds([
+				{ txid: "txid", vout: 2 },
+				{ txid: "other", vout: 0 },
+			]),
+			rows,
+		);
+		assert.deepEqual(pool.execute.mock.lastCall[1], ["txid", 2, "other", 0]);
+		assert.match(pool.execute.mock.lastCall[0].sql, /JOIN transactions/);
+	});
+
 	it("preserves numeric results, row metadata handling, and pool defaults", () => {
 		assert.deepEqual(db.dbConfig, {
 			decimalAsNumber: true,

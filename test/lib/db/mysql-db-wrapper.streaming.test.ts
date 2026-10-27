@@ -185,6 +185,15 @@ describe("Streaming database reads", () => {
 		});
 		assert.deepEqual(await db.getTxsByAddrAndXpubs(["address"], [], 0, 2), [
 			{
+				hash: "second",
+				time: 200,
+				version: 1,
+				locktime: 0,
+				result: 0,
+				inputs: [],
+				out: [],
+			},
+			{
 				hash: "first",
 				time: 200,
 				version: 2,
@@ -199,15 +208,6 @@ describe("Streaming database reads", () => {
 					},
 				],
 				out: [{ n: 0, value: 5, addr: "to" }],
-			},
-			{
-				hash: "second",
-				time: 200,
-				version: 1,
-				locktime: 0,
-				result: 0,
-				inputs: [],
-				out: [],
 			},
 		]);
 	});

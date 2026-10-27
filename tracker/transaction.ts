@@ -8,7 +8,8 @@ import keysFile from "../keys/index.js";
 import addrHelper from "../lib/bitcoin/addresses-helper.js";
 import hdaHelper from "../lib/bitcoin/hd-accounts-helper.js";
 import network from "../lib/bitcoin/network.js";
-import db, { type DbRow } from "../lib/db/mysql-db-wrapper.js";
+import type { AddressRow } from "../lib/db/mysql-db-types.js";
+import db from "../lib/db/mysql-db-wrapper.js";
 import Logger from "../lib/logger.js";
 import util from "../lib/util.js";
 import { TransactionsCache } from "./transactions-cache.js";
@@ -258,7 +259,7 @@ class Transaction {
 	 * Process outputs sending to tracked loose addresses
 	 */
 	_processOutputsLooseAddresses(
-		addresses: Array<Pick<DbRow, "addrID" | "addrAddress">>,
+		addresses: AddressRow[],
 		indexedOutputs: IndexedOutputs,
 	): FundedAddress[] {
 		// Store a list of known addresses that received funds

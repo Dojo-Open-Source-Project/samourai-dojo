@@ -7,7 +7,8 @@ import {
 	createRpcClient,
 	type DojoRpcClient,
 } from "../lib/bitcoind-rpc/rpc-client.js";
-import db, { type DbRows } from "../lib/db/mysql-db-wrapper.js";
+import type { ScheduledTransactionRow } from "../lib/db/mysql-db-types.js";
+import db from "../lib/db/mysql-db-wrapper.js";
 import Logger from "../lib/logger.js";
 import util from "../lib/util.js";
 
@@ -117,10 +118,13 @@ class Status {
 	/**
 	 * Get scheduled transactions
 	 */
-	async getScheduledTransactions(): Promise<{ nbTxs: number; txs: DbRows }> {
+	async getScheduledTransactions(): Promise<{
+		nbTxs: number;
+		txs: ScheduledTransactionRow[];
+	}> {
 		const returnValue = {
 			nbTxs: 0,
-			txs: [] as DbRows,
+			txs: [] as ScheduledTransactionRow[],
 		};
 
 		try {

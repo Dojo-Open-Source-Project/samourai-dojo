@@ -4,7 +4,8 @@
  */
 
 import keysFile from "../../keys/index.js";
-import db, { type DbRow } from "../db/mysql-db-wrapper.js";
+import type { HdAccountRow } from "../db/mysql-db-types.js";
+import db from "../db/mysql-db-wrapper.js";
 import errors from "../errors.js";
 import Logger from "../logger.js";
 import remote, {
@@ -176,7 +177,7 @@ class HDAccountsService {
 		scheme?: number,
 		forceOverride?: boolean,
 	) {
-		let account: DbRow;
+		let account: HdAccountRow;
 
 		// Nothing to do here if hd account doesn't exist in db
 		try {

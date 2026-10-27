@@ -18,49 +18,143 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
+function chunkConnection(insertId = 1) {
+	return {
+		query: vi.fn(async () => [[], []]),
+		execute: vi.fn(
+			async (_query: unknown, values: unknown[]): Promise<unknown[]> => [
+				{ insertId, affectedRows: values.length, warningStatus: 0 },
+				[],
+			],
+		),
+		beginTransaction: vi.fn(async () => {}),
+		commit: vi.fn(async () => {}),
+		rollback: vi.fn(async () => {}),
+		release: vi.fn(async () => {}),
+	};
+}
+
 describe("Prepared insert batches", () => {
-	it("supports a batch at the prepared protocol parameter limit", async () => {
-		const execute = vi
-			.fn()
-			.mockResolvedValue([{ insertId: 1, affectedRows: 65535 }, []]);
-		db.pool = { execute } as unknown as Pool;
-		await db.addAddresses(Array.from({ length: 65535 }, () => "address"));
-		assert.equal(execute.mock.calls.length, 1);
-		assert.equal(execute.mock.calls[0][1].length, 65535);
-		assert.equal(execute.mock.calls[0][0].sql.match(/\?/g).length, 65535);
-	});
+	it.each(["ER_LOCK_DEADLOCK", "ER_LOCK_TIMEOUT", "ER_LOCK_WAIT_TIMEOUT"])(
+		"retries every chunk in a new transaction after %s",
+		async (code) => {
+			const first = chunkConnection(1);
+			const second = chunkConnection(900);
+			const error = Object.assign(new Error("locked"), { code });
+			first.execute
+				.mockResolvedValueOnce([
+					{ insertId: 1, affectedRows: 1, warningStatus: 0 },
+					[],
+				])
+				.mockRejectedValueOnce(error);
+			second.beginTransaction.mockImplementation(async () => {
+				assert.equal(first.rollback.mock.calls.length, 1);
+				assert.equal(first.release.mock.calls.length, 1);
+			});
+			const getConnection = vi
+				.fn()
+				.mockResolvedValueOnce(first)
+				.mockResolvedValueOnce(second);
+			db.pool = { getConnection } as unknown as Pool;
+			const result = await db.addAddresses(
+				Array.from({ length: 65536 }, () => "address"),
+			);
+			assert.ok("affectedRows" in result && "insertId" in result);
+			assert.equal(result.affectedRows, 65536);
+			assert.equal(result.insertId, 900);
+			assert.equal(first.commit.mock.calls.length, 0);
+			assert.equal(second.commit.mock.calls.length, 1);
+			assert.equal(second.release.mock.calls.length, 1);
+		},
+	);
 
-	it("keeps oversized address collections in one text statement", async () => {
-		const result = { insertId: 1, affectedRows: 65536, warningStatus: 0 };
-		const query = vi.fn().mockResolvedValue([result, []]);
-		const execute = vi.fn();
-		db.pool = { query, execute } as unknown as Pool;
-		assert.equal(
-			await db.addAddresses(Array.from({ length: 65536 }, () => "address")),
-			result,
+	it("bounds transaction retries when a lock keeps failing", async () => {
+		const error = Object.assign(new Error("locked"), {
+			code: "ER_LOCK_DEADLOCK",
+		});
+		const connection = chunkConnection();
+		connection.execute.mockRejectedValue(error);
+		db.pool = { getConnection: async () => connection } as unknown as Pool;
+		await assert.rejects(
+			db.addAddresses(Array.from({ length: 65536 }, () => "address")),
+			(e) => e === error,
 		);
-		assert.equal(execute.mock.calls.length, 0);
-		assert.equal(query.mock.calls.length, 1);
-		assert.match(query.mock.calls[0][0], /VALUES \('address'\), \('address'\)/);
+		assert.equal(connection.beginTransaction.mock.calls.length, 6);
+		assert.equal(connection.rollback.mock.calls.length, 6);
+		assert.equal(connection.release.mock.calls.length, 6);
 	});
 
-	it("counts all columns when deciding whether an output batch fits the parameter limit", async () => {
-		const query = vi
-			.fn()
-			.mockResolvedValue([{ insertId: 1, affectedRows: 13108 }, []]);
-		const execute = vi.fn();
-		db.pool = { query, execute } as unknown as Pool;
+	it("caps aggregate warning counts at the protocol limit", async () => {
+		const connection = chunkConnection();
+		connection.execute.mockResolvedValue([
+			{ insertId: 0, affectedRows: 0, warningStatus: 50000 },
+			[],
+		]);
+		db.pool = { getConnection: async () => connection } as unknown as Pool;
+		const result = await db.addAddresses(
+			Array.from({ length: 65536 }, () => "address"),
+		);
+		assert.ok("warningStatus" in result);
+		assert.equal(result.warningStatus, 65535);
+	});
+	it("splits large address collections into atomic prepared batches", async () => {
+		const connection = chunkConnection();
+		db.pool = { getConnection: async () => connection } as unknown as Pool;
+		const result = await db.addAddresses(
+			Array.from({ length: 65536 }, () => "address"),
+		);
+		assert.ok("affectedRows" in result);
+		assert.equal(result.affectedRows, 65536);
+		assert.ok(connection.execute.mock.calls.length > 1);
+		assert.equal(connection.beginTransaction.mock.calls.length, 1);
+		assert.equal(connection.commit.mock.calls.length, 1);
+		assert.equal(connection.release.mock.calls.length, 1);
+		for (const call of connection.execute.mock.calls)
+			assert.ok(call[1].length <= 65535);
+	});
+
+	it("splits output batches by encoded bytes, including multibyte strings", async () => {
+		const connection = chunkConnection();
+		db.pool = { getConnection: async () => connection } as unknown as Pool;
 		await db.addOutputs(
-			Array.from({ length: 13108 }, () => ({
+			Array.from({ length: 80 }, (_, outIndex) => ({
 				txnID: 1,
 				addrID: 2,
-				outIndex: 0,
+				outIndex,
 				outAmount: 3,
-				outScript: "script",
+				outScript: "é".repeat(10000),
 			})),
 		);
-		assert.equal(execute.mock.calls.length, 0);
-		assert.equal(query.mock.calls.length, 1);
+		assert.ok(connection.execute.mock.calls.length >= 2);
+		assert.equal(connection.commit.mock.calls.length, 1);
+		assert.equal(
+			connection.execute.mock.calls.reduce(
+				(count, call) => count + call[1].length,
+				0,
+			),
+			400,
+		);
+	});
+
+	it("rolls back earlier chunks and releases the connection on a later error", async () => {
+		const error = Object.assign(new Error("foreign key failed"), {
+			code: "ER_NO_REFERENCED_ROW_2",
+		});
+		const connection = chunkConnection();
+		connection.execute
+			.mockResolvedValueOnce([
+				{ insertId: 1, affectedRows: 1, warningStatus: 0 },
+				[],
+			])
+			.mockRejectedValueOnce(error);
+		db.pool = { getConnection: async () => connection } as unknown as Pool;
+		await assert.rejects(
+			db.addAddresses(Array.from({ length: 65536 }, () => "address")),
+			(e) => e === error,
+		);
+		assert.equal(connection.commit.mock.calls.length, 0);
+		assert.equal(connection.rollback.mock.calls.length, 1);
+		assert.equal(connection.release.mock.calls.length, 1);
 	});
 
 	it("keeps the empty-input return values without accessing the database", async () => {

@@ -382,14 +382,13 @@ class BlockchainProcessor {
 	 */
 	async rewind(height: number): Promise<void> {
 		// Retrieve transactions confirmed in reorg'd blocks
-		const txs = await db.getTransactionsConfirmedAfterHeight(height);
+		const txids = await db.getTransactionIdsConfirmedAfterHeight(height);
 
-		if (txs.length > 0) {
+		if (txids.length > 0) {
 			// Cancel confirmation of transactions included in reorg'd blocks
 			Logger.info(
-				`Tracker : Backtrace: unconfirm ${txs.length} transactions in reorg`,
+				`Tracker : Backtrace: unconfirm ${txids.length} transactions in reorg`,
 			);
-			const txids = txs.map((t) => t.txnTxid);
 			const txidsPool = util.splitList(txids, 1000);
 			await util.asyncPool(10, txidsPool, (txidList) =>
 				db.unconfirmTransactions(txidList),
