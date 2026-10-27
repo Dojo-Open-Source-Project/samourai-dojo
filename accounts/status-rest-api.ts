@@ -29,7 +29,7 @@ class StatusRestApi {
 
 		// Establish routes
 		this.httpServer.app.get(
-			`/${keys.prefixes.status}/`,
+			`/${keys.prefixes.status}`,
 			authMgr.checkHasAdminProfile.bind(authMgr),
 			this.getStatus.bind(this),
 		);
@@ -38,12 +38,12 @@ class StatusRestApi {
 	/**
 	 * Return information about the api
 	 */
-	async getStatus(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getStatus(c: HttpContext) {
 		try {
 			const currentStatus = await status.getCurrent();
-			HttpServer.sendRawData(res, JSON.stringify(currentStatus, null, 2));
+			HttpServer.sendRawData(c, JSON.stringify(currentStatus, null, 2));
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			debugApi && Logger.info("API : Completed GET /status");
 		}

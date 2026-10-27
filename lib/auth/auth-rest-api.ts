@@ -4,7 +4,6 @@
  */
 
 import { Auth47Verifier } from "@dojo-tools/auth47";
-import { json, urlencoded } from "milliparsec";
 import { RPC } from "soroban-client-nodejs";
 import * as ecc from "tiny-secp256k1";
 import keysFile from "../../keys/index.js";
@@ -18,12 +17,6 @@ import authorzMgr from "./authorizations-manager.js";
 const keys = keysFile[
 	network.key as keyof typeof keysFile
 ] as unknown as DojoConfig;
-
-/**
- * @typedef {import('@tinyhttp/app').Request} Request
- * @typedef {import('@tinyhttp/app').Response} Response
- * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
- */
 
 const adminPaymentCodes =
 	keys.auth.strategies?.auth47?.paymentCodes?.filter(Boolean) ?? []; // filter out falsy values
@@ -62,12 +55,9 @@ class AuthRestApi {
 		this.httpServer = httpServer;
 
 		// Establish routes
-		const urlencodedParser = urlencoded();
-		const jsonParser = json();
-
 		this.httpServer.app.post(
 			"/auth/login",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authentMgr.authenticate,
 			authorzMgr.generateAuthorizations.bind(authorzMgr),
 			this.login,
@@ -75,14 +65,14 @@ class AuthRestApi {
 
 		this.httpServer.app.post(
 			"/auth/logout",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authorzMgr.revokeAuthorizations.bind(authorzMgr),
 			this.logout,
 		);
 
 		this.httpServer.app.post(
 			"/auth/refresh",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authorzMgr.refreshAuthorizations.bind(authorzMgr),
 			this.refresh,
 		);
@@ -91,13 +81,13 @@ class AuthRestApi {
 
 		this.httpServer.app.post(
 			AUTH47_SOROBAN_CALLBACK_URI,
-			jsonParser,
+			HttpServer.parseJson,
 			this.sorobanAuthenticateAuth47.bind(this),
 		);
 
 		this.httpServer.app.post(
 			AUTH47_CALLBACK_URI,
-			jsonParser,
+			HttpServer.parseJson,
 			this.authenticateAuth47.bind(this),
 		);
 
@@ -126,73 +116,79 @@ class AuthRestApi {
 	/**
 	 * Get Auth47 URI
 	 */
-	getAuth47Uri(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getAuth47Uri(c: HttpContext) {
 		if (!auth47Enabled || !verifier) {
-			HttpServer.sendError(res, "Auth47 not enabled");
+			HttpServer.sendError(c, "Auth47 not enabled");
 			return;
 		}
 		try {
 			const { nonce, expiresAt } = this.nonces.create();
 			const uri = verifier.generateURI({ nonce, expires: new Date(expiresAt) });
 			const paymentCode = adminPaymentCodes[0] ?? null;
-			HttpServer.sendOkData(res, { nonce, uri, paymentCode });
+			HttpServer.sendOkData(c, { nonce, uri, paymentCode });
 		} catch (error) {
-			HttpServer.sendError(res, error, 503);
+			HttpServer.sendError(c, error, 503);
 		}
 	}
 
 	/**
 	 * Authenticate Auth47 request
 	 */
-	authenticateAuth47(req: HttpRequestLike, res: HttpResponseLike) {
+	async authenticateAuth47(c: HttpContext) {
 		if (!auth47Enabled || !verifier) {
-			HttpServer.sendError(res, "Auth47 not enabled");
+			HttpServer.sendError(c, "Auth47 not enabled");
 			return;
 		}
 		try {
-			if (!req.body.nym || !adminPaymentCodes.includes(req.body.nym)) {
-				HttpServer.sendAuthError(res, "invalid payment code");
+			if (
+				!c.get("body").nym ||
+				!adminPaymentCodes.includes(c.get("body").nym as string)
+			) {
+				HttpServer.sendAuthError(c, "invalid payment code");
 				return;
 			}
-			const verifyResult = verifier.verifyProof(req.body, network.key);
+			const verifyResult = verifier.verifyProof(c.get("body"), network.key);
 			if (verifyResult.result !== "ok") {
-				HttpServer.sendAuthError(res, verifyResult.error);
+				HttpServer.sendAuthError(c, verifyResult.error);
 				return;
 			}
 			const challenge = new URL(verifyResult.data.challenge);
 			const resources = challenge.searchParams.getAll("r");
 			if (resources.length !== 1 || resources[0] !== AUTH47_CALLBACK_URL) {
-				HttpServer.sendAuthError(res, "invalid resource");
+				HttpServer.sendAuthError(c, "invalid resource");
 				return;
 			}
 			const approved = this.nonces.approve(challenge.hostname);
-			if (approved) HttpServer.sendOk(res);
-			else HttpServer.sendAuthError(res, "invalid nonce");
+			if (approved) HttpServer.sendOk(c);
+			else HttpServer.sendAuthError(c, "invalid nonce");
 		} catch (error) {
-			HttpServer.sendError(res, error, 503);
+			HttpServer.sendError(c, error, 503);
 		}
 	}
 
 	/**
 	 * Authenticate to Soroban with Auth47
 	 */
-	async sorobanAuthenticateAuth47(req: HttpRequestLike, res: HttpResponseLike) {
+	async sorobanAuthenticateAuth47(c: HttpContext) {
 		if (!this.sorobanRpc) {
 			HttpServer.sendAuthError(
-				res,
+				c,
 				"soroban network is unreachable from this dojo",
 			);
 			return;
 		}
 
 		if (!verifierSoroban) {
-			HttpServer.sendError(res, "Auth47 not enabled");
+			HttpServer.sendError(c, "Auth47 not enabled");
 			return;
 		}
 
-		const verifyResult = verifierSoroban.verifyProof(req.body, network.key);
+		const verifyResult = verifierSoroban.verifyProof(
+			c.get("body"),
+			network.key,
+		);
 		if (verifyResult.result !== "ok") {
-			HttpServer.sendAuthError(res, verifyResult.error);
+			HttpServer.sendAuthError(c, verifyResult.error);
 			return;
 		}
 
@@ -200,11 +196,11 @@ class AuthRestApi {
 			"r",
 		);
 		if (resources.length !== 1 || resources[0] !== "srbn") {
-			HttpServer.sendAuthError(res, "invalid resource");
+			HttpServer.sendAuthError(c, "invalid resource");
 			return;
 		}
 
-		const entry = JSON.stringify(req.body);
+		const entry = JSON.stringify(c.get("body"));
 		const success = await this.sorobanRpc.directoryAdd(
 			keys.soroban.keyAuth47,
 			entry,
@@ -212,10 +208,10 @@ class AuthRestApi {
 		);
 		if (success) {
 			Logger.info("Successful authentication to Soroban with auth47");
-			HttpServer.sendOk(res);
+			HttpServer.sendOk(c);
 		} else {
 			HttpServer.sendAuthError(
-				res,
+				c,
 				"failed to push proof over the Soroban network",
 			);
 		}
@@ -224,30 +220,30 @@ class AuthRestApi {
 	/**
 	 * Check status of current Auth47 authentication request
 	 */
-	checkAuth47Status(req: HttpRequestLike, res: HttpResponseLike) {
+	async checkAuth47Status(c: HttpContext) {
 		if (!auth47Enabled) {
-			HttpServer.sendError(res, "Auth47 not enabled");
+			HttpServer.sendError(c, "Auth47 not enabled");
 			return;
 		}
 		try {
-			const status = this.nonces.consume(req.params.nonce);
+			const status = this.nonces.consume(c.req.param("nonce"));
 			if (status === "missing") {
-				HttpServer.sendAuthError(res, "auth request expired");
+				HttpServer.sendAuthError(c, "auth request expired");
 				return;
 			}
 			if (status === "pending") {
-				HttpServer.sendRawData(res, {});
+				HttpServer.sendRawData(c, {});
 				return;
 			}
 			Logger.info("Auth : Successful authentication with a payment code");
-			const accessToken = authorzMgr._generateAccessToken({
+			const accessToken = await authorzMgr._generateAccessToken({
 				profile: authorzMgr.TOKEN_PROFILE_ADMIN,
 			});
-			const refreshToken = authorzMgr._generateRefreshToken({
+			const refreshToken = await authorzMgr._generateRefreshToken({
 				profile: authorzMgr.TOKEN_PROFILE_ADMIN,
 			});
 			HttpServer.sendRawData(
-				res,
+				c,
 				JSON.stringify({
 					authorizations: {
 						access_token: accessToken,
@@ -256,41 +252,41 @@ class AuthRestApi {
 				}),
 			);
 		} catch (error) {
-			HttpServer.sendError(res, error, 503);
+			HttpServer.sendError(c, error, 503);
 		}
 	}
 
 	/**
 	 * Login
 	 */
-	login(req: HttpRequestLike, res: HttpResponseLike) {
+	async login(c: HttpContext) {
 		try {
-			const result = { authorizations: req.authorizations };
+			const result = { authorizations: c.get("authorizations") };
 			const returnValue = JSON.stringify(result, null, 2);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		}
 	}
 
 	/**
 	 * Refresh
 	 */
-	refresh(req: HttpRequestLike, res: HttpResponseLike) {
+	async refresh(c: HttpContext) {
 		try {
-			const result = { authorizations: req.authorizations };
+			const result = { authorizations: c.get("authorizations") };
 			const returnValue = JSON.stringify(result, null, 2);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		}
 	}
 
 	/**
 	 * Logout
 	 */
-	logout(_req: HttpRequestLike, res: HttpResponseLike) {
-		HttpServer.sendOk(res);
+	async logout(c: HttpContext) {
+		HttpServer.sendOk(c);
 	}
 }
 

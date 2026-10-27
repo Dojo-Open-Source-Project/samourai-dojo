@@ -11,12 +11,6 @@ import Logger from "../lib/logger.js";
 const debugApi = process.argv.includes("api-debug");
 
 /**
- * @typedef {import('@tinyhttp/app').Request} Request
- * @typedef {import('@tinyhttp/app').Response} Response
- * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
- */
-
-/**
  * Headers API endpoints
  */
 class LatestBlockRestApi {
@@ -39,14 +33,14 @@ class LatestBlockRestApi {
 	/**
 	 * Handle /latest-block GET request
 	 */
-	async getLatestBlock(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getLatestBlock(c: HttpContext) {
 		const latestBlock = {
 			height: rpcLatestBlock.height,
 			hash: rpcLatestBlock.hash,
 			time: rpcLatestBlock.time,
 		};
 
-		HttpServer.sendOkDataOnly(res, latestBlock);
+		HttpServer.sendOkDataOnly(c, latestBlock);
 
 		if (debugApi) {
 			Logger.info("API : Completed GET /latest-block");

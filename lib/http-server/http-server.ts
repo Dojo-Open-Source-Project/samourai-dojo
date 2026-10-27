@@ -3,11 +3,15 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
+import { statSync } from "node:fs";
 import type { Server } from "node:http";
-import { App } from "@tinyhttp/app";
-import helmet from "helmet";
-import nocache from "nocache";
-import sirv from "sirv";
+import { join } from "node:path";
+import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
+import { secureHeaders } from "hono/secure-headers";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import keysFile from "../../keys/index.js";
 import network from "../bitcoin/network.js";
 import errors from "../errors.js";
@@ -17,280 +21,192 @@ const keys = keysFile[
 	network.key as keyof typeof keysFile
 ] as unknown as DojoConfig;
 
-/**
- * @typedef {import('@tinyhttp/app').Request} Request
- * @typedef {import('@tinyhttp/app').Response} Response
- * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
- */
-
-/**
- * HTTP server
- */
 class HttpServer {
-	declare static HELMET_POLICY: Parameters<typeof helmet>[0];
-	declare host: string;
-	declare port: number;
-	declare server: Server | null;
-	declare app: App;
-	/**
-	 * Constructor
-	 */
-	constructor(port: number, host?: string) {
-		// Initialize server host and port
-		this.host = host ?? "127.0.0.1";
+	host: string;
+	port: number;
+	server: Server | null = null;
+	app: Hono<HttpEnv>;
+
+	constructor(port: number, host = "127.0.0.1", staticRoot = "../static") {
+		this.host = host;
 		this.port = port;
-
-		// Listening server instance
-		this.server = null;
-
-		// Initialize the tiny-http app
-		this.app = new App({
-			noMatchHandler: (req: HttpRequestLike, res: HttpResponseLike) => {
-				Logger.error(
-					null,
-					`HttpServer : 404 - Not found: ${req.method} - ${req.hostname}${req.path}`,
-				);
-				HttpServer.sendError(res, { status: "404 - Not found" }, 404);
-			},
-			// Error handler
-			onError: (
-				error: unknown,
-				_req: HttpRequestLike,
-				res: HttpResponseLike,
-			) => {
-				// Detect if this is auth error
-				if (
-					typeof error === "string" &&
-					Object.values(errors.auth).includes(error)
-				) {
-					HttpServer.sendError(res, error, 401);
-				} else {
-					const logPayload =
-						error instanceof Error ? error.stack || error : error;
-					Logger.error(logPayload, "HttpServer : general error");
-					const returnValue: Record<string, string> = {
-						status: "Server error",
-					};
-					HttpServer.sendError(res, returnValue, 500);
-				}
-			},
+		this.app = new Hono<HttpEnv>({ strict: false });
+		this.app.notFound((c) => {
+			Logger.error(
+				null,
+				`HttpServer : 404 - Not found: ${c.req.method} - ${new URL(c.req.url).hostname}${c.req.path}`,
+			);
+			HttpServer.sendError(c, { status: "404 - Not found" }, 404);
+			return c.res;
+		});
+		this.app.onError((error, c) => {
+			if (Object.values(errors.auth).includes(error.message)) {
+				HttpServer.sendError(c, error.message, 401);
+			} else {
+				Logger.error(error.stack || error, "HttpServer : general error");
+				HttpServer.sendError(c, { status: "Server error" }, 500);
+			}
+			return c.res;
 		});
 
-		// Middlewares for json responses and requests logging
-		this.app.use(HttpServer.requestLogger);
-		this.app.use(HttpServer.setCrossOrigin);
-		this.app.use(helmet(HttpServer.HELMET_POLICY));
-		this.app.use(nocache());
-
-		this.app.use("/static", sirv("../static"));
-
+		this.app.use(async (c, next) => {
+			await next();
+			Logger.info(
+				`HttpServer : ${c.res.status} - ${c.req.method} ${c.req.path}${new URL(c.req.url).search}`,
+			);
+		});
 		this.app.use(
-			(
-				_req: HttpRequestLike,
-				res: HttpResponseLike,
-				next: NextFunctionLike,
-			) => {
-				res.append("X-Dojo-Version", keys.dojoVersion);
-				next();
-			},
+			secureHeaders({
+				strictTransportSecurity: "max-age=31536000; includeSubDomains",
+				contentSecurityPolicy: {
+					defaultSrc: ["'self'", "data:"],
+					baseUri: ["'self'"],
+					fontSrc: ["'self'", "https:", "data:"],
+					frameAncestors: ["'self'"],
+					imgSrc: [
+						"'self'",
+						"data:",
+						"http://paynym25chftmsywv4v2r67agbrr62lcxagsf4tymbzpeeucucy2ivad.onion",
+					],
+					objectSrc: ["'none'"],
+					scriptSrc: ["'self'", "'unsafe-inline'"],
+					styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+					mediaSrc: ["'self'", "data:"],
+				},
+			}),
 		);
+		this.app.use(async (c, next) => {
+			c.header("Access-Control-Allow-Origin", "*");
+			c.header("Access-Control-Allow-Methods", "GET,HEAD,POST,DELETE");
+			c.header(
+				"Access-Control-Allow-Headers",
+				"Content-Type,Authorization,Accept",
+			);
+			c.header("Surrogate-Control", "no-store");
+			c.header(
+				"Cache-Control",
+				"no-store, no-cache, must-revalidate, proxy-revalidate",
+			);
+			c.header("Expires", "0");
+			await next();
+		});
 
-		this.app.use(HttpServer.setJSONResponse);
-		this.app.use(HttpServer.setConnection);
+		this.app.use("/static/*", async (c, next) => {
+			// Match sirv's hidden-file policy, while retaining .well-known resources.
+			let pathname: string;
+			try {
+				pathname = decodeURI(c.req.path).replace(/^\/static/, "");
+			} catch {
+				return next();
+			}
+			if (
+				!pathname.includes("/.well-known/") &&
+				pathname.split("/").some((part) => part.startsWith("."))
+			)
+				return next();
+			return serveStatic({
+				root: staticRoot,
+				allowPercentInPath: true,
+				rewriteRequestPath: () => {
+					const base = pathname.replace(/\/$/, "");
+					// Retain extensionless HTML URLs as well as directory indexes.
+					for (const ext of ["", ".html", ".htm"]) {
+						for (const candidate of [base + ext, `${base}/index${ext}`]) {
+							try {
+								if (statSync(join(staticRoot, candidate)).isFile())
+									return candidate;
+							} catch {}
+						}
+					}
+					return pathname;
+				},
+			})(c, next);
+		});
+
+		this.app.use(async (c, next) => {
+			c.header("X-Dojo-Version", keys.dojoVersion);
+			c.header("Content-Type", "application/json");
+			c.header("Connection", "close");
+			c.set("body", {});
+			await next();
+		});
 	}
 
-	/**
-	 * Start the http server
-	 */
 	start() {
-		// Start a http server
-		this.server = this.app.listen(
-			this.port,
-			() => {
-				Logger.info(`HttpServer : Listening on ${this.host}:${this.port}`);
-			},
-			this.host,
-		);
-
+		this.server = serve({
+			fetch: this.app.fetch,
+			port: this.port,
+			hostname: this.host,
+		}) as Server;
+		this.server.on("listening", () => {
+			Logger.info(`HttpServer : Listening on ${this.host}:${this.port}`);
+		});
 		this.server.timeout = 600 * 1000;
-		// @see https://github.com/nodejs/node/issues/13391
 		this.server.keepAliveTimeout = 0;
-
 		return this.server;
 	}
 
-	/**
-	 * Stop the http server
-	 */
 	stop() {
-		if (this.server == null) return;
-		this.server.close();
+		this.server?.close();
 	}
 
-	/**
-	 * Return a http response without data
-	 */
-	static sendOk(res: HttpResponseLike) {
-		const returnValue = { status: "ok" };
-		res.status(200).json(returnValue);
+	private static readonly limitBody = bodyLimit({
+		maxSize: 100 * 1024,
+		onError: () => {
+			throw new Error("Payload too large");
+		},
+	});
+
+	static async parseJson(c: HttpContext, next: HttpNext) {
+		return HttpServer.limitBody(c, async () => {
+			const text = await c.req.text();
+			c.set("body", text.length ? await c.req.json<UnknownRecord>() : {});
+			await next();
+		});
 	}
 
-	/**
-	 * Return a http response without status
-	 */
-	static sendOkDataOnly(res: HttpResponseLike, data?: unknown) {
-		res.status(200).json(data);
+	static async parseForm(c: HttpContext, next: HttpNext) {
+		return HttpServer.limitBody(c, async () => {
+			// Existing clients may omit the content type. Keep the original last-value
+			// semantics for repeated fields, including literal field names ending in [].
+			c.set(
+				"body",
+				Object.fromEntries(new URLSearchParams(await c.req.text())),
+			);
+			await next();
+		});
 	}
 
-	/**
-	 * Return a http response with status and data
-	 */
-	static sendOkData(res: HttpResponseLike, data?: unknown) {
-		const returnValue = {
-			status: "ok",
-			data: data,
-		};
-		res.status(200).json(returnValue);
+	static sendOk(c: HttpContext) {
+		c.res = c.json({ status: "ok" }, 200);
 	}
 
-	/**
-	 * Return a http response with raw data
-	 */
-	static sendRawData(res: HttpResponseLike, data?: unknown) {
-		res.status(200).send(data);
+	static sendOkDataOnly(c: HttpContext, data?: unknown) {
+		c.res = c.json(data, 200);
 	}
 
-	/**
-	 * Return an error response
-	 */
-	static sendError(res: HttpResponseLike, data?: unknown, errorCode?: number) {
-		if (errorCode == null) errorCode = 400;
+	static sendOkData(c: HttpContext, data?: unknown) {
+		c.res = c.json({ status: "ok", data }, 200);
+	}
 
+	static sendRawData(c: HttpContext, data?: unknown) {
+		c.res = typeof data === "string" ? c.body(data, 200) : c.json(data, 200);
+	}
+
+	static sendError(c: HttpContext, data?: unknown, errorCode = 400) {
 		if (data instanceof Error) {
 			Logger.error(data, "API: Unhandled error");
 			data = errors.generic.GEN;
 		}
-
-		const returnValue = {
-			status: "error",
-			error: data,
-		};
-
-		res.status(errorCode).json(returnValue);
-	}
-
-	/*
-	 * A middleware returning an authorization error response
-	 */
-	static sendAuthError(res: HttpResponseLike, error?: unknown): void;
-	static sendAuthError(
-		_req: HttpRequestLike,
-		_res: HttpResponseLike,
-		_next: NextFunctionLike,
-	): void;
-	static sendAuthError(
-		first: HttpRequestLike | HttpResponseLike,
-		second?: unknown,
-		_next?: NextFunctionLike,
-	) {
-		const res =
-			second != null && typeof second === "object" && "status" in second
-				? (second as HttpResponseLike)
-				: (first as HttpResponseLike);
-		const error = res === first ? second : undefined;
-		if (error) {
-			HttpServer.sendError(res, error, 401);
-		}
-	}
-
-	/**
-	 * Express middleware returnsing a json response
-	 */
-	static setJSONResponse(
-		_req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		res.set("Content-Type", "application/json");
-		next();
-	}
-
-	/**
-	 * Express middleware adding cors header
-	 */
-	static setCrossOrigin(
-		_req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		res.set("Access-Control-Allow-Origin", "*");
-		res.set("Access-Control-Allow-Methods", "GET,HEAD,POST,DELETE");
-		res.set(
-			"Access-Control-Allow-Headers",
-			"Content-Type,Authorization,Accept",
+		c.res = c.json(
+			{ status: "error", error: data },
+			errorCode as ContentfulStatusCode,
 		);
-		next();
 	}
 
-	/**
-	 * Express middleware adding connection header
-	 */
-	static setConnection(
-		_req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		res.set("Connection", "close");
-		next();
-	}
-
-	/**
-	 * Express middleware logging url and methods called
-	 */
-	static requestLogger(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const method = req.method;
-		const url = req.originalUrl;
-
-		res.on("finish", () => {
-			Logger.info(`HttpServer : ${res.statusCode} - ${method} ${url}`);
-		});
-		next();
+	static sendAuthError(c: HttpContext, error?: unknown) {
+		if (error) HttpServer.sendError(c, error, 401);
 	}
 }
-
-/**
- * Helmet Policy
- */
-HttpServer.HELMET_POLICY = {
-	contentSecurityPolicy: {
-		useDefaults: false,
-		directives: {
-			"default-src": ["'self'", "data:"],
-			"base-uri": ["'self'"],
-			"font-src": ["'self'", "https:", "data:"],
-			"frame-ancestors": ["'self'"],
-			"img-src": [
-				"'self'",
-				"data:",
-				"http://paynym25chftmsywv4v2r67agbrr62lcxagsf4tymbzpeeucucy2ivad.onion",
-			],
-			"object-src": ["'none'"],
-			"script-src": ["'self'", "'unsafe-inline'"],
-			"style-src": ["'self'", "https:", "'unsafe-inline'"],
-			"media-src": ["'self'", "data:"],
-		},
-	},
-	dnsPrefetchControl: true,
-	frameguard: true,
-	hidePoweredBy: true,
-	ieNoOpen: true,
-	noSniff: true,
-	referrerPolicy: true,
-	xssFilter: true,
-};
 
 export default HttpServer;

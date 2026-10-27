@@ -3,7 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import { urlencoded } from "milliparsec";
 import authMgr from "../lib/auth/authorizations-manager.js";
 import errors from "../lib/errors.js";
 import HttpServer from "../lib/http-server/http-server.js";
@@ -27,8 +26,6 @@ class UnspentRestApi {
 		this.httpServer = httpServer;
 
 		// Establish routes
-		const urlencodedParser = urlencoded();
-
 		this.httpServer.app.get(
 			"/unspent",
 			authMgr.checkAuthentication.bind(authMgr),
@@ -38,7 +35,7 @@ class UnspentRestApi {
 
 		this.httpServer.app.post(
 			"/unspent",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authMgr.checkAuthentication.bind(authMgr),
 			apiHelper.validateEntitiesParams.bind(apiHelper),
 			this.postUnspent.bind(this),
@@ -48,13 +45,13 @@ class UnspentRestApi {
 	/**
 	 * Handle unspent GET request
 	 */
-	async getUnspent(req: HttpRequestLike, res: HttpResponseLike) {
+	async getUnspent(c: HttpContext) {
 		// Check request params
-		if (!apiHelper.checkEntitiesParams(req.query))
-			return HttpServer.sendError(res, errors.multiaddr.NOACT);
+		if (!apiHelper.checkEntitiesParams(c.req.query()))
+			return HttpServer.sendError(c, errors.multiaddr.NOACT);
 
 		// Parse params
-		const entities = apiHelper.parseEntitiesParams(req.query);
+		const entities = apiHelper.parseEntitiesParams(c.req.query());
 
 		try {
 			const result = await walletService.getWalletUtxos(
@@ -66,16 +63,16 @@ class UnspentRestApi {
 			);
 
 			const returnValue = JSON.stringify(result, null, 2);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			if (debugApi) {
-				const stringParameters = `${req.query.active || ""} \
-                     ${req.query.new || ""} \
-                     ${req.query.pubkey || ""} \
-                     ${req.query.bip49 || ""} \
-                     ${req.query.bip84 || ""}`;
+				const stringParameters = `${c.req.query("active") || ""} \
+                     ${c.req.query("new") || ""} \
+                     ${c.req.query("pubkey") || ""} \
+                     ${c.req.query("bip49") || ""} \
+                     ${c.req.query("bip84") || ""}`;
 
 				Logger.info(`API : Completed GET /unspent ${stringParameters}`);
 			}
@@ -85,13 +82,13 @@ class UnspentRestApi {
 	/**
 	 * Handle unspent POST request
 	 */
-	async postUnspent(req: HttpRequestLike, res: HttpResponseLike) {
+	async postUnspent(c: HttpContext) {
 		// Check request params
-		if (!apiHelper.checkEntitiesParams(req.body))
-			return HttpServer.sendError(res, errors.multiaddr.NOACT);
+		if (!apiHelper.checkEntitiesParams(c.get("body")))
+			return HttpServer.sendError(c, errors.multiaddr.NOACT);
 
 		// Parse params
-		const entities = apiHelper.parseEntitiesParams(req.body);
+		const entities = apiHelper.parseEntitiesParams(c.get("body"));
 
 		try {
 			const result = await walletService.getWalletUtxos(
@@ -102,16 +99,16 @@ class UnspentRestApi {
 				entities.pubkey,
 			);
 
-			HttpServer.sendOkDataOnly(res, result);
+			HttpServer.sendOkDataOnly(c, result);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			if (debugApi) {
-				const stringParameters = `${req.body.active || ""} \
-                     ${req.body.new || ""} \
-                     ${req.body.pubkey || ""} \
-                     ${req.body.bip49 || ""} \
-                     ${req.body.bip84 || ""}`;
+				const stringParameters = `${c.get("body").active || ""} \
+                     ${c.get("body").new || ""} \
+                     ${c.get("body").pubkey || ""} \
+                     ${c.get("body").bip49 || ""} \
+                     ${c.get("body").bip84 || ""}`;
 
 				Logger.info(`API : Completed POST /unspent ${stringParameters}`);
 			}

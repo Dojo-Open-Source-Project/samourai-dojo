@@ -107,9 +107,13 @@ class NotificationsService {
 						this._closeWSConnection(client, true);
 				});
 
+				// Async JWT verification must preserve each client's message order.
+				let messages = Promise.resolve();
 				client.on("message", (message: Buffer, isBinary: boolean) => {
 					if (!isBinary)
-						this._handleWSMessage(message.toString("utf8"), client);
+						messages = messages.then(() =>
+							this._handleWSMessage(message.toString("utf8"), client),
+						);
 					else this._closeWSConnection(client, true);
 				});
 
@@ -173,7 +177,7 @@ class NotificationsService {
 	 * Handle messages received over the web sockets
 	 * (subscriptions)
 	 */
-	_handleWSMessage(msg: string, conn: ClientWebSocket) {
+	async _handleWSMessage(msg: string, conn: ClientWebSocket) {
 		try {
 			debug && Logger.info(`API : Received from client ${conn.id}: ${msg}`);
 
@@ -186,13 +190,15 @@ class NotificationsService {
 			// Check authentication (if needed)
 			if (authMgr.authActive && authMgr.isMandatory) {
 				try {
-					authMgr.isAuthenticated(data.at);
+					await authMgr.isAuthenticated(data.at);
 				} catch (error) {
 					this.notifyAuthError(error, conn.id);
 					return;
 				}
 			}
 
+			// The socket may have closed while its token was being verified.
+			if (conn.readyState !== WebSocket.OPEN) return;
 			switch (data.op) {
 				case "ping":
 					conn.send('{"op": "pong"}');

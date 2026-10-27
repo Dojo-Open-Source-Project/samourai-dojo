@@ -36,33 +36,30 @@ class HeadersRestApi {
 	/**
 	 * Retrieve the block header for a given hash
 	 */
-	async getHeader(req: HttpRequestLike, res: HttpResponseLike) {
+	async getHeader(c: HttpContext) {
 		try {
-			const header = await rpcHeaders.getHeader(req.params.hash);
-			HttpServer.sendRawData(res, header);
+			const header = await rpcHeaders.getHeader(c.req.param("hash"));
+			HttpServer.sendRawData(c, header);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
-			debugApi && Logger.info(`API : Completed GET /header/${req.params.hash}`);
+			debugApi &&
+				Logger.info(`API : Completed GET /header/${c.req.param("hash")}`);
 		}
 	}
 
 	/**
 	 * Validate request arguments
 	 */
-	validateArgsGetHeader(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidHash = validator.isHash(req.params.hash, "sha256");
+	async validateArgsGetHeader(c: HttpContext, next: HttpNext) {
+		const isValidHash = validator.isHash(c.req.param("hash"), "sha256");
 
 		if (isValidHash) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.params.hash,
+				c.req.param("hash"),
 				"API : HeadersRestApi.validateArgsGetHeader() : Invalid hash",
 			);
 		}

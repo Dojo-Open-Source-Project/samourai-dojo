@@ -3,7 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import { urlencoded } from "milliparsec";
 import validator from "validator";
 import authMgr from "../lib/auth/authorizations-manager.js";
 import hdaHelper from "../lib/bitcoin/hd-accounts-helper.js";
@@ -42,11 +41,9 @@ class XPubRestApi {
 		this.httpServer = httpServer;
 
 		// Establish routes
-		const urlencodedParser = urlencoded();
-
 		this.httpServer.app.post(
-			"/xpub/",
-			urlencodedParser,
+			"/xpub",
+			HttpServer.parseForm,
 			authMgr.checkAuthentication.bind(authMgr),
 			this.validateArgsPostXpub.bind(this),
 			this.postXpub.bind(this),
@@ -68,7 +65,7 @@ class XPubRestApi {
 
 		this.httpServer.app.post(
 			"/xpub/:xpub/lock",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authMgr.checkAuthentication.bind(authMgr),
 			this.validateArgsPostLockXpub.bind(this),
 			this.postLockXpub.bind(this),
@@ -76,7 +73,7 @@ class XPubRestApi {
 
 		this.httpServer.app.delete(
 			"/xpub/:xpub",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authMgr.checkAuthentication.bind(authMgr),
 			this.validateArgsDeleteXpub.bind(this),
 			this.deleteXpub.bind(this),
@@ -86,31 +83,33 @@ class XPubRestApi {
 	/**
 	 * Handle xPub POST request
 	 */
-	async postXpub(req: HttpRequestLike, res: HttpResponseLike) {
+	async postXpub(c: HttpContext) {
 		try {
 			let xpub: string;
 
 			// Check request arguments
-			if (!req.body) return HttpServer.sendError(res, errors.body.NODATA);
+			if (!c.get("body")) return HttpServer.sendError(c, errors.body.NODATA);
 
-			if (!req.body.xpub) return HttpServer.sendError(res, errors.body.NOXPUB);
+			if (!c.get("body").xpub)
+				return HttpServer.sendError(c, errors.body.NOXPUB);
 
-			if (!req.body.type) return HttpServer.sendError(res, errors.body.NOTYPE);
+			if (!c.get("body").type)
+				return HttpServer.sendError(c, errors.body.NOTYPE);
 
 			// Extracts arguments
-			const argumentXpub = stringField(req.body.xpub);
-			const argumentSegwit = stringField(req.body.segwit);
-			const argumentAction = stringField(req.body.type);
-			const argumentForceOverride = req.body.force;
+			const argumentXpub = stringField(c.get("body").xpub);
+			const argumentSegwit = stringField(c.get("body").segwit);
+			const argumentAction = stringField(c.get("body").type);
+			const argumentForceOverride = c.get("body").force;
 			if (argumentXpub == null || argumentAction == null)
-				return HttpServer.sendError(res, errors.body.INVDATA);
+				return HttpServer.sendError(c, errors.body.INVDATA);
 
 			// Translate xpub if needed
 			try {
 				const returnValue = this.xlatHdAccount(argumentXpub, true);
 				xpub = returnValue.xpub;
 			} catch (error) {
-				return HttpServer.sendError(res, error);
+				return HttpServer.sendError(c, error);
 			}
 
 			// Define the derivation scheme
@@ -120,7 +119,7 @@ class XPubRestApi {
 				const segwit = argumentSegwit.toLowerCase();
 				if (segwit === "bip49") scheme = hdaHelper.BIP49;
 				else if (segwit === "bip84") scheme = hdaHelper.BIP84;
-				else return HttpServer.sendError(res, errors.xpub.SEGWIT);
+				else return HttpServer.sendError(c, errors.xpub.SEGWIT);
 			}
 
 			// Define default forceOverride if needed
@@ -131,45 +130,46 @@ class XPubRestApi {
 				// New hd account
 				try {
 					await hdaService.createHdAccount(xpub, scheme);
-					HttpServer.sendOk(res);
+					HttpServer.sendOk(c);
 				} catch (error) {
-					HttpServer.sendError(res, error);
+					HttpServer.sendError(c, error);
 				}
 			} else if (argumentAction === "restore") {
 				// Restore hd account
 				try {
 					await hdaService.restoreHdAccount(xpub, scheme, forceOverride);
-					HttpServer.sendOk(res);
+					HttpServer.sendOk(c);
 				} catch (error) {
-					HttpServer.sendError(res, error);
+					HttpServer.sendError(c, error);
 				}
 			} else {
 				// Unknown action
-				return HttpServer.sendError(res, errors.body.INVTYPE);
+				return HttpServer.sendError(c, errors.body.INVTYPE);
 			}
 		} catch {
-			return HttpServer.sendError(res, errors.generic.GEN);
+			return HttpServer.sendError(c, errors.generic.GEN);
 		} finally {
-			debugApi && Logger.info(`API : Completed POST /xpub ${req.body.xpub}`);
+			debugApi &&
+				Logger.info(`API : Completed POST /xpub ${c.get("body").xpub}`);
 		}
 	}
 
 	/**
 	 * Handle xPub GET request
 	 */
-	async getXpub(req: HttpRequestLike, res: HttpResponseLike) {
+	async getXpub(c: HttpContext) {
 		try {
 			let xpub: string;
 
 			// Extracts arguments
-			const argumentXpub = req.params.xpub;
+			const argumentXpub = c.req.param("xpub");
 
 			// Translate xpub if needed
 			try {
 				const returnValue_ = this.xlatHdAccount(argumentXpub);
 				xpub = returnValue_.xpub;
 			} catch (error) {
-				return HttpServer.sendError(res, error);
+				return HttpServer.sendError(c, error);
 			}
 
 			const hdaInfo = new HdAccountInfo(xpub);
@@ -187,31 +187,32 @@ class XPubRestApi {
 				created: hdaInfo.created,
 			};
 
-			HttpServer.sendOkData(res, returnValue);
+			HttpServer.sendOkData(c, returnValue);
 		} catch (error) {
 			Logger.error(error, "API : XpubRestApi.getXpub()");
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
-			debugApi && Logger.info(`API : Completed GET /xpub/${req.params.xpub}`);
+			debugApi &&
+				Logger.info(`API : Completed GET /xpub/${c.req.param("xpub")}`);
 		}
 	}
 
 	/**
 	 * Handle xPub/import/status GET request
 	 */
-	async getXpubImportStatus(req: HttpRequestLike, res: HttpResponseLike) {
+	async getXpubImportStatus(c: HttpContext) {
 		try {
 			let xpub: string;
 
 			// Extracts arguments
-			const argumentXpub = req.params.xpub;
+			const argumentXpub = c.req.param("xpub");
 
 			// Translate xpub if needed
 			try {
 				const xlatXpub = this.xlatHdAccount(argumentXpub);
 				xpub = xlatXpub.xpub;
 			} catch (error) {
-				return HttpServer.sendError(res, error);
+				return HttpServer.sendError(c, error);
 			}
 
 			const returnValue: ImportStatusResponse = {
@@ -230,14 +231,14 @@ class XPubRestApi {
 				}
 			}
 
-			HttpServer.sendOkData(res, returnValue);
+			HttpServer.sendOkData(c, returnValue);
 		} catch (error) {
 			Logger.error(error, "API : XpubRestApi.getXpubImportStatus()");
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			debugApi &&
 				Logger.info(
-					`API : Completed GET /xpub/${req.params.xpub}/import/status`,
+					`API : Completed GET /xpub/${c.req.param("xpub")}/import/status`,
 				);
 		}
 	}
@@ -245,37 +246,41 @@ class XPubRestApi {
 	/**
 	 * Handle Lock XPub POST request
 	 */
-	async postLockXpub(req: HttpRequestLike, res: HttpResponseLike) {
+	async postLockXpub(c: HttpContext) {
 		try {
 			let xpub: string;
 			let scheme: number;
 
 			// Check request arguments
-			if (!req.body) return HttpServer.sendError(res, errors.body.NODATA);
+			if (!c.get("body")) return HttpServer.sendError(c, errors.body.NODATA);
 
-			if (!req.body.address)
-				return HttpServer.sendError(res, errors.body.NOADDR);
+			if (!c.get("body").address)
+				return HttpServer.sendError(c, errors.body.NOADDR);
 
-			if (!req.body.signature)
-				return HttpServer.sendError(res, errors.body.NOSIG);
+			if (!c.get("body").signature)
+				return HttpServer.sendError(c, errors.body.NOSIG);
 
-			if (!req.body.message)
-				return HttpServer.sendError(res, errors.body.NOMSG);
+			if (!c.get("body").message)
+				return HttpServer.sendError(c, errors.body.NOMSG);
 
-			if (!(req.body.message === "lock" || req.body.message === "unlock"))
-				return HttpServer.sendError(res, errors.sig.INVMSG);
+			if (
+				!(
+					c.get("body").message === "lock" || c.get("body").message === "unlock"
+				)
+			)
+				return HttpServer.sendError(c, errors.sig.INVMSG);
 
 			// Extract arguments
-			const argumentXpub = req.params.xpub;
-			const argumentAddr = stringField(req.body.address);
-			const argumentSig = stringField(req.body.signature);
-			const argumentMessage = stringField(req.body.message);
+			const argumentXpub = c.req.param("xpub");
+			const argumentAddr = stringField(c.get("body").address);
+			const argumentSig = stringField(c.get("body").signature);
+			const argumentMessage = stringField(c.get("body").message);
 			if (
 				argumentAddr == null ||
 				argumentSig == null ||
 				argumentMessage == null
 			)
-				return HttpServer.sendError(res, errors.body.INVDATA);
+				return HttpServer.sendError(c, errors.body.INVDATA);
 
 			// Translate xpub if needed
 			try {
@@ -283,7 +288,7 @@ class XPubRestApi {
 				xpub = returnValue.xpub;
 				scheme = returnValue.scheme;
 			} catch (error) {
-				return HttpServer.sendError(res, error);
+				return HttpServer.sendError(c, error);
 			}
 
 			try {
@@ -297,39 +302,39 @@ class XPubRestApi {
 				);
 				const lock = argumentMessage !== "unlock";
 				const returnValue = await hdaService.lockHdAccount(xpub, lock);
-				HttpServer.sendOkData(res, { derivation: returnValue });
+				HttpServer.sendOkData(c, { derivation: returnValue });
 			} catch {
-				HttpServer.sendError(res, errors.generic.GEN);
+				HttpServer.sendError(c, errors.generic.GEN);
 			}
 		} finally {
 			debugApi &&
-				Logger.info(`API : Completed POST /xpub/${req.params.xpub}/lock`);
+				Logger.info(`API : Completed POST /xpub/${c.req.param("xpub")}/lock`);
 		}
 	}
 
 	/**
 	 * Handle XPub DELETE request
 	 */
-	async deleteXpub(req: HttpRequestLike, res: HttpResponseLike) {
+	async deleteXpub(c: HttpContext) {
 		try {
 			let xpub: string;
 			let scheme: number;
 
 			// Check request arguments
-			if (!req.body) return HttpServer.sendError(res, errors.body.NODATA);
+			if (!c.get("body")) return HttpServer.sendError(c, errors.body.NODATA);
 
-			if (!req.body.address)
-				return HttpServer.sendError(res, errors.body.NOADDR);
+			if (!c.get("body").address)
+				return HttpServer.sendError(c, errors.body.NOADDR);
 
-			if (!req.body.signature)
-				return HttpServer.sendError(res, errors.body.NOSIG);
+			if (!c.get("body").signature)
+				return HttpServer.sendError(c, errors.body.NOSIG);
 
 			// Extract arguments
-			const argumentXpub = req.params.xpub;
-			const argumentAddr = stringField(req.body.address);
-			const argumentSig = stringField(req.body.signature);
+			const argumentXpub = c.req.param("xpub");
+			const argumentAddr = stringField(c.get("body").address);
+			const argumentSig = stringField(c.get("body").signature);
 			if (argumentAddr == null || argumentSig == null)
-				return HttpServer.sendError(res, errors.body.INVDATA);
+				return HttpServer.sendError(c, errors.body.INVDATA);
 
 			// Translate xpub if needed
 			try {
@@ -337,7 +342,7 @@ class XPubRestApi {
 				xpub = returnValue.xpub;
 				scheme = returnValue.scheme;
 			} catch (error) {
-				return HttpServer.sendError(res, error);
+				return HttpServer.sendError(c, error);
 			}
 
 			try {
@@ -350,15 +355,15 @@ class XPubRestApi {
 					scheme,
 				);
 				await hdaService.deleteHdAccount(xpub);
-				HttpServer.sendOk(res);
+				HttpServer.sendOk(c);
 			} catch (error) {
-				HttpServer.sendError(res, error);
+				HttpServer.sendError(c, error);
 			}
 		} catch {
-			HttpServer.sendError(res, errors.generic.GEN);
+			HttpServer.sendError(c, errors.generic.GEN);
 		} finally {
 			debugApi &&
-				Logger.info(`API : Completed DELETE /xpub/${req.params.xpub}`);
+				Logger.info(`API : Completed DELETE /xpub/${c.req.param("xpub")}`);
 		}
 	}
 
@@ -399,15 +404,11 @@ class XPubRestApi {
 	/**
 	 * Validate arguments of postXpub requests
 	 */
-	validateArgsPostXpub(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const xpub = stringField(req.body.xpub);
-		const segwit = stringField(req.body.segwit);
-		const type = stringField(req.body.type);
-		const force = stringField(req.body.force);
+	async validateArgsPostXpub(c: HttpContext, next: HttpNext) {
+		const xpub = stringField(c.get("body").xpub);
+		const segwit = stringField(c.get("body").segwit);
+		const type = stringField(c.get("body").type);
+		const force = stringField(c.get("body").force);
 		const isValidXpub = xpub != null && validator.isAlphanumeric(xpub);
 
 		const isValidSegwit = segwit == null || validator.isAlphanumeric(segwit);
@@ -417,11 +418,11 @@ class XPubRestApi {
 		const isValidForce = force == null || validator.isAlphanumeric(force);
 
 		if (isValidXpub && isValidSegwit && isValidType && isValidForce) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.body,
+				c.get("body"),
 				"API : XpubRestApi.validateArgsPostXpub() : Invalid arguments",
 			);
 		}
@@ -430,19 +431,15 @@ class XPubRestApi {
 	/**
 	 * Validate arguments of getXpub requests
 	 */
-	validateArgsGetXpub(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidXpub = validator.isAlphanumeric(req.params.xpub);
+	async validateArgsGetXpub(c: HttpContext, next: HttpNext) {
+		const isValidXpub = validator.isAlphanumeric(c.req.param("xpub"));
 
 		if (isValidXpub) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.params.xpub,
+				c.req.param("xpub"),
 				"API : XpubRestApi.validateArgsGetXpub() : Invalid arguments",
 			);
 		}
@@ -451,54 +448,46 @@ class XPubRestApi {
 	/**
 	 * Validate arguments of postLockXpub requests
 	 */
-	validateArgsPostLockXpub(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidXpub = validator.isAlphanumeric(req.params.xpub);
-		const address = stringField(req.body.address);
-		const signature = stringField(req.body.signature);
-		const message = stringField(req.body.message);
+	async validateArgsPostLockXpub(c: HttpContext, next: HttpNext) {
+		const isValidXpub = validator.isAlphanumeric(c.req.param("xpub"));
+		const address = stringField(c.get("body").address);
+		const signature = stringField(c.get("body").signature);
+		const message = stringField(c.get("body").message);
 		const isValidAddr = address != null && validator.isAlphanumeric(address);
 		const isValidSig = signature != null && validator.isBase64(signature);
 		const isValidMessage = message != null && validator.isAlphanumeric(message);
 
 		if (isValidXpub && isValidAddr && isValidSig && isValidMessage) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.params,
+				c.req.param(),
 				"API : XpubRestApi.validateArgsPostLockXpub() : Invalid arguments",
 			);
-			Logger.error(req.body, "");
+			Logger.error(c.get("body"), "");
 		}
 	}
 
 	/**
 	 * Validate arguments of deleteXpub requests
 	 */
-	validateArgsDeleteXpub(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidXpub = validator.isAlphanumeric(req.params.xpub);
-		const address = stringField(req.body.address);
-		const signature = stringField(req.body.signature);
+	async validateArgsDeleteXpub(c: HttpContext, next: HttpNext) {
+		const isValidXpub = validator.isAlphanumeric(c.req.param("xpub"));
+		const address = stringField(c.get("body").address);
+		const signature = stringField(c.get("body").signature);
 		const isValidAddr = address != null && validator.isAlphanumeric(address);
 		const isValidSig = signature != null && validator.isBase64(signature);
 
 		if (isValidXpub && isValidAddr && isValidSig) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.params,
+				c.req.param(),
 				"API : XpubRestApi.validateArgsDeleteXpub() : Invalid arguments",
 			);
-			Logger.error(req.body, "");
+			Logger.error(c.get("body"), "");
 		}
 	}
 }

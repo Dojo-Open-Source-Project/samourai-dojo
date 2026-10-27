@@ -18,12 +18,6 @@ const keys = keysFile[
 const debugApi = process.argv.includes("api-debug");
 
 /**
- * @typedef {import('@tinyhttp/app').Request} Request
- * @typedef {import('@tinyhttp/app').Response} Response
- * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
- */
-
-/**
  * Headers API endpoints
  */
 class SeenRestApi {
@@ -46,9 +40,9 @@ class SeenRestApi {
 	/**
 	 * Handle /seen GET request
 	 */
-	async getSeen(req: HttpRequestLike, res: HttpResponseLike) {
+	async getSeen(c: HttpContext) {
 		try {
-			const addresses = req.query.addresses.split("|");
+			const addresses = c.req.query("addresses").split("|");
 
 			const addrResult = await remoteImporter.sources.getAddresses(
 				addresses,
@@ -61,12 +55,12 @@ class SeenRestApi {
 				result[addr.address] = addr.ntx > 0;
 			}
 
-			HttpServer.sendOkDataOnly(res, result);
+			HttpServer.sendOkDataOnly(c, result);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			if (debugApi) {
-				const stringParameters = `${req.query.addresses || ""}`;
+				const stringParameters = `${c.req.query("addresses") || ""}`;
 
 				Logger.info(`API : Completed GET /seen ${stringParameters}`);
 			}
@@ -76,20 +70,19 @@ class SeenRestApi {
 	/**
 	 * Validate request arguments
 	 */
-	validateArgsGetSeen(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
+	async validateArgsGetSeen(c: HttpContext, next: HttpNext) {
 		if (keys.indexer.active === "local_bitcoind") {
-			return HttpServer.sendError(res, errors.multiaddr.NO_IMPORTER);
+			return HttpServer.sendError(c, errors.multiaddr.NO_IMPORTER);
 		}
 
-		if (!req.query.addresses || typeof req.query.addresses !== "string") {
-			return HttpServer.sendError(res, errors.multiaddr.INVALID);
+		if (
+			!c.req.query("addresses") ||
+			typeof c.req.query("addresses") !== "string"
+		) {
+			return HttpServer.sendError(c, errors.multiaddr.INVALID);
 		}
 
-		next();
+		await next();
 	}
 }
 

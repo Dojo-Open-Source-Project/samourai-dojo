@@ -3,12 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-/**
- * @typedef {import('@tinyhttp/app').Request} Request
- * @typedef {import('@tinyhttp/app').Response} Response
- * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
- */
-
 import keysFile from "../../keys/index.js";
 import network from "../bitcoin/network.js";
 import db from "../db/mysql-db-wrapper.js";
@@ -27,37 +21,35 @@ class AuthenticationManager {
 	/**
 	 * Authenticate a user
 	 */
-	async authenticate(
-		req: HttpRequestLike,
-		_res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const apiKey = req.body.apikey || req.query.apikey;
+	async authenticate(c: HttpContext, next: HttpNext) {
+		const apiKey = c.get("body").apikey || c.req.query("apikey");
 
 		const _adminKey = keys.auth.strategies.localApiKey.adminKey;
 		const _apiKeys = keys.auth.strategies.localApiKey.apiKeys;
 
-		if (req.user == null) {
-			req.user = {};
-		}
+		const user = c.get("user") ?? {};
+		c.set("user", user);
 
 		if (apiKey === _adminKey) {
 			// Check if received key is a valid api key
 			Logger.info("Auth : Successful authentication with an admin key");
-			req.user.authenticated = true;
-			req.user.profile = authorzMgr.TOKEN_PROFILE_ADMIN;
+			user.authenticated = true;
+			user.profile = authorzMgr.TOKEN_PROFILE_ADMIN;
 
-			next();
-		} else if (_apiKeys.includes(apiKey) || (await db.isApiKeyActive(apiKey))) {
+			await next();
+		} else if (
+			_apiKeys.includes(apiKey as string) ||
+			(await db.isApiKeyActive(apiKey))
+		) {
 			// Check if received key is a valid api key
 			Logger.info("Auth : Successful authentication with an api key");
-			req.user.authenticated = true;
-			req.user.profile = authorzMgr.TOKEN_PROFILE_API;
+			user.authenticated = true;
+			user.profile = authorzMgr.TOKEN_PROFILE_API;
 
-			next();
+			await next();
 		} else {
 			Logger.error(null, `Auth : Authentication failure (apikey=${apiKey})`);
-			next(errors.auth.INVALID_API_KEY);
+			throw new Error(errors.auth.INVALID_API_KEY);
 		}
 	}
 }

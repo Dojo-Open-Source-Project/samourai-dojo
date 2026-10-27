@@ -39,24 +39,27 @@ class TrackerRestApi {
 	/**
 	 * Rescan a range of blocks
 	 */
-	async getBlocksRescan(req: HttpRequestLike, res: HttpResponseLike) {
+	async getBlocksRescan(c: HttpContext) {
 		// Check req.arguments
-		if (!req.query) return HttpServer.sendError(res, errors.body.INVDATA);
+		if (!c.req.query()) return HttpServer.sendError(c, errors.body.INVDATA);
 
-		if (!req.query.fromHeight || !validator.isInt(req.query.fromHeight))
-			return HttpServer.sendError(res, errors.body.INVDATA);
+		if (
+			!c.req.query("fromHeight") ||
+			!validator.isInt(c.req.query("fromHeight"))
+		)
+			return HttpServer.sendError(c, errors.body.INVDATA);
 
-		if (req.query.toHeight && !validator.isInt(req.query.toHeight))
-			return HttpServer.sendError(res, errors.body.INVDATA);
+		if (c.req.query("toHeight") && !validator.isInt(c.req.query("toHeight")))
+			return HttpServer.sendError(c, errors.body.INVDATA);
 
 		// Retrieve the req.arguments
-		const fromHeight = Number.parseInt(req.query.fromHeight, 10);
-		const toHeight = req.query.toHeight
-			? Number.parseInt(req.query.toHeight, 10)
+		const fromHeight = Number.parseInt(c.req.query("fromHeight"), 10);
+		const toHeight = c.req.query("toHeight")
+			? Number.parseInt(c.req.query("toHeight"), 10)
 			: fromHeight;
 
-		if (req.query.toHeight && toHeight < fromHeight)
-			return HttpServer.sendError(res, errors.body.INVDATA);
+		if (c.req.query("toHeight") && toHeight < fromHeight)
+			return HttpServer.sendError(c, errors.body.INVDATA);
 
 		try {
 			await this.tracker.blockchainProcessor.rescanBlocks(fromHeight, toHeight);
@@ -65,9 +68,9 @@ class TrackerRestApi {
 				fromHeight: fromHeight,
 				toHeight: toHeight,
 			};
-			HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2));
+			HttpServer.sendRawData(c, JSON.stringify(returnValue, null, 2));
 		} catch (error) {
-			return HttpServer.sendError(res, error);
+			return HttpServer.sendError(c, error);
 		}
 	}
 }

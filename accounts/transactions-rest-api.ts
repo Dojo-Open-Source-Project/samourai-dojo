@@ -54,7 +54,7 @@ class TransactionsRestApi {
 		);
 
 		this.httpServer.app.get(
-			"txout/:txid/:index",
+			"/txout/:txid/:index",
 			authMgr.checkAuthentication.bind(authMgr),
 			this.getTxOut.bind(this),
 		);
@@ -63,21 +63,21 @@ class TransactionsRestApi {
 	/**
 	 * Retrieve the transaction for a given txid
 	 */
-	async getTransaction(req: HttpRequestLike, res: HttpResponseLike) {
+	async getTransaction(c: HttpContext) {
 		try {
-			const tx = await rpcTxns.getTransaction(req.params.txid, {
-				fees: req.query.fees != null,
-				rawHex: req.query.rawHex != null,
+			const tx = await rpcTxns.getTransaction(c.req.param("txid"), {
+				fees: c.req.query("fees") != null,
+				rawHex: c.req.query("rawHex") != null,
 			});
 			const returnValue = JSON.stringify(tx, null, 2);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
-			const stringParameters = `${req.query.fees || ""}`;
+			const stringParameters = `${c.req.query("fees") || ""}`;
 			debugApi &&
 				Logger.info(
-					`API : Completed GET /tx/${req.params.txid} ${stringParameters}`,
+					`API : Completed GET /tx/${c.req.param("txid")} ${stringParameters}`,
 				);
 		}
 	}
@@ -85,36 +85,39 @@ class TransactionsRestApi {
 	/**
 	 * Retrieve raw transaction for a given txid
 	 */
-	async getTransactionHex(req: HttpRequestLike, res: HttpResponseLike) {
+	async getTransactionHex(c: HttpContext) {
 		try {
-			const rawTx = await rpcTxns.getTransactionHex(req.params.txid);
+			const rawTx = await rpcTxns.getTransactionHex(c.req.param("txid"));
 
-			HttpServer.sendOkData(res, rawTx);
+			HttpServer.sendOkData(c, rawTx);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
-			debugApi && Logger.info(`API : Completed GET /tx/${req.params.txid}/hex`);
+			debugApi &&
+				Logger.info(`API : Completed GET /tx/${c.req.param("txid")}/hex`);
 		}
 	}
 
 	/**
 	 * Retrieve a page of transactions related to a wallet
 	 */
-	async getTransactions(req: HttpRequestLike, res: HttpResponseLike) {
+	async getTransactions(c: HttpContext) {
 		try {
 			// Check request params
-			if (!apiHelper.checkEntitiesParams(req.query))
-				return HttpServer.sendError(res, errors.multiaddr.NOACT);
+			if (!apiHelper.checkEntitiesParams(c.req.query()))
+				return HttpServer.sendError(c, errors.multiaddr.NOACT);
 
 			// Parse params
-			const active = apiHelper.parseEntities(req.query.active);
+			const active = apiHelper.parseEntities(c.req.query("active"));
 			const page =
-				req.query.page == null ? 0 : Number.parseInt(req.query.page, 10);
+				c.req.query("page") == null
+					? 0
+					: Number.parseInt(c.req.query("page"), 10);
 			const count =
-				req.query.count == null
+				c.req.query("count") == null
 					? keys.multiaddr.transactions
-					: Number.parseInt(req.query.count, 10);
-			const excludeNullXfer = req.query.excludeNullXfer != null;
+					: Number.parseInt(c.req.query("count"), 10);
+			const excludeNullXfer = c.req.query("excludeNullXfer") != null;
 
 			const result = await walletService.getWalletTransactions(
 				active,
@@ -128,13 +131,13 @@ class TransactionsRestApi {
 			}
 
 			const returnValue = JSON.stringify(result, null, 2);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
-			const stringParameters = `${req.query.active} \
-        ${req.query.page || ""} \
-        ${req.query.count || ""}`;
+			const stringParameters = `${c.req.query("active")} \
+        ${c.req.query("page") || ""} \
+        ${c.req.query("count") || ""}`;
 
 			debugApi && Logger.info(`API : Completed GET /txs ${stringParameters}`);
 		}
@@ -143,70 +146,62 @@ class TransactionsRestApi {
 	/**
 	 * Retrieve a utxo for a given txid and index
 	 */
-	async getTxOut(req: HttpRequestLike, res: HttpResponseLike) {
-		if (!req.params.txid || !req.params.index) {
-			return HttpServer.sendError(res, errors.params.INVALID);
+	async getTxOut(c: HttpContext) {
+		if (!c.req.param("txid") || !c.req.param("index")) {
+			return HttpServer.sendError(c, errors.params.INVALID);
 		}
 
-		const index = Number.parseInt(req.params.index, 10);
+		const index = Number.parseInt(c.req.param("index"), 10);
 
 		if (Number.isNaN(index)) {
-			return HttpServer.sendError(res, errors.params.INVALID);
+			return HttpServer.sendError(c, errors.params.INVALID);
 		}
 
 		try {
 			const txout = await rpcTxns.rpcClient.gettxout({
-				txid: req.params.txid,
+				txid: c.req.param("txid"),
 				n: index,
 			});
 
-			HttpServer.sendOkDataOnly(res, txout);
+			HttpServer.sendOkDataOnly(c, txout);
 		} catch {
-			HttpServer.sendError(res, null, 404);
+			HttpServer.sendError(c, null, 404);
 		}
 	}
 
 	/**
 	 * Validate arguments of /tx requests
 	 */
-	validateArgsGetTransaction(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidTxid = validator.isHash(req.params.txid, "sha256");
+	async validateArgsGetTransaction(c: HttpContext, next: HttpNext) {
+		const isValidTxid = validator.isHash(c.req.param("txid"), "sha256");
 
 		const isValidFees =
-			!req.query.fees || validator.isAlphanumeric(req.query.fees);
+			!c.req.query("fees") || validator.isAlphanumeric(c.req.query("fees"));
 
 		if (isValidTxid && isValidFees) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.params,
+				c.req.param(),
 				"API : HeadersRestApi.validateArgsGetTransaction() : Invalid arguments",
 			);
-			Logger.error(req.query, "");
+			Logger.error(c.req.query(), "");
 		}
 	}
 
 	/**
 	 * Validate arguments of /tx/:txid/hex requests
 	 */
-	validateArgsGetTransactionHex(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidTxid = validator.isHash(req.params.txid, "sha256");
+	async validateArgsGetTransactionHex(c: HttpContext, next: HttpNext) {
+		const isValidTxid = validator.isHash(c.req.param("txid"), "sha256");
 
 		if (isValidTxid) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.params,
+				c.req.param(),
 				"API : HeadersRestApi.validateArgsGetTransactionHex() : Invalid arguments",
 			);
 		}
@@ -215,25 +210,23 @@ class TransactionsRestApi {
 	/**
 	 * Validate arguments of /txs requests
 	 */
-	validateArgsGetTransactions(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidPage = !req.query.page || validator.isInt(req.query.page);
+	async validateArgsGetTransactions(c: HttpContext, next: HttpNext) {
+		const isValidPage =
+			!c.req.query("page") || validator.isInt(c.req.query("page"));
 
-		const isValidCount = !req.query.count || validator.isInt(req.query.count);
+		const isValidCount =
+			!c.req.query("count") || validator.isInt(c.req.query("count"));
 
 		const isValidExcludeNull =
-			!req.query.excludeNullXfer ||
-			validator.isAlphanumeric(req.query.excludeNullXfer);
+			!c.req.query("excludeNullXfer") ||
+			validator.isAlphanumeric(c.req.query("excludeNullXfer"));
 
 		if (isValidPage && isValidCount && isValidExcludeNull) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
-				req.query,
+				c.req.query(),
 				"API : HeadersRestApi.validateArgsGetTransactions() : Invalid arguments",
 			);
 		}

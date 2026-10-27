@@ -106,16 +106,12 @@ class ApiHelper {
 	}
 
 	/**
-	 * Express middleware validating if entities params are well formed
+	 * Hono middleware validating if entities params are well formed
 	 */
-	validateEntitiesParams(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const parameters = this.checkEntitiesParams(req.query)
-			? req.query
-			: req.body;
+	async validateEntitiesParams(c: HttpContext, next: HttpNext) {
+		const parameters = this.checkEntitiesParams(c.req.query())
+			? c.req.query()
+			: c.get("body");
 
 		let isValid = true;
 
@@ -135,9 +131,9 @@ class ApiHelper {
 			isValid = false;
 
 		if (isValid) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
 				parameters,
 				"API : ApiHelper.validateEntitiesParams() : Invalid arguments",

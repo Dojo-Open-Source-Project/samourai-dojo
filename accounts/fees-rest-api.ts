@@ -44,12 +44,12 @@ class FeesRestApi {
 	/**
 	 * Refresh and return the current fees
 	 */
-	async getFees(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getFees(c: HttpContext) {
 		try {
 			const fees = await rpcFees.getFees();
-			HttpServer.sendOkDataOnly(res, fees);
+			HttpServer.sendOkDataOnly(c, fees);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			debugApi && Logger.info("API : Completed GET /fees");
 		}
@@ -58,12 +58,12 @@ class FeesRestApi {
 	/**
 	 * Get fees from $1 Fee Estimator
 	 */
-	async getEstimatorFees(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getEstimatorFees(c: HttpContext) {
 		try {
 			const fees = await rpcFees.getEstimatorFees();
-			HttpServer.sendOkDataOnly(res, fees);
+			HttpServer.sendOkDataOnly(c, fees);
 		} catch (error) {
-			HttpServer.sendError(res, error, 503);
+			HttpServer.sendError(c, error, 503);
 		}
 	}
 }

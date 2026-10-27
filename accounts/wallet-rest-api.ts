@@ -3,7 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import { urlencoded } from "milliparsec";
 import authMgr from "../lib/auth/authorizations-manager.js";
 import hdaService from "../lib/bitcoin/hd-accounts-service.js";
 import errors from "../lib/errors.js";
@@ -27,8 +26,6 @@ class WalletRestApi {
 		this.httpServer = httpServer;
 
 		// Establish routes
-		const urlencodedParser = urlencoded();
-
 		this.httpServer.app.get(
 			"/wallet",
 			authMgr.checkAuthentication.bind(authMgr),
@@ -38,7 +35,7 @@ class WalletRestApi {
 
 		this.httpServer.app.post(
 			"/wallet",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authMgr.checkAuthentication.bind(authMgr),
 			apiHelper.validateEntitiesParams.bind(apiHelper),
 			this.postWallet.bind(this),
@@ -48,16 +45,16 @@ class WalletRestApi {
 	/**
 	 * Handle wallet GET request
 	 */
-	async getWallet(req: HttpRequestLike, res: HttpResponseLike) {
+	async getWallet(c: HttpContext) {
 		try {
 			// Check request params
-			if (!apiHelper.checkEntitiesParams(req.query))
-				return HttpServer.sendError(res, errors.multiaddr.NOACT);
+			if (!apiHelper.checkEntitiesParams(c.req.query()))
+				return HttpServer.sendError(c, errors.multiaddr.NOACT);
 
 			// Parse params
-			const entities = apiHelper.parseEntitiesParams(req.query);
+			const entities = apiHelper.parseEntitiesParams(c.req.query());
 
-			if (req.query.importPostmixLikeTypeChange) {
+			if (c.req.query("importPostmixLikeTypeChange")) {
 				await hdaService.importPostmixLikeTypeChange(entities.active.xpubs);
 			}
 
@@ -70,16 +67,16 @@ class WalletRestApi {
 			);
 
 			const returnValue = JSON.stringify(result, null, 2);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			if (debugApi) {
-				const stringParameters = `${req.query.active || ""} \
-                     ${req.query.new || ""} \
-                     ${req.query.pubkey || ""} \
-                     ${req.query.bip49 || ""} \
-                     ${req.query.bip84 || ""}`;
+				const stringParameters = `${c.req.query("active") || ""} \
+                     ${c.req.query("new") || ""} \
+                     ${c.req.query("pubkey") || ""} \
+                     ${c.req.query("bip49") || ""} \
+                     ${c.req.query("bip84") || ""}`;
 
 				Logger.info(`API : Completed GET /wallet ${stringParameters}`);
 			}
@@ -89,16 +86,16 @@ class WalletRestApi {
 	/**
 	 * Handle wallet POST request
 	 */
-	async postWallet(req: HttpRequestLike, res: HttpResponseLike) {
+	async postWallet(c: HttpContext) {
 		try {
 			// Check request params
-			if (!apiHelper.checkEntitiesParams(req.body))
-				return HttpServer.sendError(res, errors.multiaddr.NOACT);
+			if (!apiHelper.checkEntitiesParams(c.get("body")))
+				return HttpServer.sendError(c, errors.multiaddr.NOACT);
 
 			// Parse params
-			const entities = apiHelper.parseEntitiesParams(req.body);
+			const entities = apiHelper.parseEntitiesParams(c.get("body"));
 
-			if (req.body.importPostmixLikeTypeChange) {
+			if (c.get("body").importPostmixLikeTypeChange) {
 				await hdaService.importPostmixLikeTypeChange(entities.active.xpubs);
 			}
 
@@ -110,16 +107,16 @@ class WalletRestApi {
 				entities.pubkey,
 			);
 
-			HttpServer.sendOkDataOnly(res, result);
+			HttpServer.sendOkDataOnly(c, result);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			if (debugApi) {
-				const stringParameters = `${req.body.active || ""} \
-                     ${req.body.new || ""} \
-                     ${req.body.pubkey || ""} \
-                     ${req.body.bip49 || ""} \
-                     ${req.body.bip84 || ""}`;
+				const stringParameters = `${c.get("body").active || ""} \
+                     ${c.get("body").new || ""} \
+                     ${c.get("body").pubkey || ""} \
+                     ${c.get("body").bip49 || ""} \
+                     ${c.get("body").bip84 || ""}`;
 
 				Logger.info(`API : Completed POST /wallet ${stringParameters}`);
 			}

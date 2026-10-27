@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { Context } from "hono";
 import type { Pool } from "mariadb";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import authentication from "../../../lib/auth/authentication-manager.js";
@@ -40,13 +41,15 @@ afterEach(() => {
 });
 
 async function authenticate(apiKey: unknown, useQuery = false) {
-	const req = {
-		body: useQuery ? {} : { apikey: apiKey },
-		query: useQuery ? { apikey: apiKey } : {},
-	} as HttpRequestLike;
-	const next = vi.fn();
-	await authentication.authenticate(req, {} as HttpResponseLike, next);
-	return { user: req.user, next };
+	const c = new Context<HttpEnv>(
+		new Request(
+			`http://dojo.test/${useQuery ? `?apikey=${String(apiKey)}` : ""}`,
+		),
+	);
+	c.set("body", useQuery ? {} : { apikey: apiKey });
+	const next = vi.fn<() => Promise<void>>().mockResolvedValue();
+	await authentication.authenticate(c, next);
+	return { user: c.get("user"), next };
 }
 
 describe("API-key authentication", () => {
@@ -79,9 +82,12 @@ describe("API-key authentication", () => {
 			execute: vi.fn().mockResolvedValue([[], []]),
 		} as unknown as Pool;
 		for (const key of [undefined, ["database-key"], "unknown"]) {
-			const { user, next } = await authenticate(key);
-			assert.notEqual(user.authenticated, true);
-			assert.equal(next.mock.calls[0][0], errors.auth.INVALID_API_KEY);
+			await assert.rejects(
+				authenticate(key),
+				(error) =>
+					error instanceof Error &&
+					error.message === errors.auth.INVALID_API_KEY,
+			);
 		}
 	});
 

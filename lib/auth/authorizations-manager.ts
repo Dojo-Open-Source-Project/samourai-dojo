@@ -3,8 +3,7 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import type { Algorithm, JwtPayload, SignOptions } from "jsonwebtoken";
-import jwt from "jsonwebtoken";
+import { sign, verify } from "hono/jwt";
 import validator from "validator";
 import keysFile from "../../keys/index.js";
 import network from "../bitcoin/network.js";
@@ -15,7 +14,7 @@ const keys = keysFile[
 	network.key as keyof typeof keysFile
 ] as unknown as DojoConfig;
 
-interface DojoJwtPayload extends JwtPayload {
+interface DojoJwtPayload extends UnknownRecord {
 	type: string;
 	prf?: unknown;
 }
@@ -30,307 +29,207 @@ const isDojoJwtPayload = (payload: unknown): payload is DojoJwtPayload =>
 const stringValue = (value: unknown): string | null =>
 	typeof value === "string" ? value : null;
 
-/**
- * @typedef {import('@tinyhttp/app').Request} Request
- * @typedef {import('@tinyhttp/app').Response} Response
- * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
- */
+function lifetimeSeconds(expires: string | number): number {
+	if (typeof expires === "number") return expires;
+	// Preserve legacy duration strings. Bare strings are milliseconds; numbers
+	// in the Dojo configuration are seconds.
+	const match =
+		expires.length <= 100 &&
+		/^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+			expires,
+		);
+	if (!match) return Number.NaN;
+	const unit = match[2]?.toLowerCase() ?? "ms";
+	const secondsPerUnit: Record<string, number> = {
+		s: 1,
+		m: 60,
+		h: 3600,
+		d: 86400,
+		w: 604800,
+		y: 31557600,
+	};
+	return (
+		Number(match[1]) *
+		(/^m(?:s|ill)/.test(unit) ? 0.001 : secondsPerUnit[unit[0]])
+	);
+}
 
-/**
- * A singleton managing authorizations the API
- */
 class AuthorizationsManager {
-	declare JWT_ALGO: Algorithm;
-	declare ISS: string;
-	declare TOKEN_TYPE_ACCESS: string;
-	declare TOKEN_TYPE_REFRESH: string;
-	declare TOKEN_PROFILE_API: string;
-	declare TOKEN_PROFILE_ADMIN: string;
-	declare authActive: boolean;
-	declare _secret: string;
-	declare isMandatory: boolean;
-	declare accessTokenExpires: SignOptions["expiresIn"];
-	declare refreshTokenExpires: SignOptions["expiresIn"];
-	/**
-	 * Constructor
-	 */
-	constructor() {
-		// Constants
-		this.JWT_ALGO = "HS256";
-		this.ISS = "Samourai Wallet backend";
-		this.TOKEN_TYPE_ACCESS = "access-token";
-		this.TOKEN_TYPE_REFRESH = "refresh-token";
-		this.TOKEN_PROFILE_API = "api";
-		this.TOKEN_PROFILE_ADMIN = "admin";
+	readonly JWT_ALGO = "HS256";
+	readonly ISS = "Samourai Wallet backend";
+	readonly TOKEN_TYPE_ACCESS = "access-token";
+	readonly TOKEN_TYPE_REFRESH = "refresh-token";
+	readonly TOKEN_PROFILE_API = "api";
+	readonly TOKEN_PROFILE_ADMIN = "admin";
+	authActive = keys.auth.activeStrategy != null;
+	_secret = keys.auth.jwt.secret;
+	isMandatory = keys.auth.mandatory;
+	accessTokenExpires = keys.auth.jwt.accessToken.expires;
+	refreshTokenExpires = keys.auth.jwt.refreshToken.expires;
 
-		this.authActive = keys.auth.activeStrategy != null;
-		this._secret = keys.auth.jwt.secret;
-		this.isMandatory = keys.auth.mandatory;
-		this.accessTokenExpires = keys.auth.jwt.accessToken
-			.expires as SignOptions["expiresIn"];
-		this.refreshTokenExpires = keys.auth.jwt.refreshToken
-			.expires as SignOptions["expiresIn"];
-	}
-
-	/**
-	 * Middleware generating authorization token
-	 */
-	generateAuthorizations(
-		req: HttpRequestLike,
-		_res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		if (!req.user?.authenticated) return next(errors.auth.TECH_ISSUE);
-
-		// Generates an access token
-		const accessToken = this._generateAccessToken(req.user);
-
-		// Generates a refresh token
-		const refreshToken = this._generateRefreshToken(req.user);
-
-		// Stores the tokens in the request
-		req.authorizations = {
+	async generateAuthorizations(c: HttpContext, next: HttpNext) {
+		const user = c.get("user");
+		if (!user?.authenticated) throw new Error(errors.auth.TECH_ISSUE);
+		const accessToken = await this._generateAccessToken(user);
+		const refreshToken = await this._generateRefreshToken(user);
+		c.set("authorizations", {
 			access_token: accessToken,
 			refresh_token: refreshToken,
-		};
-
-		next();
+		});
+		await next();
 	}
 
-	/**
-	 * Middleware refreshing authorizations
-	 */
-	refreshAuthorizations(
-		req: HttpRequestLike,
-		_res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		// Check if authentication is activated
+	async refreshAuthorizations(c: HttpContext, next: HttpNext) {
 		if (!this.authActive) return next();
-
-		// Authentication is activated
-		// A refresh token is required
-		const refreshToken = this._extractRefreshToken(req);
-
-		if (!refreshToken) return next(errors.auth.MISSING_JWT);
-
+		const refreshToken = this._extractRefreshToken(c);
+		if (!refreshToken) throw new Error(errors.auth.MISSING_JWT);
+		let decoded: DojoJwtPayload;
 		try {
-			const decodedRefrehToken = this._verifyRefreshToken(refreshToken);
-			if (req.user == null) {
-				req.user = {};
-			}
-			req.user.profile = decodedRefrehToken.prf;
+			decoded = await this._verifyRefreshToken(refreshToken);
 		} catch (error) {
-			Logger.error(error, `${errors.auth.INVALID_JWT}: ${refreshToken}`);
-			return next(errors.auth.INVALID_JWT);
+			Logger.error(error, errors.auth.INVALID_JWT);
+			throw new Error(errors.auth.INVALID_JWT);
 		}
-
-		// Generates a new access token
-		const accessToken = this._generateAccessToken(req.user);
-
-		// Stores the access token in the request
-		req.authorizations = {
-			access_token: accessToken,
-		};
-
-		next();
+		const user = c.get("user") ?? {};
+		user.profile = decoded.prf;
+		c.set("user", user);
+		c.set("authorizations", {
+			access_token: await this._generateAccessToken(user),
+		});
+		await next();
 	}
 
-	/**
-	 * Middleware revoking authorizations
-	 */
-	revokeAuthorizations(
-		_req: HttpRequestLike,
-		_res: HttpResponseLike,
-		_next: NextFunctionLike,
-	) {
-		// Nothing to do (for now)
+	async revokeAuthorizations(_c: HttpContext, next: HttpNext) {
+		// Tokens are not revoked by the existing logout endpoint.
+		await next();
 	}
 
-	/**
-	 * Middleware checking if user is authenticated
-	 */
-	checkAuthentication(
-		req: HttpRequestLike,
-		_res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		// Check if authentication is activated
+	async checkAuthentication(c: HttpContext, next: HttpNext) {
 		if (!this.authActive) return next();
-
-		// Authentication is activated
-		// A JSON web token is required
-		const token = this._extractAccessToken(req);
-
+		const token = this._extractAccessToken(c);
 		if (this.isMandatory || token) {
 			try {
-				const decodedToken = this.isAuthenticated(token);
-				req.authorizations = { decoded_access_token: decodedToken };
-				next();
+				const decodedToken = await this.isAuthenticated(token);
+				c.set("authorizations", { decoded_access_token: decodedToken });
 			} catch (error) {
-				return next(error);
+				throw new Error(String(error));
 			}
-		} else {
-			next();
 		}
+		await next();
 	}
 
-	/**
-	 * Middleware checking if user is authenticated and has admin profile
-	 */
-	checkHasAdminProfile(
-		req: HttpRequestLike,
-		_res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		// Check if authentication is activated
+	async checkHasAdminProfile(c: HttpContext, next: HttpNext) {
 		if (!this.authActive) return next();
-
-		// Authentication is activated
-		// A JSON web token is required
-		const token = this._extractAccessToken(req);
-
+		const token = this._extractAccessToken(c);
+		let decodedToken: DojoJwtPayload;
 		try {
-			const decodedToken = this.isAuthenticated(token);
-			if (decodedToken.prf === this.TOKEN_PROFILE_ADMIN) {
-				req.authorizations = { decoded_access_token: decodedToken };
-				next();
-			} else {
-				return next(errors.auth.INVALID_PRF);
-			}
+			decodedToken = await this.isAuthenticated(token);
 		} catch (error) {
-			return next(error);
+			throw new Error(String(error));
 		}
+		if (decodedToken.prf !== this.TOKEN_PROFILE_ADMIN)
+			throw new Error(errors.auth.INVALID_PRF);
+		c.set("authorizations", { decoded_access_token: decodedToken });
+		await next();
 	}
 
-	/**
-	 * Check if user is authenticated
-	 * (i.e. we have received a valid json web token)
-	 * @throws {string} an exception otherwise
-	 */
-	isAuthenticated(token?: string): DojoJwtPayload {
+	async isAuthenticated(token?: string): Promise<DojoJwtPayload> {
 		if (!token) {
-			Logger.error(null, `${errors.auth.MISSING_JWT}`);
+			Logger.error(null, errors.auth.MISSING_JWT);
 			throw errors.auth.MISSING_JWT;
 		}
-
 		try {
-			return this._verifyAccessToken(token);
+			return await this._verifyAccessToken(token);
 		} catch {
-			//Logger.error(e, `${errors.auth.INVALID_JWT}: ${token}`)
 			throw errors.auth.INVALID_JWT;
 		}
 	}
 
-	/**
-	 * Generate an access token
-	 */
 	_generateAccessToken(user?: UnknownRecord) {
-		// Builds claims
-		const claims = {
-			iss: this.ISS,
-			type: this.TOKEN_TYPE_ACCESS,
-			prf: user?.profile,
-		};
-
-		// Builds and signs the access token
-		return jwt.sign(claims, this._secret, {
-			expiresIn: this.accessTokenExpires,
-			algorithm: this.JWT_ALGO,
-		});
+		return this.generateToken(
+			this.TOKEN_TYPE_ACCESS,
+			this.accessTokenExpires,
+			user,
+		);
 	}
 
-	/**
-	 * Extract the access token from the http request
-	 */
-	_extractAccessToken(req: HttpRequestLike) {
-		const token = this._extractBearerAuthorizationHeader(req);
+	_extractAccessToken(c: HttpContext) {
+		const token = this._extractBearerAuthorizationHeader(c);
 		if (token) return token;
-
-		const bodyToken = stringValue(req.body?.at);
+		const bodyToken = stringValue(c.get("body")?.at);
 		if (bodyToken != null && validator.isJWT(bodyToken)) return bodyToken;
-
-		const queryToken = stringValue(req.query?.at);
+		const queryToken = c.req.query("at");
 		if (queryToken != null && validator.isJWT(queryToken)) return queryToken;
-
 		return null;
 	}
 
-	/**
-	 * Verify an access token
-	 */
-	_verifyAccessToken(token?: string): DojoJwtPayload {
-		const payload: unknown = jwt.verify(token, this._secret, {
-			algorithms: [this.JWT_ALGO],
+	async _verifyAccessToken(token?: string): Promise<DojoJwtPayload> {
+		const payload: unknown = await verify(token, this._secret, {
+			alg: this.JWT_ALGO,
+			iat: false, // jsonwebtoken did not reject tokens for a future issued-at claim.
 		});
-
-		if (!isDojoJwtPayload(payload)) throw errors.auth.INVALID_JWT;
-		if (payload.type !== this.TOKEN_TYPE_ACCESS) throw errors.auth.INVALID_JWT;
-
+		if (!isDojoJwtPayload(payload) || payload.type !== this.TOKEN_TYPE_ACCESS)
+			throw errors.auth.INVALID_JWT;
 		return payload;
 	}
 
-	/**
-	 * Generate an refresh token
-	 */
 	_generateRefreshToken(user?: UnknownRecord) {
-		// Builds claims
-		const claims = {
-			iss: this.ISS,
-			type: this.TOKEN_TYPE_REFRESH,
-			prf: user?.profile,
-		};
-		// Builds and signs the access token
-		return jwt.sign(claims, this._secret, {
-			expiresIn: this.refreshTokenExpires,
-			algorithm: this.JWT_ALGO,
-		});
+		return this.generateToken(
+			this.TOKEN_TYPE_REFRESH,
+			this.refreshTokenExpires,
+			user,
+		);
 	}
 
-	/**
-	 * Extract the refresh token from the http request
-	 */
-	_extractRefreshToken(req: HttpRequestLike) {
-		const token = this._extractBearerAuthorizationHeader(req);
+	_extractRefreshToken(c: HttpContext) {
+		const token = this._extractBearerAuthorizationHeader(c);
 		if (token) return token;
-
-		const bodyToken = stringValue(req.body?.rt);
+		const bodyToken = stringValue(c.get("body")?.rt);
 		if (bodyToken != null && validator.isJWT(bodyToken)) return bodyToken;
-
-		const queryToken = stringValue(req.query?.rt);
+		const queryToken = c.req.query("rt");
 		if (queryToken != null && validator.isJWT(queryToken)) return queryToken;
-
 		return null;
 	}
 
-	/**
-	 * Verify a refresh token
-	 */
-	_verifyRefreshToken(token?: string): DojoJwtPayload {
-		const payload: unknown = jwt.verify(token, this._secret, {
-			algorithms: [this.JWT_ALGO],
+	async _verifyRefreshToken(token?: string): Promise<DojoJwtPayload> {
+		const payload: unknown = await verify(token, this._secret, {
+			alg: this.JWT_ALGO,
+			iat: false,
 		});
-
-		if (!isDojoJwtPayload(payload)) throw errors.auth.INVALID_JWT;
-		if (payload.type !== this.TOKEN_TYPE_REFRESH) throw errors.auth.INVALID_JWT;
-
+		if (!isDojoJwtPayload(payload) || payload.type !== this.TOKEN_TYPE_REFRESH)
+			throw errors.auth.INVALID_JWT;
 		return payload;
 	}
 
-	/**
-	 * Extract a bearer JWT auth token
-	 * from the Authorization HTTP header
-	 * Returns null if it doesn't exist or is an onvalid JWT
-	 */
-	_extractBearerAuthorizationHeader(req: HttpRequestLike) {
-		const authHeader = req.get("Authorization");
-
-		if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+	_extractBearerAuthorizationHeader(c: HttpContext) {
+		const authHeader = c.req.header("Authorization");
+		if (authHeader?.startsWith("Bearer ")) {
 			const token = authHeader.slice(7);
 			if (validator.isJWT(token)) return token;
 		}
-
 		return null;
+	}
+
+	private generateToken(
+		type: string,
+		expires: string | number,
+		user?: UnknownRecord,
+	) {
+		const iat = Math.floor(Date.now() / 1000);
+		const duration = lifetimeSeconds(expires);
+		if (!Number.isFinite(duration))
+			throw new Error("Invalid JWT token lifetime");
+		return sign(
+			{
+				iss: this.ISS,
+				type,
+				prf: user?.profile,
+				iat,
+				exp: Math.floor(iat + duration),
+			},
+			this._secret,
+			this.JWT_ALGO,
+		);
 	}
 }
 

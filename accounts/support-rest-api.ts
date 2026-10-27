@@ -4,7 +4,6 @@
  */
 
 import crypto from "node:crypto";
-import { json } from "milliparsec";
 import validator from "validator";
 import keysFile from "../keys/index.js";
 import authMgr from "../lib/auth/authorizations-manager.js";
@@ -25,12 +24,6 @@ const keys = keysFile[
 const debugApi = process.argv.includes("api-debug");
 
 /**
- * @typedef {import('@tinyhttp/app').Request} Request
- * @typedef {import('@tinyhttp/app').Response} Response
- * @typedef {import('@tinyhttp/app').NextFunction} NextFunction
- */
-
-/**
  * Support API endpoints
  */
 class SupportRestApi {
@@ -41,8 +34,6 @@ class SupportRestApi {
 	 */
 	constructor(httpServer: HttpServer) {
 		this.httpServer = httpServer;
-
-		const jsonParser = json();
 
 		this.httpServer.app.get(
 			`/${keys.prefixes.support}/address/:addr/info`,
@@ -109,14 +100,14 @@ class SupportRestApi {
 
 		this.httpServer.app.post(
 			`/${keys.prefixes.support}/apikey`,
-			jsonParser,
+			HttpServer.parseJson,
 			authMgr.checkHasAdminProfile.bind(authMgr),
 			this.createApiKey.bind(this),
 		);
 
 		this.httpServer.app.patch(
 			`/${keys.prefixes.support}/apikey/:apikey`,
-			jsonParser,
+			HttpServer.parseJson,
 			authMgr.checkHasAdminProfile.bind(authMgr),
 			this.updateApiKey.bind(this),
 		);
@@ -131,12 +122,12 @@ class SupportRestApi {
 	/**
 	 * Retrieve information for a given address
 	 */
-	async getAddressInfo(req: HttpRequestLike, res: HttpResponseLike) {
+	async getAddressInfo(c: HttpContext) {
 		try {
 			// Parse the entities passed as url params
-			const entities = apiHelper.parseEntities(req.params.addr).addrs;
+			const entities = apiHelper.parseEntities(c.req.param("addr")).addrs;
 			if (entities.length === 0)
-				return HttpServer.sendError(res, errors.address.INVALID);
+				return HttpServer.sendError(c, errors.address.INVALID);
 
 			const address = entities[0];
 			const info = new AddressInfo(address);
@@ -144,13 +135,13 @@ class SupportRestApi {
 			await info.loadTransactions();
 			await info.loadUtxos();
 			const returnValue = this._formatAddressInfoResult(info);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch {
-			HttpServer.sendError(res, errors.generic.GEN);
+			HttpServer.sendError(c, errors.generic.GEN);
 		} finally {
 			debugApi &&
 				Logger.info(
-					`API : Completed GET /support/address/${req.params.addr}/info`,
+					`API : Completed GET /support/address/${c.req.param("addr")}/info`,
 				);
 		}
 	}
@@ -160,19 +151,19 @@ class SupportRestApi {
 	 * for calls to getAddressInfo
 	 */
 	_formatAddressInfoResult(info: AddressInfo) {
-		const res = info.toPojoExtended();
-		return JSON.stringify(res, null, 2);
+		const result = info.toPojoExtended();
+		return JSON.stringify(result, null, 2);
 	}
 
 	/**
 	 * Rescan the blockchain for a given address
 	 */
-	async getAddressRescan(req: HttpRequestLike, res: HttpResponseLike) {
+	async getAddressRescan(c: HttpContext) {
 		try {
 			// Parse the entities passed as url params
-			const entities = apiHelper.parseEntities(req.params.addr).addrs;
+			const entities = apiHelper.parseEntities(c.req.param("addr")).addrs;
 			if (entities.length === 0)
-				return HttpServer.sendError(res, errors.address.INVALID);
+				return HttpServer.sendError(c, errors.address.INVALID);
 
 			const address = entities[0];
 
@@ -181,13 +172,13 @@ class SupportRestApi {
 			};
 
 			await addrService.rescan(address);
-			HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2));
+			HttpServer.sendRawData(c, JSON.stringify(returnValue, null, 2));
 		} catch {
-			HttpServer.sendError(res, errors.generic.GEN);
+			HttpServer.sendError(c, errors.generic.GEN);
 		} finally {
 			debugApi &&
 				Logger.info(
-					`API : Completed GET /support/address/${req.params.addr}/rescan`,
+					`API : Completed GET /support/address/${c.req.param("addr")}/rescan`,
 				);
 		}
 	}
@@ -195,12 +186,12 @@ class SupportRestApi {
 	/**
 	 * Retrieve information for a given hd account
 	 */
-	async getXpubInfo(req: HttpRequestLike, res: HttpResponseLike) {
+	async getXpubInfo(c: HttpContext) {
 		try {
 			// Parse the entities passed as url params
-			const entities = apiHelper.parseEntities(req.params.xpub).xpubs;
+			const entities = apiHelper.parseEntities(c.req.param("xpub")).xpubs;
 			if (entities.length === 0)
-				return HttpServer.sendError(res, errors.xpub.INVALID);
+				return HttpServer.sendError(c, errors.xpub.INVALID);
 
 			const xpub = entities[0];
 			let info: HdAccountInfo;
@@ -209,21 +200,21 @@ class SupportRestApi {
 				info = new HdAccountInfo(xpub);
 				await info.loadInfo();
 				const returnValue = this._formatXpubInfoResult(info);
-				HttpServer.sendRawData(res, returnValue);
+				HttpServer.sendRawData(c, returnValue);
 			} catch (error) {
 				if (error === errors.db.ERROR_NO_HD_ACCOUNT) {
 					const returnValue = this._formatXpubInfoResult(info);
-					HttpServer.sendRawData(res, returnValue);
+					HttpServer.sendRawData(c, returnValue);
 				} else {
-					HttpServer.sendError(res, errors.generic.GEN);
+					HttpServer.sendError(c, errors.generic.GEN);
 				}
 			}
 		} catch {
-			HttpServer.sendError(res, errors.generic.GEN);
+			HttpServer.sendError(c, errors.generic.GEN);
 		} finally {
 			debugApi &&
 				Logger.info(
-					`API : Completed GET /support/xpub/${req.params.xpub}/info`,
+					`API : Completed GET /support/xpub/${c.req.param("xpub")}/info`,
 				);
 		}
 	}
@@ -233,19 +224,19 @@ class SupportRestApi {
 	 * for calls to getXpubInfo
 	 */
 	_formatXpubInfoResult(info: HdAccountInfo) {
-		const res = info.toPojoExtended();
-		return JSON.stringify(res, null, 2);
+		const result = info.toPojoExtended();
+		return JSON.stringify(result, null, 2);
 	}
 
 	/**
 	 * Rescan the blockchain for a given address
 	 */
-	async getXpubRescan(req: HttpRequestLike, res: HttpResponseLike) {
+	async getXpubRescan(c: HttpContext) {
 		try {
 			// Parse the entities passed as url params
-			const entities = apiHelper.parseEntities(req.params.xpub).xpubs;
+			const entities = apiHelper.parseEntities(c.req.param("xpub")).xpubs;
 			if (entities.length === 0)
-				return HttpServer.sendError(res, errors.xpub.INVALID);
+				return HttpServer.sendError(c, errors.xpub.INVALID);
 
 			const xpub = entities[0];
 
@@ -254,37 +245,39 @@ class SupportRestApi {
 			};
 
 			const gapLimit =
-				req.query.gap == null ? 0 : Number.parseInt(req.query.gap, 10);
-			const startIndex =
-				req.query.startidx == null
+				c.req.query("gap") == null
 					? 0
-					: Number.parseInt(req.query.startidx, 10);
+					: Number.parseInt(c.req.query("gap"), 10);
+			const startIndex =
+				c.req.query("startidx") == null
+					? 0
+					: Number.parseInt(c.req.query("startidx"), 10);
 
 			try {
 				await hdaService.rescan(xpub, gapLimit, startIndex);
-				HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2));
+				HttpServer.sendRawData(c, JSON.stringify(returnValue, null, 2));
 			} catch (error) {
 				if (error === errors.db.ERROR_NO_HD_ACCOUNT) {
 					returnValue.status = "Error: Not tracking xpub";
-					HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2));
+					HttpServer.sendRawData(c, JSON.stringify(returnValue, null, 2));
 				} else if (error === errors.xpub.OVERLAP) {
 					returnValue.status = "Error: Rescan in progress";
-					HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2));
+					HttpServer.sendRawData(c, JSON.stringify(returnValue, null, 2));
 				} else {
 					returnValue.status = "Rescan Error";
 					Logger.error(
 						error,
 						"API : SupportRestApi.getXpubRescan() : Support rescan error",
 					);
-					HttpServer.sendError(res, JSON.stringify(returnValue, null, 2));
+					HttpServer.sendError(c, JSON.stringify(returnValue, null, 2));
 				}
 			}
 		} catch {
-			HttpServer.sendError(res, errors.generic.GEN);
+			HttpServer.sendError(c, errors.generic.GEN);
 		} finally {
 			debugApi &&
 				Logger.info(
-					`API : Completed GET /support/xpub/${req.params.xpub}/rescan`,
+					`API : Completed GET /support/xpub/${c.req.param("xpub")}/rescan`,
 				);
 		}
 	}
@@ -292,27 +285,27 @@ class SupportRestApi {
 	/**
 	 * Delete all data related to a hd account
 	 */
-	async getXpubDelete(req: HttpRequestLike, res: HttpResponseLike) {
+	async getXpubDelete(c: HttpContext) {
 		try {
 			// Parse the entities passed as url params
-			const entities = apiHelper.parseEntities(req.params.xpub).xpubs;
+			const entities = apiHelper.parseEntities(c.req.param("xpub")).xpubs;
 			if (entities.length === 0)
-				return HttpServer.sendError(res, errors.xpub.INVALID);
+				return HttpServer.sendError(c, errors.xpub.INVALID);
 
 			const xpub = entities[0];
 
 			try {
 				await hdaService.deleteHdAccount(xpub);
-				HttpServer.sendOk(res);
+				HttpServer.sendOk(c);
 			} catch (error) {
-				HttpServer.sendError(res, error);
+				HttpServer.sendError(c, error);
 			}
 		} catch {
-			HttpServer.sendError(res, errors.generic.GEN);
+			HttpServer.sendError(c, errors.generic.GEN);
 		} finally {
 			debugApi &&
 				Logger.info(
-					`API : Completed GET /support/xpub/${req.params.xpub}/delete`,
+					`API : Completed GET /support/xpub/${c.req.param("xpub")}/delete`,
 				);
 		}
 	}
@@ -320,7 +313,7 @@ class SupportRestApi {
 	/**
 	 * Get pairing info
 	 */
-	async getPairing(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getPairing(c: HttpContext) {
 		try {
 			const returnValue = {
 				pairing: {
@@ -333,7 +326,7 @@ class SupportRestApi {
 					url: keys.explorer.uri,
 				},
 			};
-			HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2));
+			HttpServer.sendRawData(c, JSON.stringify(returnValue, null, 2));
 		} catch (error) {
 			const returnValue = {
 				status: "error",
@@ -342,7 +335,7 @@ class SupportRestApi {
 				error,
 				"API : SupportRestApi.getPairing() : Support pairing error",
 			);
-			HttpServer.sendError(res, JSON.stringify(returnValue, null, 2));
+			HttpServer.sendError(c, JSON.stringify(returnValue, null, 2));
 		} finally {
 			debugApi && Logger.info("API : Completed GET /pairing");
 		}
@@ -352,7 +345,7 @@ class SupportRestApi {
 	 * Get pairing info for the local block explorer
 	 * @deprecated
 	 */
-	async getPairingExplorer(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getPairingExplorer(c: HttpContext) {
 		try {
 			const returnValue = {
 				pairing: {
@@ -360,7 +353,7 @@ class SupportRestApi {
 					url: keys.explorer.uri,
 				},
 			};
-			HttpServer.sendRawData(res, JSON.stringify(returnValue, null, 2));
+			HttpServer.sendRawData(c, JSON.stringify(returnValue, null, 2));
 		} catch (error) {
 			const returnValue = {
 				status: "error",
@@ -369,7 +362,7 @@ class SupportRestApi {
 				error,
 				"API : SupportRestApi.getPairingExplorer() : Support pairing error",
 			);
-			HttpServer.sendError(res, JSON.stringify(returnValue, null, 2));
+			HttpServer.sendError(c, JSON.stringify(returnValue, null, 2));
 		} finally {
 			debugApi && Logger.info("API : Completed GET /pairing/explorer");
 		}
@@ -378,7 +371,7 @@ class SupportRestApi {
 	/**
 	 * Get pairing info for miscellaneous services provided by the dojo
 	 */
-	getServices(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getServices(c: HttpContext) {
 		try {
 			const returnValue: {
 				services: Array<{
@@ -415,13 +408,13 @@ class SupportRestApi {
 					keyAuth47: keys.soroban.keyAuth47,
 				});
 			}
-			HttpServer.sendOkDataOnly(res, returnValue);
+			HttpServer.sendOkDataOnly(c, returnValue);
 		} catch (error) {
 			const returnValue = {
 				status: "error",
 			};
 			Logger.error(error, "API : SupportRestApi.getServices() : Error");
-			HttpServer.sendError(res, JSON.stringify(returnValue, null, 2));
+			HttpServer.sendError(c, JSON.stringify(returnValue, null, 2));
 		} finally {
 			debugApi && Logger.info("API : Completed GET /services");
 		}
@@ -430,19 +423,19 @@ class SupportRestApi {
 	/**
 	 * Get API keys
 	 */
-	async getApiKeys(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getApiKeys(c: HttpContext) {
 		const tokens = await db.getApiKeys();
 
-		HttpServer.sendOkDataOnly(res, tokens);
+		HttpServer.sendOkDataOnly(c, tokens);
 	}
 
 	/**
 	 * Create API key
 	 */
-	async createApiKey(req: HttpRequestLike, res: HttpResponseLike) {
+	async createApiKey(c: HttpContext) {
 		try {
-			const label = req.body.label;
-			const expiresAt = req.body.expiresAt;
+			const label = c.get("body").label;
+			const expiresAt = c.get("body").expiresAt as string | number;
 
 			if (
 				typeof label !== "string" ||
@@ -450,28 +443,28 @@ class SupportRestApi {
 				label.trim().length > 30
 			)
 				throw "Invalid label";
-			if (!expiresAt || Number.isNaN(Date.parse(expiresAt)))
+			if (!expiresAt || Number.isNaN(Date.parse(String(expiresAt))))
 				throw "Invalid expiration date";
 
 			const apikey = crypto.randomBytes(16).toString("hex");
 
 			await db.createApiKey(label.trim(), apikey, new Date(expiresAt));
 
-			HttpServer.sendOk(res);
+			HttpServer.sendOk(c);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		}
 	}
 
 	/**
 	 * Update API key
 	 */
-	async updateApiKey(req: HttpRequestLike, res: HttpResponseLike) {
+	async updateApiKey(c: HttpContext) {
 		try {
-			const apikey = req.params.apikey;
-			const label = req.body.label;
-			const expiresAt = req.body.expiresAt;
-			const active = req.body.active;
+			const apikey = c.req.param("apikey");
+			const label = c.get("body").label;
+			const expiresAt = c.get("body").expiresAt as string | number;
+			const active = c.get("body").active;
 
 			if (!apikey) throw "Invalid API key";
 			if (
@@ -480,7 +473,7 @@ class SupportRestApi {
 				label.trim().length > 30
 			)
 				throw "Invalid label";
-			if (!expiresAt || Number.isNaN(Date.parse(expiresAt)))
+			if (!expiresAt || Number.isNaN(Date.parse(String(expiresAt))))
 				throw "Invalid expiration date";
 			if (active === undefined) throw "Invalid active status";
 
@@ -491,50 +484,46 @@ class SupportRestApi {
 			await db.updateApiKey(
 				apikeyID,
 				label.trim(),
-				active,
+				active as boolean,
 				new Date(expiresAt),
 			);
 
-			HttpServer.sendOk(res);
+			HttpServer.sendOk(c);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		}
 	}
 
 	/**
 	 * Delete API key
 	 */
-	async deleteApiKey(req: HttpRequestLike, res: HttpResponseLike) {
+	async deleteApiKey(c: HttpContext) {
 		try {
-			const apikey = req.params.apikey;
+			const apikey = c.req.param("apikey");
 
 			if (!apikey) throw "Invalid API key";
 
 			await db.deleteApiKey(apikey);
 
-			HttpServer.sendOk(res);
+			HttpServer.sendOk(c);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		}
 	}
 
 	/**
 	 * Validate arguments related to GET xpub info requests
 	 */
-	validateArgsGetXpubInfo(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidXpub = validator.isAlphanumeric(req.params.xpub);
+	async validateArgsGetXpubInfo(c: HttpContext, next: HttpNext) {
+		const isValidXpub = validator.isAlphanumeric(c.req.param("xpub"));
 
 		if (isValidXpub) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
 				null,
-				`API : SupportRestApi.validateArgsGetXpubInfo() : Invalid xpub ${req.params.xpub}`,
+				`API : SupportRestApi.validateArgsGetXpubInfo() : Invalid xpub ${c.req.param("xpub")}`,
 			);
 		}
 	}
@@ -542,18 +531,15 @@ class SupportRestApi {
 	/**
 	 * Validate arguments related to GET xpub rescan requests
 	 */
-	validateArgsGetXpubRescan(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidXpub = validator.isAlphanumeric(req.params.xpub);
-		const isValidGap = !req.query.gap || validator.isInt(req.query.gap);
+	async validateArgsGetXpubRescan(c: HttpContext, next: HttpNext) {
+		const isValidXpub = validator.isAlphanumeric(c.req.param("xpub"));
+		const isValidGap =
+			!c.req.query("gap") || validator.isInt(c.req.query("gap"));
 
 		if (isValidXpub && isValidGap) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
 				null,
 				"API : SupportRestApi.validateArgsGetXpubRescan() : Invalid arguments",
@@ -564,20 +550,16 @@ class SupportRestApi {
 	/**
 	 * Validate arguments related to GET xpub delete requests
 	 */
-	validateArgsGetXpubDelete(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidXpub = validator.isAlphanumeric(req.params.xpub);
+	async validateArgsGetXpubDelete(c: HttpContext, next: HttpNext) {
+		const isValidXpub = validator.isAlphanumeric(c.req.param("xpub"));
 
 		if (isValidXpub) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
 				null,
-				`API : SupportRestApi.validateArgsGetXpubDelete() : Invalid xpub ${req.params.xpub}`,
+				`API : SupportRestApi.validateArgsGetXpubDelete() : Invalid xpub ${c.req.param("xpub")}`,
 			);
 		}
 	}
@@ -585,20 +567,16 @@ class SupportRestApi {
 	/**
 	 * Validate arguments related to addresses requests
 	 */
-	validateAddress(
-		req: HttpRequestLike,
-		res: HttpResponseLike,
-		next: NextFunctionLike,
-	) {
-		const isValidAddress = validator.isAlphanumeric(req.params.addr);
+	async validateAddress(c: HttpContext, next: HttpNext) {
+		const isValidAddress = validator.isAlphanumeric(c.req.param("addr"));
 
 		if (isValidAddress) {
-			next();
+			await next();
 		} else {
-			HttpServer.sendError(res, errors.body.INVDATA);
+			HttpServer.sendError(c, errors.body.INVDATA);
 			Logger.error(
 				null,
-				`API : SupportRestApi.validateAddress() : Invalid address ${req.params.addr}`,
+				`API : SupportRestApi.validateAddress() : Invalid address ${c.req.param("addr")}`,
 			);
 		}
 	}

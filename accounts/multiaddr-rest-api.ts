@@ -3,7 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import { urlencoded } from "milliparsec";
 import authMgr from "../lib/auth/authorizations-manager.js";
 import errors from "../lib/errors.js";
 import HttpServer from "../lib/http-server/http-server.js";
@@ -27,44 +26,40 @@ class MultiaddrRestApi {
 		this.httpServer = httpServer;
 
 		// Establish routes
-		const urlencodedParser = urlencoded();
-
 		this.httpServer.app.get(
 			"/multiaddr",
 			authMgr.checkAuthentication.bind(authMgr),
 			apiHelper.validateEntitiesParams.bind(apiHelper),
 			this.getMultiaddr.bind(this),
-			HttpServer.sendAuthError,
 		);
 
 		this.httpServer.app.post(
 			"/multiaddr",
-			urlencodedParser,
+			HttpServer.parseForm,
 			authMgr.checkAuthentication.bind(authMgr),
 			apiHelper.validateEntitiesParams.bind(apiHelper),
 			this.postMultiaddr.bind(this),
-			HttpServer.sendAuthError,
 		);
 	}
 
 	/**
 	 * Handle multiaddr GET request
 	 */
-	async getMultiaddr(req: HttpRequestLike, res: HttpResponseLike) {
+	async getMultiaddr(c: HttpContext) {
 		try {
 			// Check request params
-			if (!apiHelper.checkEntitiesParams(req.query))
-				return HttpServer.sendError(res, errors.multiaddr.NOACT);
-			//return HttpServer.sendError(res, '')
+			if (!apiHelper.checkEntitiesParams(c.req.query()))
+				return HttpServer.sendError(c, errors.multiaddr.NOACT);
+			//return HttpServer.sendError(c, '')
 			// Parse params
-			const entities = apiHelper.parseEntitiesParams(req.query);
+			const entities = apiHelper.parseEntitiesParams(c.req.query());
 
 			if (
 				entities.active.addrs.length === 1 ||
 				entities.active.addrs.length === 2 ||
 				entities.active.xpubs.length === 1
 			)
-				return HttpServer.sendError(res, "");
+				return HttpServer.sendError(c, "");
 
 			const result = await walletService.getWalletInfo(
 				entities.active,
@@ -75,16 +70,16 @@ class MultiaddrRestApi {
 			);
 
 			const returnValue = JSON.stringify(result, null, 2);
-			HttpServer.sendRawData(res, returnValue);
+			HttpServer.sendRawData(c, returnValue);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			if (debugApi) {
-				const stringParameters = `${req.query.active || ""} \
-                     ${req.query.new || ""} \
-                     ${req.query.pubkey || ""} \
-                     ${req.query.bip49 || ""} \
-                     ${req.query.bip84 || ""}`;
+				const stringParameters = `${c.req.query("active") || ""} \
+                     ${c.req.query("new") || ""} \
+                     ${c.req.query("pubkey") || ""} \
+                     ${c.req.query("bip49") || ""} \
+                     ${c.req.query("bip84") || ""}`;
 
 				Logger.info(`API : Completed GET /multiaddr ${stringParameters}`);
 			}
@@ -94,14 +89,14 @@ class MultiaddrRestApi {
 	/**
 	 * Handle multiaddr POST request
 	 */
-	async postMultiaddr(req: HttpRequestLike, res: HttpResponseLike) {
+	async postMultiaddr(c: HttpContext) {
 		try {
 			// Check request params
-			if (!apiHelper.checkEntitiesParams(req.body))
-				return HttpServer.sendError(res, errors.multiaddr.NOACT);
+			if (!apiHelper.checkEntitiesParams(c.get("body")))
+				return HttpServer.sendError(c, errors.multiaddr.NOACT);
 
 			// Parse params
-			const entities = apiHelper.parseEntitiesParams(req.body);
+			const entities = apiHelper.parseEntitiesParams(c.get("body"));
 
 			const result = await walletService.getWalletInfo(
 				entities.active,
@@ -111,16 +106,16 @@ class MultiaddrRestApi {
 				entities.pubkey,
 			);
 
-			HttpServer.sendOkDataOnly(res, result);
+			HttpServer.sendOkDataOnly(c, result);
 		} catch (error) {
-			HttpServer.sendError(res, error);
+			HttpServer.sendError(c, error);
 		} finally {
 			if (debugApi) {
-				const stringParameters = `${req.body.active || ""} \
-                     ${req.body.new || ""} \
-                     ${req.body.pubkey || ""} \
-                     ${req.body.bip49 || ""} \
-                     ${req.body.bip84 || ""}`;
+				const stringParameters = `${c.get("body").active || ""} \
+                     ${c.get("body").new || ""} \
+                     ${c.get("body").pubkey || ""} \
+                     ${c.get("body").bip49 || ""} \
+                     ${c.get("body").bip84 || ""}`;
 
 				Logger.info(`API : Completed POST /multiaddr ${stringParameters}`);
 			}

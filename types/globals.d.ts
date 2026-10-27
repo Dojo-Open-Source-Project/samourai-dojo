@@ -125,20 +125,15 @@ interface DojoConfig {
 	[key: string]: unknown;
 }
 
-type HttpRequestLike = import("@tinyhttp/app").Request & {
-	body: Record<string, unknown>;
-	query: Record<string, string>;
-	params: Record<string, string>;
-	user?: UnknownRecord;
-	authorizations?: UnknownRecord;
-	on(event: string, listener: (chunk: Buffer | string) => void): void;
+type HttpEnv = {
+	Variables: {
+		body: Record<string, unknown>;
+		user?: UnknownRecord;
+		authorizations?: UnknownRecord;
+	};
 };
-
-type HttpResponseLike = import("@tinyhttp/app").Response & {
-	on(event: string, listener: () => void): void;
-};
-
-type NextFunctionLike = (error?: unknown) => unknown;
+type HttpContext = import("hono").Context<HttpEnv>;
+type HttpNext = import("hono").Next;
 
 declare module "zeromq/v5-compat.js" {
 	type SocketKind = "pub" | "sub" | "push" | "pull" | "req" | "rep" | string;

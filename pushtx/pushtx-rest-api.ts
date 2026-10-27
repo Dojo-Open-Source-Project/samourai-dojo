@@ -3,8 +3,6 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import qs from "node:querystring";
-import { json } from "milliparsec";
 import validator from "validator";
 import keysFile from "../keys/index.js";
 import authMgr from "../lib/auth/authorizations-manager.js";
@@ -40,12 +38,6 @@ const hasMessage = (value: unknown): value is TraceErrorLike =>
 const isErrorMessagePayload = (value: unknown): value is ErrorMessagePayload =>
 	isRecord(value) && "code" in value && "message" in value;
 
-const queryStringValue = (value: unknown): string | null => {
-	if (typeof value === "string") return value;
-	if (Array.isArray(value) && typeof value[0] === "string") return value[0];
-	return null;
-};
-
 const isScheduledTxScriptEntry = (
 	value: unknown,
 ): value is ScheduledTxScriptEntry => {
@@ -78,13 +70,10 @@ class PushTxRestApi {
 		this.httpServer = httpServer;
 		this.scheduler = new TransactionsScheduler();
 
-		// Establish routes
-		const jsonParser = json();
-
 		// Establish routes. Proxy server strips /pushtx
 		this.httpServer.app.post(
 			"/schedule",
-			jsonParser,
+			HttpServer.parseJson,
 			authMgr.checkAuthentication.bind(authMgr),
 			this.postScheduleTxs.bind(this),
 		);
@@ -102,7 +91,7 @@ class PushTxRestApi {
 		);
 
 		this.httpServer.app.get(
-			`/${keys.prefixes.statusPushtx}/`,
+			`/${keys.prefixes.statusPushtx}`,
 			authMgr.checkHasAdminProfile.bind(authMgr),
 			this.getStatus.bind(this),
 		);
@@ -124,121 +113,113 @@ class PushTxRestApi {
 	/**
 	 * Handle Help GET request
 	 */
-	getHelp(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getHelp(c: HttpContext) {
 		const returnValue = {
 			endpoints: ["/pushtx", "/pushtx/schedule"],
 		};
-		HttpServer.sendError(res, returnValue, 404);
+		HttpServer.sendError(c, returnValue, 404);
 	}
 
 	/**
 	 * Handle Status GET request
 	 */
-	async getStatus(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getStatus(c: HttpContext) {
 		try {
 			const currentStatus = await status.getCurrent();
-			HttpServer.sendOkData(res, currentStatus);
+			HttpServer.sendOkData(c, currentStatus);
 		} catch (error) {
-			this._traceError(res, error);
+			this._traceError(c, error);
 		}
 	}
 
 	/**
 	 * Handle status/schedule GET request
 	 */
-	async getStatusSchedule(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getStatusSchedule(c: HttpContext) {
 		try {
 			const returnValue = await status.getScheduledTransactions();
-			HttpServer.sendOkData(res, returnValue);
+			HttpServer.sendOkData(c, returnValue);
 		} catch (error) {
-			this._traceError(res, error);
+			this._traceError(c, error);
 		}
 	}
 
 	/**
 	 * Handle pushTx GET request
 	 */
-	getPushTx(_req: HttpRequestLike, res: HttpResponseLike) {
+	async getPushTx(c: HttpContext) {
 		const returnValue = errors.get.DISALLOWED;
-		HttpServer.sendError(res, returnValue, 405);
+		HttpServer.sendError(c, returnValue, 405);
 	}
 
 	/**
 	 * Handle POST req.
 	 * Push transactions to the Bitcoin network
 	 */
-	postPushTx(req: HttpRequestLike, res: HttpResponseLike) {
-		// Accumulate POST data
-		const chunks: Array<Buffer | string> = [];
+	async postPushTx(c: HttpContext) {
+		// Parse the raw form body even when clients omit Content-Type.
+		const query = new URLSearchParams(await c.req.text());
+		const tx = query.get("tx");
+		const strictModeVouts = query.get("strict_mode_vouts");
 
-		req.on("data", (chunk) => {
-			chunks.push(chunk);
-		});
+		if (tx == null) return this._traceError(c, errors.body.NOTX);
 
-		req.on("end", async () => {
-			const body = chunks.join("");
-			const query = qs.parse(body);
-			const tx = queryStringValue(query.tx);
-			const strictModeVouts = queryStringValue(query.strict_mode_vouts);
+		if (!validator.isHexadecimal(tx))
+			return this._traceError(c, errors.body.INVDATA);
 
-			if (tx == null) return this._traceError(res, errors.body.NOTX);
-
-			if (!validator.isHexadecimal(tx))
-				return this._traceError(res, errors.body.INVDATA);
-
-			if (strictModeVouts != null) {
-				try {
-					const vouts = strictModeVouts
-						.split("|")
-						.map((v) => Number.parseInt(v, 10));
-					if (vouts.some((vout) => Number.isNaN(vout))) throw errors.txout.VOUT;
-					if (vouts.length > 0) {
-						const faults = await pushTxProcessor.enforceStrictModeVouts(
-							tx,
-							vouts,
-						);
-						if (faults.length > 0) {
-							return this._traceError(
-								res,
-								{
-									message: JSON.stringify({
-										message: faults,
-										code: errors.pushtx.VIOLATION_STRICT_MODE_VOUTS,
-									}),
-								},
-								200,
-							);
-						}
-					}
-				} catch (error) {
-					return this._traceError(res, error);
-				}
-			}
-
+		if (strictModeVouts != null) {
 			try {
-				const txid = await pushTxProcessor.pushTx(tx);
-				HttpServer.sendOkData(res, txid);
+				const vouts = strictModeVouts
+					.split("|")
+					.map((v) => Number.parseInt(v, 10));
+				if (vouts.some((vout) => Number.isNaN(vout))) throw errors.txout.VOUT;
+				if (vouts.length > 0) {
+					const faults = await pushTxProcessor.enforceStrictModeVouts(
+						tx,
+						vouts,
+					);
+					if (faults.length > 0) {
+						return this._traceError(
+							c,
+							{
+								message: JSON.stringify({
+									message: faults,
+									code: errors.pushtx.VIOLATION_STRICT_MODE_VOUTS,
+								}),
+							},
+							200,
+						);
+					}
+				}
 			} catch (error) {
-				this._traceError(res, error);
+				return this._traceError(c, error);
 			}
-		});
+		}
+
+		try {
+			const txid = await pushTxProcessor.pushTx(tx);
+			HttpServer.sendOkData(c, txid);
+		} catch (error) {
+			this._traceError(c, error);
+		}
 	}
 
 	/**
 	 * Schedule a list of transactions
 	 * for delayed pushes
 	 */
-	async postScheduleTxs(req: HttpRequestLike, res: HttpResponseLike) {
+	async postScheduleTxs(c: HttpContext) {
+		const body = c.get("body");
 		// Check req.arguments
-		if (!req.body) return this._traceError(res, errors.body.NODATA);
+		if (!body) return this._traceError(c, errors.body.NODATA);
 
-		if (!req.body.script) return this._traceError(res, errors.body.NOSCRIPT);
-		if (!isScheduledTxScript(req.body.script))
-			return this._traceError(res, errors.body.INVDATA);
+		if (!body.script) return this._traceError(c, errors.body.NOSCRIPT);
+		if (!isScheduledTxScript(body.script))
+			return this._traceError(c, errors.body.INVDATA);
 
 		try {
-			await this.scheduler.schedule(req.body.script);
-			HttpServer.sendOk(res);
+			await this.scheduler.schedule(body.script);
+			HttpServer.sendOk(c);
 		} catch (error) {
 			// Returns code 200 if VIOLATION_STRICT_MODE_VOUTS
 			if (
@@ -246,9 +227,9 @@ class PushTxRestApi {
 				isErrorMessagePayload(error.message) &&
 				error.message.code === errors.pushtx.VIOLATION_STRICT_MODE_VOUTS
 			) {
-				this._traceError(res, { message: JSON.stringify(error.message) }, 200);
+				this._traceError(c, { message: JSON.stringify(error.message) }, 200);
 			} else {
-				this._traceError(res, error);
+				this._traceError(c, error);
 			}
 		}
 	}
@@ -256,7 +237,7 @@ class PushTxRestApi {
 	/**
 	 * Trace an error during push
 	 */
-	_traceError(res: HttpResponseLike, error?: unknown, errorCode?: number) {
+	_traceError(c: HttpContext, error?: unknown, errorCode?: number) {
 		let returnValue: unknown = null;
 
 		errorCode = errorCode == null ? 400 : errorCode;
@@ -286,7 +267,7 @@ class PushTxRestApi {
 			Logger.error(error, "PushTx : ");
 			returnValue = error;
 		} finally {
-			HttpServer.sendError(res, returnValue, errorCode);
+			HttpServer.sendError(c, returnValue, errorCode);
 		}
 	}
 }
