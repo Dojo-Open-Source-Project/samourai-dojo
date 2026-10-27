@@ -3,7 +3,8 @@
  * Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.
  */
 
-import mysql, { type Pool, type PoolOptions, type SqlValue } from "mysql2";
+import mariadb, { type Pool, type PoolConfig } from "mariadb";
+import { format, type SqlValue } from "sql-escaper";
 import keysFile from "../../keys/index.js";
 import hdaHelper from "../bitcoin/hd-accounts-helper.js";
 import network from "../bitcoin/network.js";
@@ -16,12 +17,6 @@ const keys = keysFile[
 ] as unknown as DojoConfig;
 const debug = process.argv.includes("db-debug");
 const queryDebug = process.argv.includes("dbquery-debug");
-
-/**
- * @typedef {import('mysql2').Pool} MySqlPool
- * @typedef {import('mysql2').PoolOptions} MySqlPoolOptions
- * @typedef {import('mysql2').FieldPacket} MySqlFieldPacket
- */
 
 /**
  * Subqueries used by getAddrAndXpubsNbTransactions()
@@ -281,14 +276,21 @@ const SUBQUERY_GET_TX_INS =
   WHERE `t_in`.`txnTxid` = ? \
   ORDER BY `inputs`.`inIndex` ASC";
 
-const defaultConfig: PoolOptions = {
-	decimalNumbers: true,
+const defaultConfig: PoolConfig = {
+	// Keep numeric results and metadata consistent with the existing wrapper API.
+	decimalAsNumber: true,
+	bigIntAsNumber: true,
+	insertIdAsNumber: true,
+	metaAsArray: true,
+	collation: "UTF8MB4_UNICODE_CI",
+	connectTimeout: 10000,
+	minimumIdle: 0,
 	namedPlaceholders: true,
 };
 
 type DbScalar = string | number | boolean | Date | Buffer | null | undefined;
 type DbQueryValues = unknown;
-type MySqlFormatValues =
+type SqlFormatValues =
 	| SqlValue
 	| SqlValue[]
 	| SqlValue[][]
@@ -365,7 +367,7 @@ interface DbWriteResult {
 
 type DbQueryResult = DbRows & DbWriteResult;
 
-type DbConfig = PoolOptions & {
+type DbConfig = PoolConfig & {
 	host?: string;
 	socketPath?: string;
 	connectionLimit?: number;
@@ -474,7 +476,7 @@ export interface ApiTransaction {
 
 /**
  * A singleton providing a MySQL db wrapper
- * Node-mysql doc: https://github.com/felixge/node-mysql
+ * Connector doc: https://mariadb.com/docs/connectors/mariadb-connector-nodejs/connector-nodejs-promise-api
  */
 class MySqlDbWrapper {
 	declare dbConfig: DbConfig | null;
@@ -485,14 +487,8 @@ class MySqlDbWrapper {
 	 * Constructor
 	 */
 	constructor() {
-		/**
-		 * @type {MySqlPoolOptions | null}
-		 */
 		this.dbConfig = null;
 		// Db connections pool
-		/**
-		 * @type {MySqlPool | null}
-		 */
 		this.pool = null;
 		// Lock preventing multiple reconnects
 		this.lockReconnect = false;
@@ -521,21 +517,16 @@ class MySqlDbWrapper {
 	/**
 	 * Disconnect wrapper from the database
 	 */
-	disconnect() {
-		return new Promise<void>((resolve) => {
-			if (this.pool) {
-				this.pool.end((err?: unknown) => {
-					if (err) {
-						Logger.error(err, "DB Wrapper : Error when disconnecting from DB");
-					}
-
-					this.pool = null;
-					resolve();
-				});
+	async disconnect() {
+		if (this.pool) {
+			try {
+				await this.pool.end();
+			} catch (error) {
+				Logger.error(error, "DB Wrapper : Error when disconnecting from DB");
+			} finally {
+				this.pool = null;
 			}
-
-			resolve();
-		});
+		}
 	}
 
 	/**
@@ -544,7 +535,7 @@ class MySqlDbWrapper {
 	handleConnect() {
 		try {
 			if (this.dbConfig == null) throw new Error("Database config is missing");
-			this.pool = mysql.createPool(this.dbConfig);
+			this.pool = mariadb.createPool(this.dbConfig);
 			Logger.info(
 				`Db Wrapper : Created a database pool of ${this.dbConfig.connectionLimit} connections`,
 			);
@@ -582,18 +573,19 @@ class MySqlDbWrapper {
 			if (this.timerReconnect) clearTimeout(this.timerReconnect);
 
 			// Destroy previous pool
-			this.pool.end((error?: unknown) => {
-				if (error) {
+			void this.pool
+				.end()
+				.then(() => this.handleConnect())
+				.catch((error: unknown) => {
 					Logger.error(
 						error,
 						"Db Wrapper : handleReconnect() : Problem met while terminating the pool",
 					);
 					this.timerReconnect = setTimeout(() => this.handleReconnect(), 2000);
-				} else {
-					this.handleConnect();
-				}
-				this.lockReconnect = false;
-			});
+				})
+				.finally(() => {
+					this.lockReconnect = false;
+				});
 		}
 	}
 
@@ -607,19 +599,22 @@ class MySqlDbWrapper {
 		usePrepare = false,
 		retries = 5,
 	): Promise<T> {
-		const sqlValues = values as MySqlFormatValues;
-		queryDebug && Logger.info(`Db Wrapper : ${mysql.format(query, sqlValues)}`);
+		const sqlValues = values as SqlFormatValues;
+		queryDebug && Logger.info(`Db Wrapper : ${format(query, sqlValues)}`);
 
 		if (this.pool == null) throw new Error("Database pool is not initialized");
-		const promisePool = this.pool.promise();
-
 		try {
 			const [result] = usePrepare
-				? await promisePool.execute(
-						query,
-						sqlValues as Parameters<typeof promisePool.execute>[1],
+				? await this.pool.execute(
+						{
+							sql: query,
+							// Unlike mysql2, MariaDB applies named conversion to arrays too.
+							namedPlaceholders:
+								this.dbConfig?.namedPlaceholders && !Array.isArray(sqlValues),
+						},
+						sqlValues,
 					)
-				: await promisePool.query(mysql.format(query, sqlValues));
+				: await this.pool.query(format(query, sqlValues));
 
 			queryDebug && Logger.info(`Db Wrapper : ${JSON.stringify(result)}`);
 
@@ -635,13 +630,13 @@ class MySqlDbWrapper {
 			) {
 				this.queryError(
 					new Error("Lock detected. Retry request in a few ms"),
-					mysql.format(query, sqlValues),
+					format(query, sqlValues),
 				);
 				await util.delay(Math.floor(Math.random() * 100 + 1));
 				return await this._query(query, values, usePrepare, retries - 1);
 			}
 
-			this.queryError(error, mysql.format(query, sqlValues));
+			this.queryError(error, format(query, sqlValues));
 			throw error;
 		}
 	}
@@ -1195,13 +1190,13 @@ class MySqlDbWrapper {
 
 		if (addresses && addresses.length > 0) {
 			const parameters = [addresses, addresses];
-			subQuery = mysql.format(SUBQUERY_TXIDS_ADDR, parameters);
+			subQuery = format(SUBQUERY_TXIDS_ADDR, parameters);
 			subQueries.push(subQuery);
 		}
 
 		if (xpubs && xpubs.length > 0) {
 			const parameters = [xpubs, xpubs];
-			subQuery = mysql.format(SUBQUERY_TXIDS_XPUBS, parameters);
+			subQuery = format(SUBQUERY_TXIDS_XPUBS, parameters);
 			subQueries.push(subQuery);
 		}
 
@@ -1251,13 +1246,13 @@ class MySqlDbWrapper {
 
 		if (addresses && addresses.length > 0) {
 			const parameters = [addresses, addresses];
-			subQuery = mysql.format(SUBQUERY_TXS_ADDR, parameters);
+			subQuery = format(SUBQUERY_TXS_ADDR, parameters);
 			subQueries.push(subQuery);
 		}
 
 		if (xpubs && xpubs.length > 0) {
 			const parameters = [xpubs, xpubs];
-			subQuery = mysql.format(SUBQUERY_TXS_XPUB, parameters);
+			subQuery = format(SUBQUERY_TXS_XPUB, parameters);
 			subQueries.push(subQuery);
 		}
 
@@ -1291,13 +1286,13 @@ class MySqlDbWrapper {
 
 		if (addresses && addresses.length > 0) {
 			const parameters2 = [txsIds, addresses, txsIds, addresses];
-			subQuery2 = mysql.format(SUBQUERY_UTXOS_ADDR, parameters2);
+			subQuery2 = format(SUBQUERY_UTXOS_ADDR, parameters2);
 			subQueries2.push(subQuery2);
 		}
 
 		if (xpubs && xpubs.length > 0) {
 			const parameters2 = [txsIds, xpubs, txsIds, xpubs];
-			subQuery2 = mysql.format(SUBQUERY_UTXOS_XPUB, parameters2);
+			subQuery2 = format(SUBQUERY_UTXOS_XPUB, parameters2);
 			subQueries2.push(subQuery2);
 		}
 
