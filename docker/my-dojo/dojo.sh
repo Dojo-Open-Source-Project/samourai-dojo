@@ -43,7 +43,7 @@ export BITCOIND_RPC_EXTERNAL_IP INDEXER_EXTERNAL_IP TOR_SOCKS_PORT BITCOIND_BLOC
 
 if [ "$EXPLORER_INSTALL" == "on" ] && [ "$EXPLORER_TYPE" == "mempool_space" ]; then
   export BITCOIND_IP INDEXER_IP INDEXER_RPC_PORT BITCOIND_RPC_USER BITCOIND_RPC_PASSWORD BITCOIND_RPC_PORT
-  export MEMPOOL_MYSQL_USER MEMPOOL_MYSQL_PASS MEMPOOL_MYSQL_ROOT_PASSWORD MEMPOOL_MYSQL_DATABASE
+  export MEMPOOL_MYSQL_USER MEMPOOL_MYSQL_PASS MEMPOOL_MYSQL_DATABASE
 fi
 
 if [ "$NGINX_EXTERNAL" == "on" ]; then
@@ -464,7 +464,7 @@ logs() {
         if [ "$EXPLORER_TYPE" == "btc_rpc_explorer" ]; then
           display_logs $1 $2
         elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
-          display_logs "mempool_api mempool_db mempool_web" $2
+          display_logs "mempool_api mempool_db_init mempool_web" $2
         fi
       else
         echo -e "Command not supported for your setup.\nCause: Your Dojo is not running the internal block explorer"
@@ -487,7 +487,7 @@ logs() {
           services="$services explorer"
         elif [ "$EXPLORER_TYPE" == "mempool_space" ]; then
           services="$services mempool_api"
-          services="$services mempool_db"
+          services="$services mempool_db_init"
           services="$services mempool_web"
         fi
       fi

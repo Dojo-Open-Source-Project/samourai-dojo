@@ -5,15 +5,17 @@ services:
     user: "1000:1000"
     restart: on-failure
     stop_grace_period: 15s
-    command: "./wait-for-it.sh mempool_db:3306 --timeout=720 --strict -- ./start.sh"
+    command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
     volumes:
       - data-mempool_api:/backend/cache
+      - ./mysql/mempool-mariadb-compat.cjs:/mempool-mariadb-compat.cjs:ro
     env_file:
       - ./.env
       - ./conf/docker-explorer.conf
       - ./conf/docker-bitcoind.conf
       - ./conf/docker-indexer.conf
     environment:
+      NODE_OPTIONS: "--require=/mempool-mariadb-compat.cjs"
       MEMPOOL_BACKEND: "electrum"
       CORE_RPC_HOST: ${BITCOIND_IP}
       CORE_RPC_PORT: ${BITCOIND_RPC_PORT}
@@ -23,7 +25,7 @@ services:
       ELECTRUM_PORT: ${INDEXER_RPC_PORT}
       ELECTRUM_TLS_ENABLED: "false"
       DATABASE_ENABLED: "true"
-      DATABASE_HOST: ${NET_MEMPOOL_DB_IPV4}
+      DATABASE_HOST: db
       DATABASE_PORT: "3306"
       DATABASE_DATABASE: ${MEMPOOL_MYSQL_DATABASE}
       DATABASE_USERNAME: ${MEMPOOL_MYSQL_USER}
@@ -37,7 +39,10 @@ services:
         max-size: "20m"
         max-file: "10"
     depends_on:
-      - mempool_db
+      db:
+        condition: service_started
+      mempool_db_init:
+        condition: service_completed_successfully
     networks:
       dojonet:
         ipv4_address: ${NET_MEMPOOL_API_IPV4}
@@ -48,7 +53,7 @@ services:
     user: "1000:1000"
     restart: always
     stop_grace_period: 15s
-    command: "./wait-for mempool_db:3306 --timeout=720 -- nginx -g 'daemon off;'"
+    command: "./wait-for db:3306 --timeout=720 -- nginx -g 'daemon off;'"
     env_file:
       - ./.env
     environment:
@@ -60,36 +65,30 @@ services:
         max-size: "20m"
         max-file: "10"
     depends_on:
-      - mempool_db
+      db:
+        condition: service_started
+      mempool_db_init:
+        condition: service_completed_successfully
     networks:
       dojonet:
         ipv4_address: ${NET_MEMPOOL_WEB_IPV4}
 
-  mempool_db:
-    container_name: "mempool_db"
-    image: mariadb:${MEMPOOL_DB_VERSION_TAG}
-    restart: always
-    stop_grace_period: 15s
+  # Runs on every Compose start, including when the Dojo data volume already exists.
+  mempool_db_init:
+    image: "samouraiwallet/dojo-db:${DOJO_DB_VERSION_TAG}"
+    pull_policy: never
+    restart: "no"
+    entrypoint: ["bash", "/provision-mempool-db.sh"]
     volumes:
-      - data-mempool_db:/var/lib/mysql
+      - ./mysql/provision-mempool-db.sh:/provision-mempool-db.sh:ro
     env_file:
       - ./.env
+      - ./conf/docker-mysql.conf
       - ./conf/docker-explorer.conf
-    environment:
-      MYSQL_DATABASE: ${MEMPOOL_MYSQL_DATABASE}
-      MYSQL_USER: ${MEMPOOL_MYSQL_USER}
-      MYSQL_PASSWORD: ${MEMPOOL_MYSQL_PASS}
-      MYSQL_ROOT_PASSWORD: ${MEMPOOL_MYSQL_ROOT_PASSWORD}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "20m"
-        max-file: "10"
+    depends_on:
+      - db
     networks:
-      dojonet:
-        ipv4_address: ${NET_MEMPOOL_DB_IPV4}
+      - dojonet
 
 volumes:
   data-mempool_api:
-  data-mempool_db:
-
