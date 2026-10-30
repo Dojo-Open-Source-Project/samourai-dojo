@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS `hd_addresses` (
   `hdAddrIndex` int(10) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`hdAddrID`),
   UNIQUE KEY `hdID_2` (`hdID`,`addrID`),
+  KEY `hd_addresses_account_chain_index` (`hdID`,`hdAddrChain`,`hdAddrIndex`),
   KEY `hdID` (`hdID`),
   KEY `addrID` (`addrID`),
   CONSTRAINT `hd_addresses_ibfk_1` FOREIGN KEY (`hdID`) REFERENCES `hd` (`hdID`) ON DELETE CASCADE ON UPDATE CASCADE,

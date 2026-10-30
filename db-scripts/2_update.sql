@@ -23,3 +23,7 @@ CREATE TABLE IF NOT EXISTS `api_keys` (
 -- Outpoint lookups constrain txnID and outIndex without constraining addrID.
 CREATE INDEX IF NOT EXISTS `outputs_txn_out_index`
 ON `outputs` (`txnID`, `outIndex`);
+
+-- Support per-account chain maxima and derived-index range counts.
+CREATE INDEX IF NOT EXISTS `hd_addresses_account_chain_index`
+ON `hd_addresses` (`hdID`, `hdAddrChain`, `hdAddrIndex`);

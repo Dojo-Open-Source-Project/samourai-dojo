@@ -465,6 +465,120 @@ describe.skipIf(!port)("Database driver integration", () => {
 		assert.deepEqual(await db.getTxsByAddrAndXpubs([], []), []);
 	});
 
+	it("deduplicates history matches before paging and retains input-only transactions", async () => {
+		const address = "history-dedup-address";
+		const xpub = "history-dedup-xpub";
+		await db.ensureHDAccountId(xpub, hdaHelper.BIP44);
+		await db.addAddressesToHDAccount(xpub, [
+			{ address, chain: 0, index: 2 },
+		]);
+		const addrID = await db.getAddressId(address);
+		await db.addTransactions([
+			{ txid: "history-parent", created: 100, version: 1, locktime: 0 },
+			{ txid: "history-spender", created: 200, version: 2, locktime: 7 },
+		]);
+		const parentID = await db.getTransactionId("history-parent");
+		const spenderID = await db.getTransactionId("history-spender");
+		await db.addOutputs(
+			[0, 1].map((outIndex) => ({
+				txnID: parentID,
+				addrID,
+				outIndex,
+				outAmount: 10,
+				outScript: "00",
+			})),
+		);
+		const outputs = await db.getOutputIds([
+			{ txid: "history-parent", vout: 0 },
+			{ txid: "history-parent", vout: 1 },
+		]);
+		await db.addInputs(
+			outputs.map((output) => ({
+				txnID: spenderID,
+				outID: output.outID,
+				inIndex: output.outIndex,
+				inSequence: 1,
+			})),
+		);
+		for (const [addresses, xpubs] of [
+			[[address, address], []],
+			[[], [xpub, xpub]],
+			[[address, address], [xpub, xpub]],
+		]) {
+			const rows = await db.getTxsByAddrAndXpubs(addresses, xpubs, 0, 10);
+			assert.deepEqual(
+				rows.map((tx) => ({
+					hash: tx.hash,
+					time: tx.time,
+					version: tx.version,
+					locktime: tx.locktime,
+				})),
+				[
+					{ hash: "history-spender", time: 200, version: 2, locktime: 7 },
+					{ hash: "history-parent", time: 100, version: 1, locktime: 0 },
+				],
+			);
+			assert.equal(rows[0].out.length, 0);
+			// Address and HD rows have different ownership fields and remain distinct.
+			const matchedOutputs = xpubs.length > 0 && addresses.length > 0 ? 4 : 2;
+			assert.equal(rows[0].inputs.length, matchedOutputs);
+			assert.equal(rows[1].out.length, matchedOutputs);
+			assert.equal(rows[0].result, -10 * matchedOutputs);
+			assert.equal(rows[1].result, 10 * matchedOutputs);
+			assert.deepEqual(await db.getTxsByAddrAndXpubs(addresses, xpubs, 0, 1), [
+				rows[0],
+			]);
+			assert.deepEqual(await db.getTxsByAddrAndXpubs(addresses, xpubs, 1, 1), [
+				rows[1],
+			]);
+			assert.deepEqual(await db.getTxsByAddrAndXpubs(addresses, xpubs, 2, 1), []);
+		}
+	});
+
+	it("preserves HD indices for unused chains, repeated outputs, and spent addresses", async () => {
+		const xpub = "indices-xpub";
+		await db.ensureHDAccountId(xpub, hdaHelper.BIP44);
+		assert.deepEqual(await db.getHDAccountNextUnusedIndices(xpub), [0, 0]);
+		assert.deepEqual(await db.getHDAccountDerivedIndices(xpub), [-1, -1]);
+		assert.deepEqual(await db.getHDAccountNextUnusedIndices("indices-missing"), [
+			0, 0,
+		]);
+		await db.addAddressesToHDAccount(xpub, [
+			{ address: "indices-used", chain: 0, index: 3 },
+			{ address: "indices-unused", chain: 0, index: 9 },
+			{ address: "indices-change", chain: 1, index: 8 },
+		]);
+		assert.deepEqual(await db.getHDAccountNextUnusedIndices(xpub), [0, 0]);
+		assert.deepEqual(await db.getHDAccountDerivedIndices(xpub), [9, 8]);
+		assert.equal(await db.getHDAccountNbDerivedIndices(xpub, 0, 3, 9), 2);
+		const txnID = await db.ensureTransactionId("indices-funding");
+		const addrID = await db.getAddressId("indices-used");
+		await db.addOutputs(
+			[0, 1, 2].map((outIndex) => ({
+				txnID,
+				addrID,
+				outIndex,
+				outAmount: 10,
+				outScript: "00",
+			})),
+		);
+		assert.deepEqual(await db.getHDAccountNextUnusedIndices(xpub), [4, 0]);
+		const spenderID = await db.ensureTransactionId("indices-spender");
+		const outputs = await db.getOutputIds(
+			[0, 1, 2].map((vout) => ({ txid: "indices-funding", vout })),
+		);
+		await db.addInputs(
+			outputs.map((output) => ({
+				txnID: spenderID,
+				outID: output.outID,
+				inIndex: output.outIndex,
+				inSequence: 1,
+			})),
+		);
+		assert.deepEqual(await db.getHDAccountNextUnusedIndices(xpub), [4, 0]);
+		assert.deepEqual(await db.getHDAccountDerivedIndices(xpub), [9, 8]);
+	});
+
 	it("preserves bulk address insert IDs, duplicate warnings, and empty results", async () => {
 		await db.ensureAddressId("batch-existing");
 		const result = await db.addAddresses([
@@ -677,6 +791,104 @@ describe.skipIf(!port)("Database driver integration", () => {
 			spends,
 		);
 		assert.deepEqual(await db.getOutputIds([{ txid }]), []);
+	});
+
+	it("preserves duplicate and spending rows across bounded outpoint batches", async () => {
+		const txid = "cd".repeat(32);
+		const txnID = await db.ensureTransactionId(txid);
+		const addrID = await db.ensureAddressId("bounded-outpoints");
+		await db.addOutputs(
+			[0, 1].map((outIndex) => ({
+				txnID, addrID, outIndex, outAmount: 10, outScript: "00",
+			})),
+		);
+		const expected = await db.getOutputIds([
+			{ txid, vout: 0 },
+			{ txid, vout: 1 },
+		]);
+		const spendingTxnID = await db.ensureTransactionId(
+			"bounded-outpoints-spender",
+		);
+		await db.addInputs(
+			[0, 1].map((inIndex) => ({
+				txnID: spendingTxnID,
+				outID: expected.find((row) => row.outIndex === 0).outID,
+				inIndex,
+				inSequence: 1,
+			})),
+		);
+		const spends = await db.getOutputSpends([
+			{ txid, index: 0 },
+			{ txid, index: 1 },
+		]);
+		assert.equal(spends.length, 3);
+		const requests = [
+			{ txid, vout: 0 },
+			...Array.from({ length: 999 }, () => ({ txid: "unknown", vout: 0 })),
+			{ txid: txid.toUpperCase(), vout: 0 },
+			{ txid: `${txid} `, vout: 0 },
+			{ txid, vout: 1 },
+			{ txid, vout: undefined },
+		];
+		assert.deepEqual(await db.getOutputIds(requests), expected);
+		assert.deepEqual(
+			await db.getOutputSpends(
+				requests.map(({ txid, vout }) => ({ txid, index: vout })),
+			),
+			spends,
+		);
+		await withSmallPackets(async () => {
+			assert.deepEqual(await db.getOutputIds(requests), expected);
+		});
+	});
+
+	it("keeps one outpoint snapshot when a spend is inserted between batches", async () => {
+		const txid = "ef".repeat(32);
+		const txnID = await db.ensureTransactionId(txid);
+		const addrID = await db.ensureAddressId("snapshot-outpoints");
+		await db.addOutputs(
+			[0, 1].map((outIndex) => ({
+				txnID, addrID, outIndex, outAmount: 10, outScript: "00",
+			})),
+		);
+		const outputs = await db.getOutputIds([{ txid, vout: 1 }]);
+		const spenderID = await db.ensureTransactionId("snapshot-spender");
+		const pool = db.pool;
+		const connection = await pool.getConnection();
+		const execute = connection.execute.bind(connection);
+		let calls = 0;
+		const executeSpy = vi
+			.spyOn(connection, "execute")
+			.mockImplementation(async (query, values) => {
+				const result = await execute(query, values);
+				if (++calls === 1) {
+					await admin.query(
+						"INSERT INTO inputs (txnID, outID, inIndex, inSequence) VALUES (?, ?, 0, 1)",
+						[spenderID, outputs[0].outID],
+					);
+				}
+				return result;
+			});
+		const acquireSpy = vi
+			.spyOn(pool, "getConnection")
+			.mockResolvedValue(connection);
+		try {
+			const rows = await db.getOutputSpends([
+				{ txid, index: 0 },
+				...Array.from({ length: 999 }, () => ({ txid: "unknown", index: 0 })),
+				{ txid, index: 1 },
+			]);
+			assert.equal(calls, 2);
+			assert.equal(rows.length, 2);
+			assert.ok(rows.every((row) => row.spendingTxnID === null));
+		} finally {
+			acquireSpy.mockRestore();
+			executeSpy.mockRestore();
+		}
+		assert.equal(
+			(await db.getOutputSpends([{ txid, index: 1 }]))[0].spendingTxnID,
+			spenderID,
+		);
 	});
 
 	it("reads only transaction IDs for mempool and reorg processing", async () => {

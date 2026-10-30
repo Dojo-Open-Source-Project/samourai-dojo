@@ -42,9 +42,11 @@ const debug = process.argv.includes("db-debug");
 const queryDebug = process.argv.includes("dbquery-debug");
 const MAX_INSERT_BATCH_BYTES = 1024 * 1024;
 const MAX_PREPARED_PARAMETERS = 65535;
+const MAX_OUTPOINT_BATCH_ROWS = 1000;
+const MAX_OUTPOINT_BATCH_BYTES = 1024 * 1024;
 
 /**
- * Subqueries used by getAddrAndXpubsNbTransactions()
+ * Transaction ID subqueries used by counts and transaction history.
  */
 const SUBQUERY_TXIDS_ADDR =
 	"( \
@@ -76,70 +78,22 @@ const SUBQUERY_TXIDS_XPUBS =
   WHERE `hd`.`hdXpub` IN (?) \
 )";
 
-/**
- * Subqueries used by getTxsByAddrAndXpubs()
- */
-const SUBQUERY_TXS_ADDR =
+// Keep the address joins from transaction history when selecting HD matches.
+const SUBQUERY_HISTORY_TXIDS_XPUB =
 	"(\
-  SELECT \
-    `transactions`.`txnID` AS `txnID`, \
-    `transactions`.`txnTxid` AS `txnTxid`, \
-    `transactions`.`txnVersion` AS `txnVersion`, \
-    `transactions`.`txnLocktime` AS `txnLocktime`, \
-    `blocks`.`blockHeight` AS `blockHeight`, \
-    LEAST(`transactions`.`txnCreated`, IFNULL(`blocks`.`blockTime`, 32503680000)) AS `time` \
-  FROM `transactions` \
-  INNER JOIN `outputs` ON `outputs`.`txnID` = `transactions`.`txnID` \
-  INNER JOIN `addresses` ON `addresses`.`addrID` = `outputs`.`addrID` \
-  LEFT JOIN `blocks` ON `transactions`.`blockID` = `blocks`.`blockID` \
-  WHERE `addresses`.`addrAddress` IN (?) \
-) UNION DISTINCT (\
-  SELECT \
-    `transactions`.`txnID` AS `txnID`, \
-    `transactions`.`txnTxid` AS `txnTxid`, \
-    `transactions`.`txnVersion` AS `txnVersion`, \
-    `transactions`.`txnLocktime` AS `txnLocktime`, \
-    `blocks`.`blockHeight` AS `blockHeight`, \
-    LEAST(`transactions`.`txnCreated`, IFNULL(`blocks`.`blockTime`, 32503680000)) AS `time` \
-  FROM `transactions` \
-  INNER JOIN `inputs` ON `inputs`.`txnID` = `transactions`.`txnID` \
-  INNER JOIN `outputs` ON `outputs`.`outID` = `inputs`.`outID` \
-  INNER JOIN `addresses` ON `addresses`.`addrID` = `outputs`.`addrID` \
-  LEFT JOIN `blocks` ON `transactions`.`blockID` = `blocks`.`blockID` \
-  WHERE `addresses`.`addrAddress` IN (?) \
-)";
-
-const SUBQUERY_TXS_XPUB =
-	"(\
-  SELECT \
-    `transactions`.`txnID` AS `txnID`, \
-    `transactions`.`txnTxid` AS `txnTxid`, \
-    `transactions`.`txnVersion` AS `txnVersion`, \
-    `transactions`.`txnLocktime` AS `txnLocktime`, \
-    `blocks`.`blockHeight` AS `blockHeight`, \
-    LEAST(`transactions`.`txnCreated`, IFNULL(`blocks`.`blockTime`, 32503680000)) AS `time` \
-  FROM `transactions` \
-  INNER JOIN `outputs` ON `outputs`.`txnID` = `transactions`.`txnID` \
+  SELECT `outputs`.`txnID` AS `txnID` \
+  FROM `outputs` \
   INNER JOIN `addresses` ON `addresses`.`addrID` = `outputs`.`addrID` \
   INNER JOIN `hd_addresses` ON `hd_addresses`.`addrID` = `addresses`.`addrID` \
   INNER JOIN `hd` ON `hd`.`hdID` = `hd_addresses`.`hdID` \
-  LEFT JOIN `blocks` ON `transactions`.`blockID` = `blocks`.`blockID` \
   WHERE `hd`.`hdXpub` IN (?) \
 ) UNION DISTINCT (\
-  SELECT \
-    `transactions`.`txnID` AS `txnID`, \
-    `transactions`.`txnTxid` AS `txnTxid`, \
-    `transactions`.`txnVersion` AS `txnVersion`, \
-    `transactions`.`txnLocktime` AS `txnLocktime`, \
-    `blocks`.`blockHeight` AS `blockHeight`, \
-    LEAST(`transactions`.`txnCreated`, IFNULL(`blocks`.`blockTime`, 32503680000)) AS `time` \
-  FROM `transactions` \
-  INNER JOIN `inputs` ON `inputs`.`txnID` = `transactions`.`txnID` \
+  SELECT `inputs`.`txnID` AS `txnID` \
+  FROM `inputs` \
   INNER JOIN `outputs` ON `outputs`.`outID` = `inputs`.`outID` \
   INNER JOIN `addresses` ON `addresses`.`addrID` = `outputs`.`addrID` \
   INNER JOIN `hd_addresses` ON `hd_addresses`.`addrID` = `addresses`.`addrID` \
   INNER JOIN `hd` ON `hd`.`hdID` = `hd_addresses`.`hdID` \
-  LEFT JOIN `blocks` ON `transactions`.`blockID` = `blocks`.`blockID` \
   WHERE `hd`.`hdXpub` IN (?) \
 )";
 
@@ -1247,8 +1201,8 @@ class MySqlDbWrapper {
       FROM `hd_addresses` \
       INNER JOIN `addresses` ON `hd_addresses`.`addrID` = `addresses`.`addrID` \
       INNER JOIN `hd` ON `hd_addresses`.`hdID` = `hd`.`hdID` \
-      INNER JOIN `outputs` ON `outputs`.`addrID` = `addresses`.`addrID`  \
       WHERE `hd`.`hdXpub` = ? \
+        AND EXISTS (SELECT 1 FROM `outputs` WHERE `outputs`.`addrID` = `addresses`.`addrID`) \
       GROUP BY `hd_addresses`.`hdAddrChain`";
 
 		const results = await this._query<
@@ -1414,31 +1368,33 @@ class MySqlDbWrapper {
 
 		if (addresses && addresses.length > 0) {
 			const parameters = [addresses, addresses];
-			subQuery = format(SUBQUERY_TXS_ADDR, parameters);
+			subQuery = format(SUBQUERY_TXIDS_ADDR, parameters);
 			subQueries.push(subQuery);
 		}
 
 		if (xpubs && xpubs.length > 0) {
 			const parameters = [xpubs, xpubs];
-			subQuery = format(SUBQUERY_TXS_XPUB, parameters);
+			subQuery = format(SUBQUERY_HISTORY_TXIDS_XPUB, parameters);
 			subQueries.push(subQuery);
 		}
 
 		subQuery = subQueries.join(" UNION DISTINCT ");
 
-		// Get a page of transactions
+		// Deduplicate IDs before joining transaction details and applying pagination.
 		const sqlQuery =
 			"SELECT \
-        `txs`.`txnID`, \
-        `txs`.`txnTxid`, \
-        `txs`.`txnVersion`, \
-        `txs`.`txnLocktime`, \
-        `txs`.`blockHeight`, \
-        `txs`.`time` \
+        `transactions`.`txnID`, \
+        `transactions`.`txnTxid`, \
+        `transactions`.`txnVersion`, \
+        `transactions`.`txnLocktime`, \
+        `blocks`.`blockHeight`, \
+        LEAST(`transactions`.`txnCreated`, IFNULL(`blocks`.`blockTime`, 32503680000)) AS `time` \
       FROM (" +
 			subQuery +
 			") AS txs \
-      ORDER BY `txs`.`time` DESC, `txs`.`txnID` DESC \
+      INNER JOIN `transactions` ON `transactions`.`txnID` = `txs`.`txnID` \
+      LEFT JOIN `blocks` ON `transactions`.`blockID` = `blocks`.`blockID` \
+      ORDER BY `time` DESC, `transactions`.`txnID` DESC \
       LIMIT ?,?";
 		const parameters = [skip, nbTxsPerPage];
 		const txs = await this._query<TransactionPageRow[]>(sqlQuery, parameters);
@@ -1997,40 +1953,149 @@ class MySqlDbWrapper {
 		return { sql, values };
 	}
 
+	/** Keep each request bounded; multiple batches share one read snapshot. */
+	private async _queryOutpoints<Row extends { outID: number }>(
+		spends: OutputSpendRef[],
+		indexKey: "index" | "vout",
+		buildQuery: (requested: string, batched: boolean) => string,
+	): Promise<Row[]> {
+		if (spends.length === 0) return [];
+		const byteLimit = Math.max(
+			1,
+			Math.min(
+				MAX_OUTPOINT_BATCH_BYTES,
+				(this.dbConfig?.maxAllowedPacket ?? Infinity) - 1024,
+			),
+		);
+		const baseBytes = Buffer.byteLength(buildQuery("", true)) + 128;
+		const chunks: OutputSpendRef[][] = [];
+		let start = 0;
+		let bytes = baseBytes;
+		for (let index = 0; index < spends.length; index++) {
+			// Budget UNION SQL, placeholders, parameter types and encoded values.
+			const rowBytes = Buffer.byteLength(spends[index].txid) + 96;
+			if (
+				index > start &&
+				(index - start >= MAX_OUTPOINT_BATCH_ROWS ||
+					bytes + rowBytes > byteLimit)
+			) {
+				chunks.push(spends.slice(start, index));
+				start = index;
+				bytes = baseBytes;
+			}
+			bytes += rowBytes;
+		}
+		chunks.push(spends.slice(start));
+		if (chunks.length === 1) {
+			const requested = this._outpointRequests(chunks[0], indexKey);
+			return this._query<Row[]>(
+				buildQuery(requested.sql, false),
+				requested.values,
+				true,
+			);
+		}
+		return this._queryOutpointChunks<Row>(chunks, indexKey, buildQuery);
+	}
+
+	private async _queryOutpointChunks<Row extends { outID: number }>(
+		chunks: OutputSpendRef[][],
+		indexKey: "index" | "vout",
+		buildQuery: (requested: string, batched: boolean) => string,
+		retries = 5,
+	): Promise<Row[]> {
+		if (this.pool == null) throw new Error("Database pool is not initialized");
+		try {
+			const connection = await this.pool.getConnection();
+			try {
+				// SET TRANSACTION applies to this transaction only, leaving pool defaults intact.
+				await connection.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+				await connection.query(
+					"START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY",
+				);
+				const result: Row[] = [];
+				const seen = new Set<string>();
+				for (const chunk of chunks) {
+					const requested = this._outpointRequests(chunk, indexKey);
+					const sql = buildQuery(requested.sql, true);
+					queryDebug &&
+						Logger.info(`Db Wrapper : ${format(sql, requested.values)}`);
+					const [rows] = await connection.execute<
+						[(Row & { _outpointInputId?: number | null })[], unknown[]]
+					>(
+						{ sql, namedPlaceholders: false, metaAsArray: true },
+						requested.values,
+					);
+					for (const row of rows) {
+						// Deduplicate database identities, respecting case-insensitive matches.
+						// Input IDs preserve multiple spending inputs with identical public fields.
+						const key = `${row.outID}:${row._outpointInputId ?? ""}`;
+						delete row._outpointInputId;
+						if (!seen.has(key)) {
+							seen.add(key);
+							result.push(row);
+						}
+					}
+				}
+				await connection.commit();
+				queryDebug && Logger.info(`Db Wrapper : ${JSON.stringify(result)}`);
+				return result;
+			} catch (error) {
+				try {
+					await connection.rollback();
+				} catch (rollbackError) {
+					Logger.error(
+						rollbackError,
+						"Db Wrapper : Failed to roll back outpoint batches",
+					);
+				}
+				throw error;
+			} finally {
+				await connection.release();
+			}
+		} catch (error) {
+			this.queryError(error, "Batched outpoint lookup");
+			if (isLockError(error) && retries > 0) {
+				await util.delay(Math.floor(Math.random() * 100 + 1));
+				return this._queryOutpointChunks<Row>(
+					chunks,
+					indexKey,
+					buildQuery,
+					retries - 1,
+				);
+			}
+			throw error;
+		}
+	}
+
 	/** Fetch known outputs and any transaction currently spending each output. */
 	async getOutputSpends(
 		spends: OutputSpendRef[] = [],
 	): Promise<OutputSpendRow[]> {
-		if (spends.length === 0) return [] as [];
-		const requested = this._outpointRequests(spends, "index");
-		const sql = `SELECT
+		return this._queryOutpoints<OutputSpendRow>(
+			spends,
+			"index",
+			(requested, batched) => `SELECT
 			addresses.addrAddress, outputs.outID, outputs.outAmount,
 			transactions.txnTxid, outputs.outIndex,
 			inputs.txnID AS spendingTxnID
-			FROM (${requested.sql}) AS requested
+			${batched ? ", inputs.inID AS _outpointInputId" : ""}
+			FROM (${requested}) AS requested
 			INNER JOIN transactions ON transactions.txnTxid = requested.txnTxid
 			INNER JOIN outputs ON outputs.txnID = transactions.txnID AND outputs.outIndex = requested.outIndex
 			INNER JOIN addresses ON addresses.addrID = outputs.addrID
-			LEFT JOIN inputs ON inputs.outID = outputs.outID`;
-		return this._query<OutputSpendRow[]>(
-			sql,
-			requested.values,
-			requested.values.length <= MAX_PREPARED_PARAMETERS,
+			LEFT JOIN inputs ON inputs.outID = outputs.outID`,
 		);
 	}
 
 	/** Get output IDs for a set of outpoints. UNION deduplicates requests. */
 	async getOutputIds(spends: OutputSpendRef[] = []): Promise<OutputIdRow[]> {
-		if (spends.length === 0) return [] as [];
-		const requested = this._outpointRequests(spends, "vout");
-		const sql = `SELECT outputs.outID, transactions.txnTxid, outputs.outIndex
-			FROM (${requested.sql}) AS requested
+		return this._queryOutpoints<OutputIdRow>(
+			spends,
+			"vout",
+			(requested) => `SELECT outputs.outID, transactions.txnTxid, outputs.outIndex
+			FROM (${requested}) AS requested
 			INNER JOIN transactions ON transactions.txnTxid = requested.txnTxid
-			INNER JOIN outputs ON outputs.txnID = transactions.txnID AND outputs.outIndex = requested.outIndex`;
-		return this._query<OutputIdRow[]>(
-			sql,
-			requested.values,
-			requested.values.length <= MAX_PREPARED_PARAMETERS,
+			INNER JOIN outputs ON outputs.txnID = transactions.txnID AND outputs.outIndex = requested.outIndex`,
 		);
 	}
 
