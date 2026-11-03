@@ -257,9 +257,11 @@ class MempoolProcessor {
 			try {
 				const tx = bitcoin.Transaction.fromBuffer(buf);
 				this.mempoolBuffer.addTransaction(tx);
-			} catch (error) {
-				Logger.error(error, "Tracker : MempoolProcessor.onTx()");
-				throw error;
+			} catch {
+				Logger.error(
+					undefined,
+					`Tracker : MempoolProcessor.onTx() - rejected rawtx notification (${buf.length} bytes)`,
+				);
 			}
 		}
 	}
