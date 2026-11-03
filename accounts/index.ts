@@ -8,6 +8,7 @@ import AuthRestApi from "../lib/auth/auth-rest-api.js";
 import hdaHelper from "../lib/bitcoin/hd-accounts-helper.js";
 import network from "../lib/bitcoin/network.js";
 import rpcFees from "../lib/bitcoind-rpc/fees.js";
+import rpcLatestBlock from "../lib/bitcoind-rpc/latest-block.js";
 import { waitForBitcoindRpcApi } from "../lib/bitcoind-rpc/rpc-client.js";
 import db from "../lib/db/mysql-db-wrapper.js";
 import HttpServer from "../lib/http-server/http-server.js";
@@ -88,6 +89,7 @@ try {
 		httpServer.stop();
 		notifServer.close();
 		rpcFees.close();
+		rpcLatestBlock.close();
 		await db.disconnect();
 		process.exit(0);
 	};
@@ -102,5 +104,6 @@ try {
 } catch (error) {
 	Logger.error(error, "Accounts : Unhandled error, exiting...");
 	rpcFees.close();
+	rpcLatestBlock.close();
 	process.exit(1);
 }

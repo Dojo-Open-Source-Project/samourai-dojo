@@ -70,6 +70,8 @@ export type RpcBatchResponse<T extends JSONValue = JSONValue> =
 	| RpcBatchSuccess<T>
 	| RPCErrorResponse;
 
+type RpcRequestOptions = Parameters<RPCClient["getbestblockhash"]>[0];
+
 export interface DojoRpcClient {
 	batch(
 		rpcRequests: Array<{
@@ -80,12 +82,12 @@ export interface DojoRpcClient {
 	): Promise<Array<RPCSuccessResponse | RPCErrorResponse>>;
 	getnetworkinfo(): Promise<NetworkInfo>;
 	getmempoolinfo(): Promise<JSONType>;
-	getbestblockhash(): Promise<string>;
+	getbestblockhash(options?: RpcRequestOptions): Promise<string>;
 	getblockcount(): Promise<number>;
-	getblockheader(params: {
-		blockhash: string;
-		verbose?: boolean;
-	}): Promise<BlockHeader>;
+	getblockheader(
+		params: { blockhash: string; verbose?: boolean },
+		options?: RpcRequestOptions,
+	): Promise<BlockHeader>;
 	getrawtransaction(params: {
 		txid: string;
 		verbose: true;
