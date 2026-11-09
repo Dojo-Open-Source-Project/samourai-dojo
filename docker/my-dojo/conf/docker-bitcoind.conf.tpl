@@ -26,6 +26,12 @@ BITCOIND_DB_CACHE=1024
 # Type: integer
 BITCOIND_RPC_THREADS=16
 
+# Maximum simultaneous HTTP connections to the RPC server
+# Shared by Dojo, its fee estimator, the indexer, explorer and external apps.
+# Independent of RPC worker threads and work queue size.
+# Type: positive integer
+BITCOIND_RPC_MAX_CONNECTIONS=64
+
 # RPC Work queue size
 # Type: integer
 BITCOIND_RPC_WORK_QUEUE=128

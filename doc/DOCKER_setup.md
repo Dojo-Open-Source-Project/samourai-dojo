@@ -232,6 +232,51 @@ Docker and Docker Compose are going to build new images and containers for your 
 
 Note: The upgrade process will override all manual modifications of the files stored under the `<dojo_dir>` directory with an exception for the configuration files stored in the `<dojo_dir>/docker/my-dojo/conf` directory.
 
+### Bitcoin Core RPC connections
+
+Bitcoin Core 32.1 limits simultaneous RPC HTTP connections independently of RPC
+worker threads and queue depth. Dojo sets `BITCOIND_RPC_MAX_CONNECTIONS=64` in
+`conf/docker-bitcoind.conf.tpl`. Set this value in `conf/docker-bitcoind.conf` to
+adjust capacity shared by Dojo, its fee estimator, the indexer, explorer, and
+external applications. Existing configuration files without this setting also
+default to 64 connections. Restart Dojo after changing it.
+
+### Rebuild the transaction index in the Core 32 format
+
+After completing the normal Dojo upgrade to Bitcoin Core 32.1, optionally run:
+
+```sh
+./dojo.sh upgrade-txindex
+```
+
+Existing transaction indexes remain compatible with Core 32.1. This optional
+command reclaims disk space by rebuilding the index in the smaller format. It
+supports the bundled Bitcoin Core on mainnet and testnet4, and refuses external
+nodes or installed Core versions older than 32.
+
+The command stops all Dojo services and waits for Bitcoin Core to shut down
+cleanly without a forced shutdown timeout. It removes only the selected network's
+`indexes/txindex` directory from the existing Bitcoin data volume, then restarts
+Dojo. Blocks, chainstate, and Dojo's database are preserved. No blockchain download
+or full chain reindex is required.
+
+Rebuilding can take several hours, depending on hardware. Historical transaction
+lookups can fail until the index has caught up. Monitor progress with:
+
+```sh
+./dojo.sh bitcoin-cli getindexinfo txindex
+./dojo.sh logs bitcoind
+```
+
+The rebuild is complete when `getindexinfo` reports `"synced": true` for `txindex`.
+If the command fails after stopping Dojo, it leaves the services stopped so the
+error can be resolved before running `./dojo.sh start`. If the index was already
+removed, starting Dojo resumes or starts its rebuild.
+
+The rebuilt index cannot be read by older Core releases. A downgrade requires
+another index rebuild; for a permanent downgrade, remove the new txindex while
+Core is stopped before starting the older version.
+
 
 <a name="shell_script"/>
 
@@ -281,6 +326,8 @@ Available commands:
   uninstall                     Delete your Dojo. Be careful! This command will also remove all data.
 
   upgrade                       Upgrade your Dojo.
+
+  upgrade-txindex               Stop Dojo and rebuild txindex in the smaller Core 32+ format.
 
   version                       Display the version of dojo.
 

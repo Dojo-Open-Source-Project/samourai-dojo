@@ -27,6 +27,7 @@ bitcoind_options=(
   -rpcbind=$NET_DOJO_BITCOIND_IPV4
   -rpcport=28256
   -rpcthreads=$BITCOIND_RPC_THREADS
+  -rpcmaxconnections=${BITCOIND_RPC_MAX_CONNECTIONS:-64}
   -rpcworkqueue=$BITCOIND_RPC_WORK_QUEUE
   -rpcauth=$BITCOIND_RPC_AUTH
   -server=1

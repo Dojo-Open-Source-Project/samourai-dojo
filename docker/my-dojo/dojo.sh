@@ -558,6 +558,9 @@ help() {
   echo "                                  --nolog     : do not display the logs after Dojo has been restarted."
   echo "                                  --nocache   : rebuild the docker containers without reusing the cached layers."
   echo " "
+  echo "  upgrade-txindex               Stop Dojo and rebuild txindex in the smaller Core 32+ format."
+  echo "                                Upgrade Core first. Historical transaction lookups are unavailable during rebuilding."
+  echo " "
   echo "  version                       Display the version of dojo"
   echo " "
   echo "  tor [action]                  Interact with the Tor module."
@@ -651,6 +654,10 @@ case "$subcommand" in
     ;;
   upgrade )
     upgrade "$@"
+    ;;
+  upgrade-txindex )
+    source "$DIR/maintenance/upgrade-txindex.sh"
+    upgrade_txindex "$@"
     ;;
   version )
     version
