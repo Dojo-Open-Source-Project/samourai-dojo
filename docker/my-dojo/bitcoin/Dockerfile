@@ -8,7 +8,6 @@ ENV     BITCOIN_VERSION=32.1
 ENV     BITCOIN_URL=https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}
 ENV     BITCOIN_FILE_AMD64=bitcoin-${BITCOIN_VERSION}-x86_64-linux-gnu.tar.gz
 ENV     BITCOIN_FILE_ARM64=bitcoin-${BITCOIN_VERSION}-aarch64-linux-gnu.tar.gz
-ENV     BITCOIN_FILE_PPCLE=bitcoin-${BITCOIN_VERSION}-powerpc64le-linux-gnu.tar.gz
 ENV     BITCOIN_SHASUMS=SHA256SUMS
 ENV     BITCOIN_SHASUMS_ASC=SHA256SUMS.asc
 ENV     BITCOIN_BUILDERS=https://github.com/bitcoin-core/guix.sigs/archive/refs/heads/main.tar.gz
@@ -31,9 +30,6 @@ RUN     set -ex && \
           'arm64') \
             FILE="$BITCOIN_FILE_ARM64"; \
             ;; \
-          'ppc64el') \
-          	FILE="$BITCOIN_FILE_PPCLE"; \
-          	;; \
           *) echo >&2 "error: unsupported architecture '$arch' (likely packaging update needed)"; exit 1 ;; \
         esac; \
         wget -qO "$BITCOIN_BUILDERS_FILE" "$BITCOIN_BUILDERS" && \
