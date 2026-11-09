@@ -255,9 +255,13 @@ class Transactions {
 		if (fees) {
 			returnValue.fees = inAmount - outAmount;
 			if (returnValue.fees > 0 && returnValue.size > 0)
-				returnValue.feerate = Math.round(returnValue.fees / returnValue.size);
+				returnValue.feerate = Number(
+					(returnValue.fees / returnValue.size).toFixed(1),
+				);
 			if (returnValue.fees > 0 && returnValue.vsize)
-				returnValue.vfeerate = Math.round(returnValue.fees / returnValue.vsize);
+				returnValue.vfeerate = Number(
+					(returnValue.fees / returnValue.vsize).toFixed(1),
+				);
 		}
 
 		if (rawHex) {
