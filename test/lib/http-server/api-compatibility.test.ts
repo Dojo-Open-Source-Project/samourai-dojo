@@ -437,7 +437,63 @@ describe("migrated API contracts", () => {
 		).toBe(401);
 	});
 
-	it("awaits JWT verification for WebSocket messages on the same Node server", async () => {
+	it("rejects excess unauthenticated WebSocket upgrades while REST remains available", async () => {
+		const http = new HttpServer(0);
+		http.app.get("/health", (c) => c.text("ok"));
+		const node = http.start();
+		const notifications = new NotificationsService(node);
+		const clients: WebSocket[] = [];
+		try {
+			await once(node, "listening");
+			const address = node.address();
+			if (!address || typeof address === "string")
+				throw new Error("Missing listening address");
+			const host = `127.0.0.1:${address.port}`;
+			await Promise.all(
+				Array.from(
+					{ length: NotificationsService.MAX_PENDING_CONNECTIONS },
+					() => {
+						const client = new WebSocket(`ws://${host}`);
+						clients.push(client);
+						return once(client, "open");
+					},
+				),
+			);
+			const rejected = new WebSocket(`ws://${host}`);
+			clients.push(rejected);
+			rejected.on("error", () => {});
+			const statusCode = await new Promise<number>((resolve) => {
+				rejected.once("unexpected-response", (_request, response) => {
+					response.resume();
+					resolve(response.statusCode);
+					rejected.terminate();
+				});
+			});
+			expect(statusCode).toBe(503);
+			expect(notifications.ws.clients.size).toBe(
+				NotificationsService.MAX_PENDING_CONNECTIONS,
+			);
+			const response = await fetch(`http://${host}/health`);
+			expect(response.status).toBe(200);
+			expect(await response.text()).toBe("ok");
+		} finally {
+			await Promise.all(
+				clients.map((client) => {
+					if (client.readyState === WebSocket.CLOSED) return Promise.resolve();
+					return new Promise<void>((resolve) => {
+						client.once("close", () => resolve());
+						client.terminate();
+					});
+				}),
+			);
+			notifications.ws?.close();
+			const closed = once(node, "close");
+			http.stop();
+			await closed;
+		}
+	});
+
+	it("awaits JWT verification and closes WebSockets after an authentication failure", async () => {
 		const http = new HttpServer(0);
 		const node = http.start();
 		const notifications = new NotificationsService(node);
@@ -449,13 +505,11 @@ describe("migrated API contracts", () => {
 				throw new Error("Missing listening address");
 			client = new WebSocket(`ws://127.0.0.1:${address.port}`);
 			await once(client, "open");
-			const replies = new Promise<string[]>((resolve) => {
-				const messages: string[] = [];
-				client.on("message", (message: Buffer) => {
-					messages.push(message.toString());
-					if (messages.length === 3) resolve(messages);
-				});
+			const messages: string[] = [];
+			client.on("message", (message: Buffer) => {
+				messages.push(message.toString());
 			});
+			const closedByServer = once(client, "close");
 			client.send(JSON.stringify({ op: "ping", at: authorization().slice(7) }));
 			client.send(
 				JSON.stringify({
@@ -464,12 +518,14 @@ describe("migrated API contracts", () => {
 				}),
 			);
 			client.send(JSON.stringify({ op: "ping", at: authorization().slice(7) }));
-			const messages = await replies;
+			const [code] = await closedByServer;
+			expect(code).toBe(1008);
+			expect(messages).toHaveLength(2);
 			expect(messages[0]).toBe('{"op": "pong"}');
 			expect(JSON.parse(messages[1])).toMatchObject({
 				op: "error",
 			});
-			expect(messages[2]).toBe('{"op": "pong"}');
+			expect(Object.keys(notifications.conn)).toHaveLength(0);
 		} finally {
 			if (client && client.readyState !== WebSocket.CLOSED) {
 				const closed = once(client, "close");

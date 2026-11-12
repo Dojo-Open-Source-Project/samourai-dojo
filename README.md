@@ -51,6 +51,8 @@ API and PushTx modules are able to operate behind a web server (e.g. nginx) or a
 
 Authentication is enforced by an API key and Json Web Tokens.
 
+When authentication is mandatory, WebSocket clients must send their first message with a valid access token within 60 seconds of connecting. Each message continues to require a valid token. Authentication failures close the connection. The Accounts process accepts at most 32 connections awaiting authentication and 256 WebSocket connections in total; excess upgrades receive HTTP 503. Connections closed by the server are forcibly terminated after one second if the peer does not complete the closing handshake.
+
 ### Implementation Notes
 
 **Tracker**

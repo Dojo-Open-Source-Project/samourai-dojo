@@ -17,6 +17,8 @@ const debug = process.argv.includes("ws-debug");
 type ClientWebSocket = WebSocket & {
 	id: number;
 	subs: string[];
+	authenticationTimer?: ReturnType<typeof setTimeout>;
+	terminationTimer?: ReturnType<typeof setTimeout>;
 };
 
 interface NotificationTxEndpoint {
@@ -42,6 +44,10 @@ interface NotificationTx {
  * A class providing a notifications server over web sockets
  */
 class NotificationsService {
+	static readonly AUTHENTICATION_TIMEOUT_MS = 60_000;
+	static readonly MAX_PENDING_CONNECTIONS = 32;
+	static readonly MAX_CONNECTIONS = 256;
+	private readonly pendingConnections = new Set<ClientWebSocket>();
 	declare ws: WebSocketServer | null;
 	declare conn: Record<number, ClientWebSocket>;
 	declare subs: Record<string, number[]>;
@@ -82,7 +88,17 @@ class NotificationsService {
 	_initWSServer(
 		server?: ConstructorParameters<typeof WebSocketServer>[0]["server"],
 	) {
-		this.ws = new WebSocketServer({ server });
+		this.ws = new WebSocketServer({
+			server,
+			verifyClient: (_info, done) => {
+				// Count closing transports too, until their sockets are actually released.
+				const available =
+					this.ws.clients.size < NotificationsService.MAX_CONNECTIONS &&
+					this.pendingConnections.size <
+						NotificationsService.MAX_PENDING_CONNECTIONS;
+				done(available, available ? undefined : 503);
+			},
+		});
 
 		Logger.info("API : Created WebSocket server");
 
@@ -123,11 +139,20 @@ class NotificationsService {
 					status.maxConn,
 					Object.keys(this.conn).length,
 				);
+
+				if (authMgr.authActive && authMgr.isMandatory) {
+					this.pendingConnections.add(client);
+					client.authenticationTimer = setTimeout(() => {
+						this._closeWSConnection(client, true);
+					}, NotificationsService.AUTHENTICATION_TIMEOUT_MS);
+					client.authenticationTimer.unref();
+				}
 			} catch (error) {
 				Logger.error(
 					error,
 					"API : NotificationsService._initWSServer() : Error during connection setup",
 				);
+				conn.terminate();
 			}
 		});
 	}
@@ -137,6 +162,11 @@ class NotificationsService {
 	 */
 	_closeWSConnection(conn: ClientWebSocket, forcedClose: boolean) {
 		try {
+			clearTimeout(conn.authenticationTimer);
+			this.pendingConnections.delete(conn);
+			if (conn.readyState === WebSocket.CLOSED) {
+				clearTimeout(conn.terminationTimer);
+			}
 			for (const topic of conn.subs) {
 				this._unsub(topic, conn.id);
 
@@ -151,8 +181,15 @@ class NotificationsService {
 			}
 
 			// Close initiated by server
-			if (forcedClose && conn.readyState === WebSocket.OPEN)
-				conn.close(1008, "Get out of here!");
+			if (forcedClose && conn.readyState !== WebSocket.CLOSED) {
+				if (conn.readyState === WebSocket.OPEN)
+					conn.close(1008, "Connection policy violation");
+				// A peer need not cooperate with the WebSocket closing handshake.
+				if (!conn.terminationTimer) {
+					conn.terminationTimer = setTimeout(() => conn.terminate(), 1000);
+					conn.terminationTimer.unref();
+				}
+			}
 
 			debug && Logger.info(`API : Client ${conn.id} disconnected`);
 		} catch (error) {
@@ -179,6 +216,7 @@ class NotificationsService {
 	 */
 	async _handleWSMessage(msg: string, conn: ClientWebSocket) {
 		try {
+			if (conn.readyState !== WebSocket.OPEN || !this.conn[conn.id]) return;
 			debug && Logger.info(`API : Received from client ${conn.id}: ${msg}`);
 
 			const data = JSON.parse(msg) as {
@@ -192,13 +230,17 @@ class NotificationsService {
 				try {
 					await authMgr.isAuthenticated(data.at);
 				} catch (error) {
+					if (conn.readyState !== WebSocket.OPEN || !this.conn[conn.id]) return;
 					this.notifyAuthError(error, conn.id);
+					this._closeWSConnection(conn, true);
 					return;
 				}
 			}
 
 			// The socket may have closed while its token was being verified.
-			if (conn.readyState !== WebSocket.OPEN) return;
+			if (conn.readyState !== WebSocket.OPEN || !this.conn[conn.id]) return;
+			clearTimeout(conn.authenticationTimer);
+			this.pendingConnections.delete(conn);
 			switch (data.op) {
 				case "ping":
 					conn.send('{"op": "pong"}');
