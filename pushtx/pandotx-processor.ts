@@ -12,7 +12,6 @@ import {
 	createRpcClient,
 	type DojoRpcClient,
 } from "../lib/bitcoind-rpc/rpc-client.js";
-import errors from "../lib/errors.js";
 import Logger from "../lib/logger.js";
 import util from "../lib/util.js";
 import pushTxProcessor from "./pushtx-processor.js";
@@ -66,7 +65,11 @@ class PandoTxProcessor {
 		if (keys.pandoTx?.process === "active") {
 			Logger.info("PandoTx : Processor started");
 
-			this.checkProcessTxs = setInterval(() => this.processTxs(), 500);
+			this.checkProcessTxs = setInterval(() => {
+				void this.processTxs().catch((error) => {
+					Logger.error(error, "PandoTx : Error while polling transactions");
+				});
+			}, 500);
 		} else {
 			Logger.info("PandoTx : Processor is inactive");
 		}
@@ -98,11 +101,8 @@ class PandoTxProcessor {
 				try {
 					tx = bitcoin.Transaction.fromHex(rawTx);
 				} catch (error) {
-					Logger.error(
-						error,
-						`PandoTx : Error while parsing transaction ${rawTx}`,
-					);
-					throw errors.tx.PARSE;
+					Logger.error(error, "PandoTx : Rejected malformed transaction");
+					return;
 				}
 				// Get the TXID of the transaction
 				const txid = tx.getId();
@@ -110,19 +110,26 @@ class PandoTxProcessor {
 				if (this.txsCache.has(txid)) {
 					return;
 				}
-				// Check if transaction is known by the node
 				try {
-					await this.bitcoinRpc.getrawtransaction({ txid, verbose: false });
-					return;
-				} catch {
-					// Transaction not found in mempool
-					// We can proceed further
+					// Check if transaction is known by the node
+					try {
+						await this.bitcoinRpc.getrawtransaction({ txid, verbose: false });
+						return;
+					} catch {
+						// Transaction not found in mempool
+						// We can proceed further
+					}
+					// Push the transaction to bitcoind
+					await pushTxProcessor.pushTx(rawTx, true);
+					this.txsCache.set(txid, true);
+					// Notify successful push
+					await this.sorobanRpc.directoryAdd(this.keyResults, txid, "short");
+				} catch (error) {
+					Logger.error(
+						error,
+						`PandoTx : Error while processing transaction ${txid}`,
+					);
 				}
-				// Push the transaction to bitcoind
-				await pushTxProcessor.pushTx(rawTx, true);
-				this.txsCache.set(txid, true);
-				// Notify successfull push
-				await this.sorobanRpc.directoryAdd(this.keyResults, txid, "short");
 			});
 		}
 	}
