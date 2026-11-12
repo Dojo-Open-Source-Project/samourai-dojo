@@ -39,17 +39,15 @@ auth: {
 },
 ```
 
-
 ```http request
 POST /auth/login
 ```
 
 The API Key must be passed in the body of the request as an url encoded argument.
 
-
 ## Parameters
-* **apikey** - `string` - The API key securing access to the backend
 
+- **apikey** - `string` - The API key securing access to the backend
 
 ### Example
 
@@ -60,15 +58,18 @@ apikey=myAPIKey
 ```
 
 #### Success
+
 Status code 200 with JSON response:
+
 ```json
 {
-  "authorizations": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTYW1vdXJhaSBXYWxsZXQgYmFja2VuZCIsInR5cGUiOiJhY2Nlc3MtdG9rZW4iLCJpYXQiOjE1NDQxMDM5MjksImV4cCI6MTU0NDEwNDUyOX0.DDzz0EUEQS8vqdhfUwi_MFhjnSLKZ9nY-P55Yoi0wlI",
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTYW1vdXJhaSBXYWxsZXQgYmFja2VuZCIsInR5cGUiOiJyZWZyZXNoLXRva2VuIiwiaWF0IjoxNTQ0MTAzOTI5LCJleHAiOjE1NDQxMTExMjl9.6gykKq31WL4Jq7hfmoTwi1fpmBTtAeFb4KjfmSO6l00"
-  }
+	"authorizations": {
+		"access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTYW1vdXJhaSBXYWxsZXQgYmFja2VuZCIsInR5cGUiOiJhY2Nlc3MtdG9rZW4iLCJpYXQiOjE1NDQxMDM5MjksImV4cCI6MTU0NDEwNDUyOX0.DDzz0EUEQS8vqdhfUwi_MFhjnSLKZ9nY-P55Yoi0wlI",
+		"refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTYW1vdXJhaSBXYWxsZXQgYmFja2VuZCIsInR5cGUiOiJyZWZyZXNoLXRva2VuIiwiaWF0IjoxNTQ0MTAzOTI5LCJleHAiOjE1NDQxMTExMjl9.6gykKq31WL4Jq7hfmoTwi1fpmBTtAeFb4KjfmSO6l00"
+	}
 }
 ```
 
 #### Failure
+
 Status code 401

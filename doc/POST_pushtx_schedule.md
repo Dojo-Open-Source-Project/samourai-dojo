@@ -2,34 +2,31 @@
 
 Schedule the delayed push of an ordered list of transactions (used for programmable Ricochet).
 
-
 ```http request
 POST /pushtx/schedule
 ```
 
 Parameters must be passed in the body of the request as json encoded arguments.
 
-
 ## Parameters
 
-* **script** - `ScriptStep[]` - An array of ScriptStep objects defining the script.
-
+- **script** - `ScriptStep[]` - An array of ScriptStep objects defining the script.
 
 ## ScriptStep structure
 
-* **hop** - `integer` - Index of this step in the script. 
-Transactions are pushed by ascending order of **hop** values.
+- **hop** - `integer` - Index of this step in the script.
+  Transactions are pushed by ascending order of **hop** values.
 
-* **nlocktime** - `integer` - Height of the block after which the transaction should be pushed to the network.
-This value shouldn't be set too far in the future (default tolerance is currently the height of current tip + 18 blocks).
-If step A has a **hop** value higher than step B, then step A MUST have a **nlocktime** greater than or equal to the **nlocktime** of step B.
-If step A and step B have the same **hop** value, then they MAY HAVE different **nlocktime** values.
+- **nlocktime** - `integer` - Height of the block after which the transaction should be pushed to the network.
+  This value shouldn't be set too far in the future (default tolerance is currently the height of current tip + 18 blocks).
+  If step A has a **hop** value higher than step B, then step A MUST have a **nlocktime** greater than or equal to the **nlocktime** of step B.
+  If step A and step B have the same **hop** value, then they MAY HAVE different **nlocktime** values.
 
-* **tx** - `string` - The raw transaction hex for the transaction to be pushed during this step.
-The transaction MUST HAVE its nLockTime field filled with the height of a block.
-The height of the block MUST BE equal to the value of the **nlocktime** field of the ScriptStep object.
+- **tx** - `string` - The raw transaction hex for the transaction to be pushed during this step.
+  The transaction MUST HAVE its nLockTime field filled with the height of a block.
+  The height of the block MUST BE equal to the value of the **nlocktime** field of the ScriptStep object.
 
-* **strict_mode_vouts** (optional) - `int[]` - An array of outpoints indices. A strict verification is enforced on these outpoints before the transaction is pushed. Strict mode checks that addresses associated to these outputs aren't reused. If verifications fail, the scheduled push is aborted and an error is returned. 
+- **strict_mode_vouts** (optional) - `int[]` - An array of outpoints indices. A strict verification is enforced on these outpoints before the transaction is pushed. Strict mode checks that addresses associated to these outputs aren't reused. If verifications fail, the scheduled push is aborted and an error is returned.
 
 ### Examples
 
@@ -109,23 +106,28 @@ Request Body (JSON-encoded)
 ```
 
 #### Success
+
 Status code 200 with JSON response:
+
 ```json
 {
-  "status": "ok"
+	"status": "ok"
 }
 ```
 
 #### Failure
+
 Status code 400 with JSON response:
+
 ```json
 {
-  "status": "error",
-  "error": "<error message>"
+	"status": "error",
+	"error": "<error message>"
 }
 ```
 
 or status code 200 with JSON response:
+
 ```json
 {
   "status": "error",

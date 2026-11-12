@@ -1,7 +1,6 @@
 # Refresh the access token
 
-Request a new access token from the backend. 
-
+Request a new access token from the backend.
 
 ```http request
 POST /auth/refresh
@@ -9,10 +8,9 @@ POST /auth/refresh
 
 The Refresh Token must be passed in the body of the request as an url encoded argument or through the `Authorization` HTTP header (with the `Bearer` scheme).
 
-
 ## Parameters
-* **rt** - `string` - A valid refresh token
 
+- **rt** - `string` - A valid refresh token
 
 ### Example
 
@@ -23,14 +21,17 @@ rt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTYW1vdXJhaSBXYWxsZXQgYmFja2Vu
 ```
 
 #### Success
+
 Status code 200 with JSON response:
+
 ```json
 {
-  "authorizations": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTYW1vdXJhaSBXYWxsZXQgYmFja2VuZCIsInR5cGUiOiJhY2Nlc3MtdG9rZW4iLCJpYXQiOjE1NDQxMDM5MjksImV4cCI6MTU0NDEwNDUyOX0.DDzz0EUEQS8vqdhfUwi_MFhjnSLKZ9nY-P55Yoi0wlI"
-  }
+	"authorizations": {
+		"access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTYW1vdXJhaSBXYWxsZXQgYmFja2VuZCIsInR5cGUiOiJhY2Nlc3MtdG9rZW4iLCJpYXQiOjE1NDQxMDM5MjksImV4cCI6MTU0NDEwNDUyOX0.DDzz0EUEQS8vqdhfUwi_MFhjnSLKZ9nY-P55Yoi0wlI"
+	}
 }
 ```
 
 #### Failure
+
 Status code 401

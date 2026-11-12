@@ -9,11 +9,12 @@ GET /txs?active=...
 ```
 
 ## Parameters
-* **active** - `string` - A pipe-separated list of extended public keys and/or loose addresses and/or pubkeys (`xpub1|address1|address2|pubkey1|...`)
-* **page** - `integer` - Index of the requested page (first page is index 0)
-* **count** - `integer` - Number of transactions returned per page
-* **excludeNullXfer** - `boolean` - Boolean flag indicating if transactions that don't change the balance should be excluded from the result (default = false)
-* **at** - `string` (optional) - Access Token (json web token). Required if authentication is activated. Alternatively, the access token can be passed through the `Authorization` HTTP header (with the `Bearer` scheme).
+
+- **active** - `string` - A pipe-separated list of extended public keys and/or loose addresses and/or pubkeys (`xpub1|address1|address2|pubkey1|...`)
+- **page** - `integer` - Index of the requested page (first page is index 0)
+- **count** - `integer` - Number of transactions returned per page
+- **excludeNullXfer** - `boolean` - Boolean flag indicating if transactions that don't change the balance should be excluded from the result (default = false)
+- **at** - `string` (optional) - Access Token (json web token). Required if authentication is activated. Alternatively, the access token can be passed through the `Authorization` HTTP header (with the `Bearer` scheme).
 
 ### Examples
 
@@ -23,7 +24,9 @@ GET /txs?active=xpub0123456789|address1|address2|pubkey1
 ```
 
 #### Success
+
 Status code 200 with JSON response:
+
 ```json
 {
   "n_tx": 153,
@@ -72,17 +75,20 @@ Status code 200 with JSON response:
 ```
 
 **Notes**
-* The transaction `inputs` and `out` arrays are for known addresses only and do not reflect the full input and output list of the transaction on the blockchain
-* `result.txs[i].block_height` should not be present for unconfirmed transactions
-* `result.txs[i].result` is the change in value for the "wallet" as defined by all entries on the `active` query parameter
-* `result.txs[i].inputs[j].prev_out.addr` should be present for BIP47-related addresses but may be `null` if the previous output address is unknown
-* `result.txs[i].out[j].addr` should be present for BIP47-related addresses
+
+- The transaction `inputs` and `out` arrays are for known addresses only and do not reflect the full input and output list of the transaction on the blockchain
+- `result.txs[i].block_height` should not be present for unconfirmed transactions
+- `result.txs[i].result` is the change in value for the "wallet" as defined by all entries on the `active` query parameter
+- `result.txs[i].inputs[j].prev_out.addr` should be present for BIP47-related addresses but may be `null` if the previous output address is unknown
+- `result.txs[i].out[j].addr` should be present for BIP47-related addresses
 
 #### Failure
+
 Status code 400 with JSON response:
+
 ```json
 {
-  "status": "error",
-  "error": "<error message>"
+	"status": "error",
+	"error": "<error message>"
 }
 ```

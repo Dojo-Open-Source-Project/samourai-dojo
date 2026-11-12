@@ -469,9 +469,7 @@ describe.skipIf(!port)("Database driver integration", () => {
 		const address = "history-dedup-address";
 		const xpub = "history-dedup-xpub";
 		await db.ensureHDAccountId(xpub, hdaHelper.BIP44);
-		await db.addAddressesToHDAccount(xpub, [
-			{ address, chain: 0, index: 2 },
-		]);
+		await db.addAddressesToHDAccount(xpub, [{ address, chain: 0, index: 2 }]);
 		const addrID = await db.getAddressId(address);
 		await db.addTransactions([
 			{ txid: "history-parent", created: 100, version: 1, locktime: 0 },
@@ -503,7 +501,10 @@ describe.skipIf(!port)("Database driver integration", () => {
 		for (const [addresses, xpubs] of [
 			[[address, address], []],
 			[[], [xpub, xpub]],
-			[[address, address], [xpub, xpub]],
+			[
+				[address, address],
+				[xpub, xpub],
+			],
 		]) {
 			const rows = await db.getTxsByAddrAndXpubs(addresses, xpubs, 0, 10);
 			assert.deepEqual(
@@ -531,7 +532,10 @@ describe.skipIf(!port)("Database driver integration", () => {
 			assert.deepEqual(await db.getTxsByAddrAndXpubs(addresses, xpubs, 1, 1), [
 				rows[1],
 			]);
-			assert.deepEqual(await db.getTxsByAddrAndXpubs(addresses, xpubs, 2, 1), []);
+			assert.deepEqual(
+				await db.getTxsByAddrAndXpubs(addresses, xpubs, 2, 1),
+				[],
+			);
 		}
 	});
 
@@ -540,9 +544,10 @@ describe.skipIf(!port)("Database driver integration", () => {
 		await db.ensureHDAccountId(xpub, hdaHelper.BIP44);
 		assert.deepEqual(await db.getHDAccountNextUnusedIndices(xpub), [0, 0]);
 		assert.deepEqual(await db.getHDAccountDerivedIndices(xpub), [-1, -1]);
-		assert.deepEqual(await db.getHDAccountNextUnusedIndices("indices-missing"), [
-			0, 0,
-		]);
+		assert.deepEqual(
+			await db.getHDAccountNextUnusedIndices("indices-missing"),
+			[0, 0],
+		);
 		await db.addAddressesToHDAccount(xpub, [
 			{ address: "indices-used", chain: 0, index: 3 },
 			{ address: "indices-unused", chain: 0, index: 9 },
@@ -799,7 +804,11 @@ describe.skipIf(!port)("Database driver integration", () => {
 		const addrID = await db.ensureAddressId("bounded-outpoints");
 		await db.addOutputs(
 			[0, 1].map((outIndex) => ({
-				txnID, addrID, outIndex, outAmount: 10, outScript: "00",
+				txnID,
+				addrID,
+				outIndex,
+				outAmount: 10,
+				outScript: "00",
 			})),
 		);
 		const expected = await db.getOutputIds([
@@ -848,7 +857,11 @@ describe.skipIf(!port)("Database driver integration", () => {
 		const addrID = await db.ensureAddressId("snapshot-outpoints");
 		await db.addOutputs(
 			[0, 1].map((outIndex) => ({
-				txnID, addrID, outIndex, outAmount: 10, outScript: "00",
+				txnID,
+				addrID,
+				outIndex,
+				outAmount: 10,
+				outScript: "00",
 			})),
 		);
 		const outputs = await db.getOutputIds([{ txid, vout: 1 }]);

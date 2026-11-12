@@ -34,7 +34,7 @@
 		"bs58check": "4.0.0",
 		"hono": "4.13.14",
 		"lodash.clonedeep": "4.5.0",
-		"mariadb": "^3.5.4",
+		"mariadb": "^3.5.5",
 		"quick-lru": "7.3.0",
 		"socks": "2.8.10",
 		"soroban-client-nodejs": "1.1.0",
@@ -47,24 +47,24 @@
 		"zeromq": "6.8.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.15",
-		"@tanstack/react-query": "^5.104.0",
-		"@tanstack/react-router": "^1.170.41",
-		"@tanstack/react-start": "^1.168.60",
+		"@biomejs/biome": "^2.6.6",
+		"@tanstack/react-query": "^5.107.1",
+		"@tanstack/react-router": "^1.170.46",
+		"@tanstack/react-start": "^1.169.5",
 		"@types/lodash.clonedeep": "^4.5.9",
-		"@types/node": "^26.3.0",
+		"@types/node": "^26.6.6",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
 		"@types/validator": "^13.15.10",
 		"@types/ws": "^8.18.1",
-		"@vitejs/plugin-react": "^6.1.1",
+		"@vitejs/plugin-react": "^6.3.0",
 		"esbuild": "^0.28.2",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0",
 		"react-qr-code": "^2.2.0",
 		"typescript": "^7.0.2",
-		"vite": "^8.3.1",
-		"vitest": "^5.0.5"
+		"vite": "^8.3.7",
+		"vitest": "^5.1.0"
 	},
 	"devEngines": {
 		"runtime": {

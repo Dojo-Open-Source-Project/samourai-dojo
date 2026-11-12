@@ -8,6 +8,7 @@ export function getRouter() {
 		routeTree,
 		basepath: "/admin",
 		trailingSlash: "always",
+		// biome-ignore lint/correctness/noComponentHookFactories: OK in router
 		Wrap: ({ children }) => (
 			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 		),

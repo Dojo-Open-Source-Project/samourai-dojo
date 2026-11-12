@@ -45,10 +45,13 @@ describe("Bounded outpoint lookups", () => {
 				1001,
 			);
 		}
-		assert.deepEqual(conn.query.mock.calls.map((args) => args[0]), [
-			"SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
-			"START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY",
-		]);
+		assert.deepEqual(
+			conn.query.mock.calls.map((args) => args[0]),
+			[
+				"SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+				"START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY",
+			],
+		);
 		assert.equal(conn.commit.mock.calls.length, 1);
 		assert.equal(conn.release.mock.calls.length, 1);
 	});

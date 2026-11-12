@@ -9,8 +9,9 @@ GET /xpub/:xpub
 ```
 
 ## Parameters
-* **:xpub** - `string` - The extended public key for the HD Account
-* **at** - `string` (optional) - Access Token (json web token). Required if authentication is activated. Alternatively, the access token can be passed through the `Authorization` HTTP header (with the `Bearer` scheme).
+
+- **:xpub** - `string` - The extended public key for the HD Account
+- **at** - `string` (optional) - Access Token (json web token). Required if authentication is activated. Alternatively, the access token can be passed through the `Authorization` HTTP header (with the `Bearer` scheme).
 
 ### Example
 
@@ -19,27 +20,31 @@ GET /xpub/xpub0123456789
 ```
 
 #### Success
+
 Status code 200 with JSON response:
+
 ```json
 {
-  "status": "ok",
-  "data": {
-    "balance": 100000000,
-    "unused": {
-      "external": 2,
-      "internal": 1
-    },
-    "derivation": "BIP44|BIP49",
-    "created": 1500000000
-  }
+	"status": "ok",
+	"data": {
+		"balance": 100000000,
+		"unused": {
+			"external": 2,
+			"internal": 1
+		},
+		"derivation": "BIP44|BIP49",
+		"created": 1500000000
+	}
 }
 ```
 
 #### Failure
+
 Status code 400 with JSON response:
+
 ```json
 {
-  "status": "error",
-  "error": "<error message>"
+	"status": "error",
+	"error": "<error message>"
 }
 ```

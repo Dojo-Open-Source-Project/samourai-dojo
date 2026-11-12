@@ -613,4 +613,4 @@ an absolute waiver of all civil liability in connection with the
 Program, unless a warranty or assumption of liability accompanies a
 copy of the Program in return for a fee.
 
-Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved. 
+Copyright © 2019 – Katana Cryptographic Ltd. All Rights Reserved.

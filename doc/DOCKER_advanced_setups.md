@@ -1,12 +1,11 @@
 # MyDojo - Advanced Setups
 
-
 The configuration files of Dojo provide a few advanced options allowing to tune your setup.
 
 A word of caution, though, the default values of these options try to maximize your privacy at a network level. Some of the advanced setups described in this document may damage your privacy. Use at your own risk!
 
+## Table of Content
 
-## Table of Content ##
 - [Local indexer of Bitcoin addresses](#local-indexer-of-bitcoin-addresses)
 - [Local Fulcrum as a source of imports and use with external apps](#local-fulcrum-as-a-source-of-imports-and-use-with-external-apps)
 - [Fulcrum API exposed to external apps](#fulcrum-api-exposed-to-external-apps)
@@ -18,32 +17,27 @@ A word of caution, though, the default values of these options try to maximize y
 - [Configure Tor Bridges](#configure-tor-bridges)
 - [Support of testnet](#support-of-testnet)
 
-
-## Local indexer of Bitcoin addresses ##
+## Local indexer of Bitcoin addresses
 
 By default, Dojo uses the local full node as its data source for imports and rescans of HD accounts and addresses. While private, this default option has many limitations. MyDojo allows to install a local indexer ([addrindexrs](https://github.com/Dojo-Open-Source-Project/addrindexrs)) providing the best of both worlds (no request sent to a third party, fast and real time rescans, complete transactional history is retrieved).
 
-
-### Requirements ###
+### Requirements
 
 To date, the initial installation of the indexer requires 60GB of additional disk space.
 
-
-### Main benefits ###
+### Main benefits
 
 - Fast, private and exhaustive real time rescans,
 - Allows the block explorer to display the detailed activity of Bitcoin addresses
 
+### Known drawbacks
 
-### Known drawbacks ###
+- Additionnal disk space consumed by the index,
+- Increased duration of upgrades (from 5 to 20 minutes depending on the machine hosting your Dojo),
+- Slight increase of startup duration,
+- First indexation will require a few hours.
 
-* Additionnal disk space consumed by the index,
-* Increased duration of upgrades (from 5 to 20 minutes depending on the machine hosting your Dojo),
-* Slight increase of startup duration,
-* First indexation will require a few hours.
-
-
-### Procedure ###
+### Procedure
 
 ```sh
 # If you're installing a new Dojo or if you're upgrading from a Dojo version <= 1.4.1, edit the docker-indexer.conf.tpl file
@@ -83,29 +77,27 @@ nano ./conf/docker-node.conf
 #
 ```
 
-## Local Fulcrum as a source of imports and use with external apps ##
+## Local Fulcrum as a source of imports and use with external apps
 
 If you want to use external apps (such as Sparrow Wallet) which are able to connect to a trusted Electrum server, it is possible to use Fulcrum instead of default addrindexrs.
 
-### Requirements ###
+### Requirements
 
 To date, the initial installation of the indexer requires 120GB of additionnal disk space.
 
-
-### Main benefits ###
+### Main benefits
 
 - Fast, private and exhaustive real time rescans
 - Allows the block explorer to display the detailed activity of Bitcoin addresses
 - Allows external apps to use this personal electrum server API over Tor
 
+### Known drawbacks
 
-### Known drawbacks ###
+- Additionnal disk space consumed by the index
+- Slight increase of startup duration,
+- First indexation will require a 1-2 days.
 
-* Additionnal disk space consumed by the index
-* Slight increase of startup duration,
-* First indexation will require a 1-2 days.
-
-### Procedure ###
+### Procedure
 
 ```sh
 # If you're installing a new Dojo or if you're upgrading from a Dojo version <= 1.4.1, edit the docker-indexer.conf.tpl file
@@ -147,7 +139,7 @@ nano ./conf/docker-node.conf
 #   `dojo.sh onion`
 ```
 
-## Fulcrum API exposed to external apps ##
+## Fulcrum API exposed to external apps
 
 By default, access to the electrum API of your Fulcrum instance is restricted to Docker containers hosted on the "dojonet" network.
 
@@ -183,20 +175,19 @@ nano ./conf/docker-indexer.conf
 ```
 
 With this setting, external applications running on your local machine should be able to access:
-* 50001: TCP port of your Fulcrum instance
-* 50002: SSL port of your Fulcrum instance
+
+- 50001: TCP port of your Fulcrum instance
+- 50002: SSL port of your Fulcrum instance
 
 Note: this option has no effect if your setup relies on a external indexer or your indexer is not Fulcrum
 
-
-## Local Electrum server used as data source for imports/rescans ##
+## Local Electrum server used as data source for imports/rescans
 
 If you're running an instance of ElectrumX, Electrs or Fulcrum on your local network, Dojo allows you to define this instance as the data source used for imports and rescans. This setup is an alternative to the local indexer provided by MyDojo.
 
 Important: Do not use an Electrum server operated by a third party or hosted on a different local network.
 
-
-### Procedure ###
+### Procedure
 
 ```sh
 # If you're installing a new Dojo or if you're upgrading from a Dojo version <= 1.4.1, edit the docker-indexer.conf.tpl file
@@ -223,14 +214,13 @@ nano ./conf/docker-node.conf
 #
 ```
 
-## External Bitcoin full node ##
+## External Bitcoin full node
 
 By default, Dojo installs and runs a Bitcoin full node in Docker.
 
 The following procedure allows to bypass the installation of this full node by telling Dojo to rely on an external bitcoind running on your host machine.
 
-
-### Requirements ###
+### Requirements
 
 The external full node mustn't be pruned.
 
@@ -265,10 +255,9 @@ zmqpubhashblock=...
 zmqpubrawtx=...
 ```
 
+### Procedure
 
-### Procedure ###
-
-#### Configuration of Dojo ####
+#### Configuration of Dojo
 
 ```sh
 # If you're installing a new Dojo, edit the docker-bitcoind.conf.tpl file
@@ -292,7 +281,7 @@ nano ./conf/docker-bitcoind.conf
 #
 ```
 
-### Fast import of block headers in Dojo (optional) ###
+### Fast import of block headers in Dojo (optional)
 
 When Dojo is installed for the first time, the Tracker imports the block headers in the database.
 
@@ -302,15 +291,13 @@ Follow these steps if you want to speed up this operation by preloading an archi
 # Download the archive [https://samouraiwallet.com/static/share/2_blocks.sql.gz](https://samouraiwallet.com/static/share/2_blocks.sql.gz) to the "<dojo_dir>/db-scripts/" directory. Don't modify the name of the archive.
 ```
 
-
-#### Start the installation of Dojo ####
+#### Start the installation of Dojo
 
 ```
 ./dojo.sh install
 ```
 
-
-## bitcoind RPC API and ZMQ notifications exposed to external apps ##
+## bitcoind RPC API and ZMQ notifications exposed to external apps
 
 By default, access to the RPC API of your bitcoind is restricted to Docker containers hosted on the "dojonet" network.
 
@@ -346,16 +333,16 @@ nano ./conf/docker-bitcoind.conf
 ```
 
 With this setting, external applications running on your local machine should be able to access the following ports:
-* 9500: bitcoind zmqpubhashtx notifications
-* 9501: bitcoind zmqpubrawtx notifications
-* 9502: bitcoind zmqpubhashblock notifications
-* 9503: bitcoind zmqpubrawblock notifications
-* 28256: bitcoind RPC API
+
+- 9500: bitcoind zmqpubhashtx notifications
+- 9501: bitcoind zmqpubrawtx notifications
+- 9502: bitcoind zmqpubhashblock notifications
+- 9503: bitcoind zmqpubrawblock notifications
+- 28256: bitcoind RPC API
 
 Note: this option has no effect if your setup relies on a external full node (i.e. if BITCOIND_INSTALL is set to "off").
 
-
-## Static onion address for bitcoind hidden service ##
+## Static onion address for bitcoind hidden service
 
 By default, Dojo creates a new onion address for your bitcoind at each startup.
 
@@ -381,7 +368,7 @@ nano ./conf/docker-bitcoind.conf
 
 Note: this option has no effect if your setup relies on a external full node (i.e. if BITCOIND_INSTALL is set to "off").
 
-## Enable Bloom filters ##
+## Enable Bloom filters
 
 By default, Bitcoin Core doesn't have bloom filters enabled. This functionality can be useful for light wallets leveraging bloom filter capability, such as Bisq.
 
@@ -411,7 +398,7 @@ nano ./conf/docker-bitcoind.conf
 ./dojo.sh start
 ```
 
-## Configure Tor Bridges ##
+## Configure Tor Bridges
 
 By default, Dojo doesn't try to hide that Tor is being used. For the majority of Dojo users, connecting to Tor with the default configuration is appropriate and will work successfully. For some users, it may be appropriate to configure Tor Bridges in order to circumvent censorship enforced by ISP, censorship enforcement bodies and other interested parties.
 
@@ -453,8 +440,7 @@ nano ./conf/docker-tor.conf
 #
 ```
 
-
-## Support of testnet ##
+## Support of testnet
 
 By default, Dojo is installed for running on Bitcoin mainnet.
 
@@ -475,7 +461,7 @@ Note: This option must be set before the first installation of Dojo and mustn't 
 
 Known limitation: A single instance of Dojo can be run per machine (a same machine can't host both a mainnet and a testnet instance of Dojo).
 
-## Change the blocks directory ##
+## Change the blocks directory
 
 By default, Dojo will use your main hard drive when downloading the bitcoin blocks.
 

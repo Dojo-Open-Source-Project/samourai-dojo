@@ -1,6 +1,6 @@
 # Copying data from an existing node
 
-It's possible to copy the blockchain and Fulcrum data from an older node to your Dojo, significantly speeding up the initial synchronization by taking a few hours instead of days.  
+It's possible to copy the blockchain and Fulcrum data from an older node to your Dojo, significantly speeding up the initial synchronization by taking a few hours instead of days.
 
 Here are the steps:
 
@@ -42,7 +42,7 @@ Take note of the directory and do the same for the Fulcrum mountpoint.
 
 ## 4. Delete current data
 
-Become root to be able to go inside the directory. Depending on the Linux distro, this could be `sudo -i` or `su -`. The prompt will change from `$` to `#`.  
+Become root to be able to go inside the directory. Depending on the Linux distro, this could be `sudo -i` or `su -`. The prompt will change from `$` to `#`.
 
 ### Bitcoin
 
@@ -60,7 +60,7 @@ drwx------ 4 1105 1108 4.0K Jul 11  2022 indexes
 (some lines omitted)
 ```
 
-Take note of the owner's user ID (UID) `1105` and group ID (GID) `1108`, in case yours differ.  
+Take note of the owner's user ID (UID) `1105` and group ID (GID) `1108`, in case yours differ.
 
 Delete the blockchain data with `rm -rf blocks indexes chainstate`. The other files can be ignored.
 
@@ -81,8 +81,8 @@ The ids in this case are `1133` and `1136`. Delete everything there with `rm -rf
 
 You now have to copy the files any way you want, like using the GUI or the terminal, and then adjust their ownership and permissions. If using the terminal, `rsync` is a good option because it displays progress and makes it easier if you need to stop the copying process and resume later, but `cp` can be used too.
 
-The following commands assume data is being copied from an external USB HDD mounted at `/mnt/externalusb`, which has a `bitcoin` and a `fulcrum` folder with the data you previously copied to it.  
-  
+The following commands assume data is being copied from an external USB HDD mounted at `/mnt/externalusb`, which has a `bitcoin` and a `fulcrum` folder with the data you previously copied to it.
+
 > Note: if using rsync, pay attention to the commands below, especially if you're using TAB completion. In rsync syntax, `blocks` means the directory itself whereas `blocks/` means the directory contents!
 
 ### Bitcoin

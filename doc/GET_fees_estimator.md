@@ -8,8 +8,8 @@ GET /fees/estimator
 ```
 
 ## Parameters
-* **at** - `string` (optional) - Access Token (json web token). Required if authentication is activated. Alternatively, the access token can be passed through the `Authorization` HTTP header (with the `Bearer` scheme).
 
+- **at** - `string` (optional) - Access Token (json web token). Required if authentication is activated. Alternatively, the access token can be passed through the `Authorization` HTTP header (with the `Bearer` scheme).
 
 ### Examples
 
@@ -18,15 +18,17 @@ GET /fees/estimator
 ```
 
 #### Success
+
 Status code 200 with JSON response:
+
 ```json
 {
-  "0.1": 7,
-  "0.2": 8,
-  "0.5": 15,
-  "0.9": 20,
-  "0.99": 22,
-  "0.999": 25
+	"0.1": 7,
+	"0.2": 8,
+	"0.5": 15,
+	"0.9": 20,
+	"0.99": 22,
+	"0.999": 25
 }
 ```
 
@@ -37,9 +39,10 @@ After that, it returns the latest cached estimates. The cache has no expiry and
 keeps its value while the estimator is temporarily unavailable or not ready.
 
 Status code 503 with JSON response:
+
 ```json
 {
-  "status": "error",
-  "error": "<error message>"
+	"status": "error",
+	"error": "<error message>"
 }
 ```

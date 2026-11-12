@@ -2008,7 +2008,9 @@ class MySqlDbWrapper {
 			const connection = await this.pool.getConnection();
 			try {
 				// SET TRANSACTION applies to this transaction only, leaving pool defaults intact.
-				await connection.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+				await connection.query(
+					"SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
+				);
 				await connection.query(
 					"START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY",
 				);
@@ -2092,7 +2094,9 @@ class MySqlDbWrapper {
 		return this._queryOutpoints<OutputIdRow>(
 			spends,
 			"vout",
-			(requested) => `SELECT outputs.outID, transactions.txnTxid, outputs.outIndex
+			(
+				requested,
+			) => `SELECT outputs.outID, transactions.txnTxid, outputs.outIndex
 			FROM (${requested}) AS requested
 			INNER JOIN transactions ON transactions.txnTxid = requested.txnTxid
 			INNER JOIN outputs ON outputs.txnID = transactions.txnID AND outputs.outIndex = requested.outIndex`,
